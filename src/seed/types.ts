@@ -1,0 +1,168 @@
+// Shared types for CruxMate seed data.
+// Keep this file in sync with src/store/types.ts once Lovable scaffolds the app.
+
+export type Category =
+  | 'top_rope'
+  | 'lead'
+  | 'boulder'
+  | 'outdoor_sport'
+  | 'trad'
+  | 'multi_pitch'
+  | 'outdoor_boulder'
+  | 'event';
+
+export type Style = 'top_rope' | 'lead' | 'boulder' | 'outdoor_sport' | 'trad' | 'events';
+
+export type Vibe = 'chill' | 'projecting' | 'training' | 'social';
+
+export type LocationType = 'indoor' | 'outdoor' | 'event';
+
+export type VerificationCategory = 'top_rope' | 'lead' | 'trad';
+
+export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
+
+export type EventType =
+  | 'community_night'
+  | 'identity'
+  | 'education'
+  | 'mountaineering'
+  | 'backcountry'
+  | 'comp'
+  | 'social';
+
+export type GroupCategory =
+  | 'general'
+  | 'identity'
+  | 'alpine'
+  | 'trad'
+  | 'boulder'
+  | 'beginner'
+  | 'projecting'
+  | 'backcountry'
+  | 'gym';
+
+export interface Gym {
+  id: string;
+  name: string;
+  short_name: string;
+  address: string;
+  city: string;
+  lat: number;
+  lng: number;
+  disciplines: Array<'top_rope' | 'lead' | 'boulder' | 'autobelay'>;
+}
+
+export interface Route {
+  id: string;
+  name: string;
+  area: string;
+  grade: string;             // e.g. '5.9', '5.10a', 'V6'
+  style: 'sport' | 'trad' | 'multi_pitch' | 'boulder';
+  pitches: number;
+  mp_url: string;
+}
+
+export interface Session {
+  id: string;
+  category: Category;
+  title: string;
+  subtitle: string;          // grade range or level text
+  starts_at: string;         // ISO
+  ends_at: string;           // ISO
+  gym_id?: string;           // indoor
+  area?: string;             // outdoor
+  route_id?: string;         // outdoor optional
+  host_id: string;
+  participant_ids: string[]; // includes host
+  capacity: number;
+  vibe: Vibe;
+  location_type: LocationType;
+  is_verified_only: boolean;
+  requires_attestation: boolean; // trad-flag
+  posted_by_group_id?: string;
+  note?: string;
+}
+
+export interface EventItem {
+  id: string;
+  title: string;
+  tagline: string;
+  type: EventType;
+  starts_at: string;
+  ends_at: string;
+  venue: string;             // gym name or free-text venue
+  gym_id?: string;
+  cost_cents: number;        // 0 = free
+  capacity: number | null;   // null = unlimited
+  attendee_ids: string[];
+  waitlist_ids: string[];
+  host_group_id?: string;
+  age_restricted: boolean;
+  description: string;
+  gear_note?: string;
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  tagline: string;
+  category: GroupCategory;
+  member_count: number;
+  cover_url: string;
+  description: string;
+  admin_ids: string[];
+  recent_activity: string;
+}
+
+export interface NpcUser {
+  id: string;
+  display_name: string;
+  pronouns?: string;
+  avatar_url: string;
+  home_gym_id: string;
+  top_grade: string;
+  preferred_styles: Style[];
+  verifications: Partial<Record<VerificationCategory, VerificationStatus>>;
+}
+
+// The mocked signed-in user profile (client-side only in v0.5).
+export interface Profile {
+  id: string;
+  display_name: string;
+  pronouns?: string;
+  dob?: string;
+  avatar_url: string;
+  home_gym_id: string;
+  top_grade: string;
+  preferred_styles: Style[];
+  about?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  from: string;
+  text: string;
+  sent_at: string;
+}
+
+export interface Rating {
+  safety: number;
+  punctuality: number;
+  vibe: number;
+  note?: string;
+}
+
+// Helper: date offset from "now" so the seed always feels fresh.
+export const daysFromNow = (n: number, hour: number, minute = 0): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  d.setHours(hour, minute, 0, 0);
+  return d.toISOString();
+};
+
+// Duration helper: takes a start ISO and returns end ISO N hours later.
+export const plusHours = (startIso: string, hours: number): string => {
+  const d = new Date(startIso);
+  d.setHours(d.getHours() + hours);
+  return d.toISOString();
+};

@@ -1,0 +1,90 @@
+import type { Gym } from './types';
+
+/**
+ * 8 real Seattle-area climbing gyms. Coordinates are approximate — verify
+ * before shipping to production if you're going to render them on a map.
+ */
+export const SEED_GYMS: Gym[] = [
+  {
+    id: 'gym_vertical_world',
+    name: 'Vertical World Seattle',
+    short_name: 'Vertical World',
+    address: '2123 W Elmore St',
+    city: 'Seattle, WA',
+    lat: 47.6459,
+    lng: -122.3877,
+    disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
+  },
+  {
+    id: 'gym_sbp_poplar',
+    name: 'Seattle Bouldering Project — Poplar',
+    short_name: 'SBP Poplar',
+    address: '900 Poplar Pl S',
+    city: 'Seattle, WA',
+    lat: 47.5937,
+    lng: -122.3141,
+    disciplines: ['boulder'],
+  },
+  {
+    id: 'gym_sbp_fremont',
+    name: 'Seattle Bouldering Project — Fremont',
+    short_name: 'SBP Fremont',
+    address: '211 N 36th St',
+    city: 'Seattle, WA',
+    lat: 47.6511,
+    lng: -122.3492,
+    disciplines: ['boulder'],
+  },
+  {
+    id: 'gym_stone_gardens_ballard',
+    name: 'Stone Gardens Ballard',
+    short_name: 'Stone Gardens Ballard',
+    address: '2839 NW Market St',
+    city: 'Seattle, WA',
+    lat: 47.6685,
+    lng: -122.3966,
+    disciplines: ['top_rope', 'lead', 'boulder'],
+  },
+  {
+    id: 'gym_stone_gardens_bellevue',
+    name: 'Stone Gardens Bellevue',
+    short_name: 'Stone Gardens Bellevue',
+    address: '13300 Bel-Red Rd',
+    city: 'Bellevue, WA',
+    lat: 47.6317,
+    lng: -122.1682,
+    disciplines: ['top_rope', 'lead', 'boulder'],
+  },
+  {
+    id: 'gym_blochaus',
+    name: 'BlocHaus',
+    short_name: 'BlocHaus',
+    address: '5301 Leary Ave NW',
+    city: 'Seattle, WA',
+    lat: 47.6666,
+    lng: -122.3833,
+    disciplines: ['boulder'],
+  },
+  {
+    id: 'gym_movement_bellevue',
+    name: 'Movement Bellevue',
+    short_name: 'Movement Bellevue',
+    address: '14135 NE 20th St',
+    city: 'Bellevue, WA',
+    lat: 47.6291,
+    lng: -122.1447,
+    disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
+  },
+  {
+    id: 'gym_edgeworks_tacoma',
+    name: 'Edgeworks Tacoma',
+    short_name: 'Edgeworks',
+    address: '6102 N 9th St',
+    city: 'Tacoma, WA',
+    lat: 47.2701,
+    lng: -122.5088,
+    disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
+  },
+];
+
+export const GYM_BY_ID = Object.fromEntries(SEED_GYMS.map((g) => [g.id, g] as const));
