@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { EyeClosed } from 'iconoir-react';
 import { Button } from '@/components/ui/Button';
 import { Input, Label } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
+import { lbsToKg, ftInToCm, cmToFtIn, kgToLbs } from '@/lib/weight';
 import type { Style } from '@/seed/types';
 
 const GRADE_BANDS = [
@@ -32,13 +34,19 @@ export function Onboarding() {
   const me = useAppStore((s) => s.me);
   const gyms = useAppStore((s) => s.gyms);
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [dob, setDob] = useState('');
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [dob, setDob] = useState(me?.dob ?? '');
   const [avatarSeed, setAvatarSeed] = useState<number>(4);
-  const [homeGymId, setHomeGymId] = useState<string>(gyms[0]?.id ?? '');
-  const [topGrade, setTopGrade] = useState<string>('5.10a-5.10c');
-  const [preferredStyles, setPreferredStyles] = useState<Style[]>(['top_rope', 'lead']);
+  const [homeGymId, setHomeGymId] = useState<string>(me?.home_gym_id ?? gyms[0]?.id ?? '');
+  const [topGrade, setTopGrade] = useState<string>(me?.top_grade ?? '5.10a-5.10c');
+  const [preferredStyles, setPreferredStyles] = useState<Style[]>(me?.preferred_styles ?? ['top_rope', 'lead']);
   const [certOpen, setCertOpen] = useState(false);
+  // Height + weight (hidden fields, used for weight-safe matching)
+  const [weightLbs, setWeightLbs] = useState<string>(me?.weight_kg ? String(kgToLbs(me.weight_kg)) : '');
+  const [heightFt, setHeightFt] = useState<string>(me?.height_cm ? String(Math.floor(me.height_cm / 2.54 / 12)) : '');
+  const [heightIn, setHeightIn] = useState<string>(
+    me?.height_cm ? String(Math.round(me.height_cm / 2.54 - Math.floor(me.height_cm / 2.54 / 12) * 12)) : '',
+  );
 
   if (!me) {
     // no profile → redirect
@@ -47,12 +55,16 @@ export function Onboarding() {
   }
 
   const finish = () => {
+    const weightKg = weightLbs ? lbsToKg(Number(weightLbs)) : undefined;
+    const heightCm = heightFt || heightIn ? ftInToCm(Number(heightFt || 0), Number(heightIn || 0)) : undefined;
     completeOnboarding({
       dob: dob || undefined,
       avatar_url: `https://i.pravatar.cc/128?img=${avatarSeed}`,
       home_gym_id: homeGymId,
       top_grade: topGrade,
       preferred_styles: preferredStyles,
+      weight_kg: weightKg,
+      height_cm: heightCm,
     });
     toast('Welcome to CruxMate!');
     nav('/find');
@@ -69,7 +81,7 @@ export function Onboarding() {
       <div className="mx-auto max-w-[560px] px-6 py-10">
         {/* Progress dots */}
         <div className="flex justify-center gap-2 mb-8">
-          {[1, 2, 3, 4].map((n) => (
+          {[1, 2, 3, 4, 5].map((n) => (
             <div
               key={n}
               className={cn(
@@ -202,6 +214,75 @@ export function Onboarding() {
         )}
 
         {step === 4 && (
+          <>
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-2xl font-semibold text-ink-900">Height & weight.</h2>
+            </div>
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-teal-100 text-teal-600 text-[10px] font-semibold px-2 py-0.5 mb-3">
+              <EyeClosed width={11} height={11} />
+              HIDDEN FROM OTHERS
+            </div>
+            <p className="text-sm text-ink-500">
+              Used only to compute the <b>weight-safe</b> chip on belay pairings. Never shown to other users. Skip if you'd rather not.
+            </p>
+            <div className="mt-6 space-y-5">
+              <div>
+                <Label>Weight (lbs)</Label>
+                <Input
+                  type="number"
+                  min={60}
+                  max={400}
+                  value={weightLbs}
+                  onChange={(e) => setWeightLbs(e.target.value)}
+                  placeholder="e.g. 145"
+                />
+              </div>
+              <div>
+                <Label>Height</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    type="number"
+                    min={3}
+                    max={8}
+                    value={heightFt}
+                    onChange={(e) => setHeightFt(e.target.value)}
+                    placeholder="ft"
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    max={11}
+                    value={heightIn}
+                    onChange={(e) => setHeightIn(e.target.value)}
+                    placeholder="in"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="mt-8 flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setStep(3)}>
+                Back
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex-1"
+                onClick={() => {
+                  setWeightLbs('');
+                  setHeightFt('');
+                  setHeightIn('');
+                  setStep(5);
+                }}
+              >
+                Skip
+              </Button>
+              <Button className="flex-1" onClick={() => setStep(5)}>
+                Next
+              </Button>
+            </div>
+          </>
+        )}
+
+        {step === 5 && (
           <>
             <h2 className="text-2xl font-semibold text-ink-900">Belay verification.</h2>
             <p className="mt-2 text-sm text-ink-500">

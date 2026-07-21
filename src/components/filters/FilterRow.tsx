@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { NavArrowDown, Filter, Xmark } from 'iconoir-react';
+import { format } from 'date-fns';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { useAppStore } from '@/store/useAppStore';
 import { AREAS } from '@/seed/routes';
@@ -17,6 +19,7 @@ type FilterKey =
   | 'type'
   | 'cost'
   | 'route'
+  | 'role'
   | 'all';
 
 const DATE_OPTS = [
@@ -36,6 +39,17 @@ const INDOOR_STYLES = [
   { value: 'lead', label: 'Lead' },
   { value: 'boulder', label: 'Boulder' },
 ];
+
+const BELAY_STYLES = [
+  { value: 'top_rope', label: 'Top Rope' },
+  { value: 'lead', label: 'Lead' },
+];
+
+const ROLE_OPTS = [
+  { value: 'both', label: 'Either' },
+  { value: 'belayer', label: 'Belayers only' },
+  { value: 'climber', label: 'Climbers only' },
+] as const;
 
 const OUTDOOR_STYLES = [
   { value: 'outdoor_sport', label: 'Sport' },
@@ -68,12 +82,33 @@ export function FilterRow() {
   const [open, setOpen] = useState<FilterKey | null>(null);
 
   const active = filters.tab === 'indoor' ? filters.indoor : filters.tab === 'outdoor' ? filters.outdoor : filters.events;
+  const isBelaySub = filters.tab === 'indoor' && filters.indoor.sub_tab === 'belay';
   const hasFilters =
     filters.tab === 'indoor'
-      ? Boolean(filters.indoor.gym_id || filters.indoor.date || filters.indoor.time || filters.indoor.styles.length || filters.indoor.grade_band)
+      ? Boolean(
+          filters.indoor.gym_id ||
+          filters.indoor.date ||
+          filters.indoor.date_specific ||
+          filters.indoor.time ||
+          filters.indoor.styles.length ||
+          filters.indoor.grade_band ||
+          filters.indoor.role ||
+          filters.indoor.weight_safe_only,
+        )
       : filters.tab === 'outdoor'
       ? Boolean(filters.outdoor.area || filters.outdoor.date || filters.outdoor.time || filters.outdoor.styles.length || filters.outdoor.grade_band || filters.outdoor.route_id)
       : Boolean(filters.events.types.length || filters.events.date || filters.events.time || filters.events.host || filters.events.freeOnly);
+
+  const dateLabel = () => {
+    if (filters.tab !== 'indoor' && filters.tab !== 'outdoor' && filters.tab !== 'events') return 'Date';
+    const spec = filters.tab === 'indoor' ? filters.indoor.date_specific : undefined;
+    if (spec) return format(new Date(spec + 'T00:00:00'), 'MMM d');
+    const dateVal = active.date;
+    if (dateVal === 'today') return 'Today';
+    if (dateVal === 'tomorrow') return 'Tomorrow';
+    if (dateVal === 'this_week') return 'This week';
+    return 'Date';
+  };
 
   const chipCls = (isActive: boolean) =>
     cn(
@@ -91,8 +126,8 @@ export function FilterRow() {
             <button className={chipCls(!!filters.indoor.gym_id)} onClick={() => setOpen('gym')}>
               {gym?.short_name ?? 'Gym'} <NavArrowDown width={12} height={12} />
             </button>
-            <button className={chipCls(!!filters.indoor.date)} onClick={() => setOpen('date')}>
-              {DATE_OPTS.find((d) => d.value === filters.indoor.date)?.label ?? 'Date'} <NavArrowDown width={12} height={12} />
+            <button className={chipCls(!!filters.indoor.date || !!filters.indoor.date_specific)} onClick={() => setOpen('date')}>
+              {dateLabel()} <NavArrowDown width={12} height={12} />
             </button>
             <button className={chipCls(!!filters.indoor.time)} onClick={() => setOpen('time')}>
               {TIME_OPTS.find((t) => t.value === filters.indoor.time)?.label.split(' ')[0] ?? 'Time'} <NavArrowDown width={12} height={12} />
@@ -100,9 +135,29 @@ export function FilterRow() {
             <button className={chipCls(filters.indoor.styles.length > 0)} onClick={() => setOpen('style')}>
               {filters.indoor.styles.length > 0 ? `${filters.indoor.styles.length} styles` : 'Style'} <NavArrowDown width={12} height={12} />
             </button>
-            <button className={chipCls(!!filters.indoor.grade_band)} onClick={() => setOpen('level')}>
-              {filters.indoor.grade_band ?? 'Level'} <NavArrowDown width={12} height={12} />
-            </button>
+            {isBelaySub && (
+              <>
+                <button className={chipCls(!!filters.indoor.role)} onClick={() => setOpen('role')}>
+                  {filters.indoor.role
+                    ? ROLE_OPTS.find((r) => r.value === filters.indoor.role)?.label
+                    : 'Role'}
+                  <NavArrowDown width={12} height={12} />
+                </button>
+                <button
+                  className={chipCls(filters.indoor.weight_safe_only)}
+                  onClick={() =>
+                    setIndoor({ weight_safe_only: !filters.indoor.weight_safe_only })
+                  }
+                >
+                  ⚖ Weight-safe
+                </button>
+              </>
+            )}
+            {!isBelaySub && (
+              <button className={chipCls(!!filters.indoor.grade_band)} onClick={() => setOpen('level')}>
+                {filters.indoor.grade_band ?? 'Level'} <NavArrowDown width={12} height={12} />
+              </button>
+            )}
           </>
         )}
         {filters.tab === 'outdoor' && (
@@ -212,35 +267,64 @@ export function FilterRow() {
           )}
 
           {open === 'date' && (
-            <div className="flex flex-col gap-1">
-              <button
-                className="text-left px-3 py-3 rounded-xl hover:bg-paper-50 text-ink-500"
-                onClick={() => {
-                  if (filters.tab === 'indoor') setIndoor({ date: undefined });
-                  else if (filters.tab === 'outdoor') setOutdoor({ date: undefined });
-                  else setEvents({ date: undefined });
-                  setOpen(null);
-                }}
-              >
-                Anytime
-              </button>
-              {DATE_OPTS.map((d) => (
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-2">
                 <button
-                  key={d.value}
                   className={cn(
-                    'text-left px-3 py-3 rounded-xl',
-                    active.date === d.value ? 'bg-ink-900 text-white' : 'text-ink-900 hover:bg-paper-50',
+                    'flex-1 rounded-xl border py-2 text-xs font-medium',
+                    !active.date && !(filters.tab === 'indoor' && filters.indoor.date_specific)
+                      ? 'bg-ink-900 text-white border-ink-900'
+                      : 'bg-white text-ink-700 border-ink-100',
                   )}
                   onClick={() => {
-                    if (filters.tab === 'indoor') setIndoor({ date: d.value });
-                    else if (filters.tab === 'outdoor') setOutdoor({ date: d.value });
-                    else setEvents({ date: d.value });
-                    setOpen(null);
+                    if (filters.tab === 'indoor') setIndoor({ date: undefined, date_specific: undefined });
+                    else if (filters.tab === 'outdoor') setOutdoor({ date: undefined });
+                    else setEvents({ date: undefined });
                   }}
                 >
-                  {d.label}
+                  Anytime
                 </button>
-              ))}
+                {DATE_OPTS.map((d) => (
+                  <button
+                    key={d.value}
+                    className={cn(
+                      'flex-1 rounded-xl border py-2 text-xs font-medium',
+                      active.date === d.value && !(filters.tab === 'indoor' && filters.indoor.date_specific)
+                        ? 'bg-ink-900 text-white border-ink-900'
+                        : 'bg-white text-ink-700 border-ink-100',
+                    )}
+                    onClick={() => {
+                      if (filters.tab === 'indoor') setIndoor({ date: d.value, date_specific: undefined });
+                      else if (filters.tab === 'outdoor') setOutdoor({ date: d.value });
+                      else setEvents({ date: d.value });
+                    }}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
+                  Or pick a specific date
+                </p>
+                <Input
+                  type="date"
+                  min={new Date().toISOString().slice(0, 10)}
+                  value={filters.tab === 'indoor' ? (filters.indoor.date_specific ?? '') : ''}
+                  onChange={(e) => {
+                    if (filters.tab === 'indoor') {
+                      setIndoor({ date_specific: e.target.value || undefined, date: undefined });
+                    }
+                  }}
+                  disabled={filters.tab !== 'indoor'}
+                />
+                {filters.tab !== 'indoor' && (
+                  <p className="text-[10px] text-ink-300 mt-1">
+                    Specific-date picker is Belay-first — coming to other tabs in v0.6.
+                  </p>
+                )}
+              </div>
+              <Button onClick={() => setOpen(null)}>Done</Button>
             </div>
           )}
 
@@ -279,7 +363,12 @@ export function FilterRow() {
 
           {open === 'style' && (
             <div className="flex flex-col gap-2">
-              {(filters.tab === 'indoor' ? INDOOR_STYLES : OUTDOOR_STYLES).map((s) => {
+              {(filters.tab === 'indoor'
+                ? isBelaySub
+                  ? BELAY_STYLES
+                  : INDOOR_STYLES
+                : OUTDOOR_STYLES
+              ).map((s) => {
                 const styles = filters.tab === 'indoor' ? filters.indoor.styles : filters.outdoor.styles;
                 const checked = styles.includes(s.value);
                 return (
@@ -373,6 +462,38 @@ export function FilterRow() {
               >
                 Free only
               </button>
+            </div>
+          )}
+
+          {open === 'role' && (
+            <div className="flex flex-col gap-1">
+              <button
+                className={cn(
+                  'text-left px-3 py-3 rounded-xl',
+                  !filters.indoor.role ? 'bg-ink-900 text-white' : 'text-ink-900 hover:bg-paper-50',
+                )}
+                onClick={() => {
+                  setIndoor({ role: undefined });
+                  setOpen(null);
+                }}
+              >
+                Any role
+              </button>
+              {ROLE_OPTS.map((r) => (
+                <button
+                  key={r.value}
+                  className={cn(
+                    'text-left px-3 py-3 rounded-xl',
+                    filters.indoor.role === r.value ? 'bg-ink-900 text-white' : 'text-ink-900 hover:bg-paper-50',
+                  )}
+                  onClick={() => {
+                    setIndoor({ role: r.value });
+                    setOpen(null);
+                  }}
+                >
+                  {r.label}
+                </button>
+              ))}
             </div>
           )}
 

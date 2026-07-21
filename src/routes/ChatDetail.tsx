@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
+import { ReactionPicker } from '@/components/chat/ReactionPicker';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +15,8 @@ export function ChatDetail() {
   const users = useAppStore((s) => s.users);
   const chats = useAppStore((s) => s.chats);
   const sendMessage = useAppStore((s) => s.sendMessage);
+  const toggleReactionDm = useAppStore((s) => s.toggleReactionDm);
+  const me = useAppStore((s) => s.me);
   const [text, setText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -71,7 +74,7 @@ export function ChatDetail() {
         {messages.length === 0 ? (
           <p className="text-center text-sm text-ink-500 pt-8">Say hi.</p>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {messages.map((m, i) => {
               const isMe = m.from === 'me';
               const showTime =
@@ -83,7 +86,7 @@ export function ChatDetail() {
                       {format(new Date(m.sent_at), 'EEE, MMM d')}
                     </p>
                   )}
-                  <div className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
+                  <div className={cn('flex flex-col', isMe ? 'items-end' : 'items-start')}>
                     <div
                       className={cn(
                         'max-w-[80%] rounded-2xl px-3.5 py-2 text-sm',
@@ -94,6 +97,12 @@ export function ChatDetail() {
                     >
                       {m.text}
                     </div>
+                    <ReactionPicker
+                      reactions={m.reactions}
+                      meId={me?.id ?? 'me'}
+                      align={isMe ? 'right' : 'left'}
+                      onToggle={(key) => userId && toggleReactionDm(userId, m.id, key)}
+                    />
                   </div>
                 </div>
               );
@@ -109,11 +118,7 @@ export function ChatDetail() {
         }}
         className="px-4 py-3 border-t border-ink-100 bg-white flex gap-2"
       >
-        <Input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Type a message"
-        />
+        <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a message" />
         <Button type="submit" size="icon" disabled={!text.trim()}>
           <Send width={18} height={18} />
         </Button>

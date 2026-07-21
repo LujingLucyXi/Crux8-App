@@ -18,3 +18,4 @@ export * from './users';
 export * from './sessions';
 export * from './events';
 export * from './groups';
+export * from './climb_calls';

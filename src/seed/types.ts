@@ -136,6 +136,52 @@ export interface Profile {
   top_grade: string;
   preferred_styles: Style[];
   about?: string;
+  // Weight + height are hidden from other users. Used only to compute
+  // the `weight-safe` chip on 1:1 climb calls.
+  weight_kg?: number;
+  height_cm?: number;
+}
+
+/**
+ * 1:1 climb call — a user broadcasts availability for a rope partner.
+ * Distinct from Session (which is a group activity with capacity).
+ * Only used for rope-based climbing (top_rope, lead). Boulder is a
+ * session concept, not a call concept.
+ */
+export interface ClimbCall {
+  id: string;
+  user_id: string;                    // who's calling ('me' or an NPC)
+  role: 'belayer' | 'climber' | 'both';
+  category: 'top_rope' | 'lead';
+  grade: string;                      // e.g. '5.10a–5.11c'
+  gym_id: string;
+  starts_at: string;                  // ISO
+  ends_at: string;                    // ISO
+  note?: string;                      // "Projecting 5.11a — soft catches please"
+  is_friend_only: boolean;
+  status: 'live' | 'expired' | 'matched';
+  weight_kg?: number;                 // caller's weight, used for weight-safe matching
+  capacity: number;                   // 2-6 — set by host, includes host
+  participant_ids: string[];          // includes host; grows as others pair up
+}
+
+/**
+ * Climbing-culture reaction emojis. Pop these up on any chat message.
+ * Design pass — order matters, most-used first.
+ */
+export type ReactionKey =
+  | 'chalk'         // 🧂 chalk cloud — send/beta help
+  | 'shoe'          // 👟 climb shoes — heading to the gym
+  | 'knot'          // 🪢 knot — tied in / ready to belay
+  | 'boulder'       // 🪨 rock — sending / trying hard
+  | 'rope'          // 🧵 rope — belay logistics
+  | 'send'          // 🔥 send — psyched / just sent
+  | 'crimp'         // 🤏 pinch — tiny holds
+  | 'flex';         // 💪 flex — got it done
+
+export interface Reaction {
+  key: ReactionKey;
+  by: string;                     // userId that reacted
 }
 
 export interface ChatMessage {
@@ -143,6 +189,7 @@ export interface ChatMessage {
   from: string;
   text: string;
   sent_at: string;
+  reactions?: Reaction[];
 }
 
 export interface Rating {

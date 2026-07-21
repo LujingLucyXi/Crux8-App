@@ -8,6 +8,7 @@ import { Community } from '@/routes/Community';
 import { GroupDetail } from '@/routes/GroupDetail';
 import { Chat } from '@/routes/Chat';
 import { ChatDetail } from '@/routes/ChatDetail';
+import { SessionChatDetail } from '@/routes/SessionChatDetail';
 import { Profile } from '@/routes/Profile';
 
 function RequireAuth() {
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
           { path: '/community', element: <Community /> },
           { path: '/community/:groupId', element: <GroupDetail /> },
           { path: '/chat', element: <Chat /> },
+          { path: '/chat/session/:sessionChatId', element: <SessionChatDetail /> },
           { path: '/chat/:userId', element: <ChatDetail /> },
           { path: '/profile', element: <Profile /> },
         ],

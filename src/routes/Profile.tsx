@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ShieldCheck, Trophy, Star, Community, Trekking, Sparks, HandCard } from 'iconoir-react';
-import { Textarea } from '@/components/ui/Input';
+import { ShieldCheck, Trophy, Star, Community, Trekking, Sparks, HandCard, EyeClosed } from 'iconoir-react';
+import { Textarea, Input, Label } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { SessionCard } from '@/components/cards/SessionCard';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
+import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Dialog, DialogContent } from '@/components/ui/Dialog';
 import { useAppStore, type BadgeId } from '@/store/useAppStore';
 import type { VerificationCategory, Rating } from '@/seed/types';
 import { cn } from '@/lib/utils';
+import { cmToFtIn, kgToLbs, lbsToKg, ftInToCm } from '@/lib/weight';
 
 const BADGE_META: Record<BadgeId, { label: string; Icon: React.ComponentType<{ width: number; height: number; color: string }> }> = {
   first_session: { label: 'First Session', Icon: HandCard },
@@ -56,6 +58,12 @@ export function Profile() {
   const [rateSessionId, setRateSessionId] = useState<string | null>(null);
   const [about, setAbout] = useState(me?.about ?? '');
   const [editingAbout, setEditingAbout] = useState(false);
+  const [hwOpen, setHwOpen] = useState(false);
+  const [weightLbs, setWeightLbs] = useState(me?.weight_kg ? String(kgToLbs(me.weight_kg)) : '');
+  const [heightFt, setHeightFt] = useState(me?.height_cm ? String(Math.floor(me.height_cm / 2.54 / 12)) : '');
+  const [heightIn, setHeightIn] = useState(
+    me?.height_cm ? String(Math.round(me.height_cm / 2.54 - Math.floor(me.height_cm / 2.54 / 12) * 12)) : '',
+  );
 
   if (!me) return null;
 
@@ -122,6 +130,42 @@ export function Profile() {
           </Button>
         </div>
       </div>
+
+      {/* Hidden fields — height + weight (for weight-safe matching) */}
+      <section className="mt-6">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500">Body stats</h2>
+          <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 text-teal-600 text-[10px] font-semibold px-2 py-0.5">
+            <EyeClosed width={10} height={10} />
+            Hidden from others
+          </span>
+        </div>
+        <button
+          onClick={() => setHwOpen(true)}
+          className="w-full text-left rounded-2xl bg-white border border-ink-100 p-4 hover:border-ink-300 flex items-center justify-between gap-3"
+        >
+          <div className="flex flex-col gap-1 min-w-0">
+            <div className="flex items-baseline gap-3 text-sm">
+              <span className="text-ink-500 text-xs uppercase tracking-wider">Weight</span>
+              <span className="text-ink-900 font-medium">
+                {me.weight_kg ? `${kgToLbs(me.weight_kg)} lbs` : 'Not set'}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-3 text-sm">
+              <span className="text-ink-500 text-xs uppercase tracking-wider">Height</span>
+              <span className="text-ink-900 font-medium">
+                {me.height_cm ? cmToFtIn(me.height_cm) : 'Not set'}
+              </span>
+            </div>
+            <p className="text-[11px] text-ink-500 mt-1">
+              {me.weight_kg
+                ? 'Powering the weight-safe chip on 1:1 belay calls.'
+                : 'Add weight to unlock weight-safe matching.'}
+            </p>
+          </div>
+          <span className="text-xs text-teal-600 font-semibold shrink-0">Edit</span>
+        </button>
+      </section>
 
       {/* About / Story */}
       <section className="mt-6">
@@ -283,6 +327,73 @@ export function Profile() {
           )}
         </div>
       </section>
+
+      {/* Height + weight edit sheet */}
+      <Sheet open={hwOpen} onOpenChange={setHwOpen}>
+        <SheetContent title="Body stats">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-teal-100 text-teal-600 text-[10px] font-semibold px-2 py-0.5 mb-3">
+            <EyeClosed width={11} height={11} />
+            HIDDEN FROM OTHERS
+          </div>
+          <p className="text-sm text-ink-500 mb-4">
+            Used only to compute the <b>weight-safe</b> chip on belay pairings. Never shown to other users.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <Label>Weight (lbs)</Label>
+              <Input
+                type="number"
+                min={60}
+                max={400}
+                value={weightLbs}
+                onChange={(e) => setWeightLbs(e.target.value)}
+                placeholder="e.g. 145"
+              />
+            </div>
+            <div>
+              <Label>Height</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  type="number"
+                  min={3}
+                  max={8}
+                  value={heightFt}
+                  onChange={(e) => setHeightFt(e.target.value)}
+                  placeholder="ft"
+                />
+                <Input
+                  type="number"
+                  min={0}
+                  max={11}
+                  value={heightIn}
+                  onChange={(e) => setHeightIn(e.target.value)}
+                  placeholder="in"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setHwOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  const wKg = weightLbs ? lbsToKg(Number(weightLbs)) : undefined;
+                  const hCm =
+                    heightFt || heightIn
+                      ? ftInToCm(Number(heightFt || 0), Number(heightIn || 0))
+                      : undefined;
+                  updateProfile({ weight_kg: wKg, height_cm: hCm });
+                  toast('Body stats saved · hidden from others');
+                  setHwOpen(false);
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <CertVerificationSheet
         open={certOpen}

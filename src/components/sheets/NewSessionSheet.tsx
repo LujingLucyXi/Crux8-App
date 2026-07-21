@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input, Label, Textarea } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { useAppStore } from '@/store/useAppStore';
-import type { Category, EventType, LocationType, Vibe } from '@/seed/types';
+import type { Category, EventType, LocationType, Vibe, ClimbCall } from '@/seed/types';
 import { plusHours } from '@/seed/types';
 import { cn } from '@/lib/utils';
 
@@ -40,12 +40,22 @@ const EVENT_TYPES: EventType[] = [
 export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const gyms = useAppStore((s) => s.gyms);
   const me = useAppStore((s) => s.me);
-  const myGroupMemberships = useAppStore((s) => s.myGroupMemberships);
   const groups = useAppStore((s) => s.groups);
   const postSession = useAppStore((s) => s.postSession);
   const postEvent = useAppStore((s) => s.postEvent);
+  const postClimbCall = useAppStore((s) => s.postClimbCall);
 
-  const [type, setType] = useState<'session' | 'event'>('session');
+  const [type, setType] = useState<'session' | 'call' | 'event'>('call');
+
+  // Call state
+  const [callRole, setCallRole] = useState<ClimbCall['role']>('both');
+  const [callCategory, setCallCategory] = useState<ClimbCall['category']>('top_rope');
+  const [callGrade, setCallGrade] = useState('5.10a–5.11a');
+  const [callGymId, setCallGymId] = useState<string>(me?.home_gym_id ?? gyms[0]?.id ?? '');
+  const [callWhen, setCallWhen] = useState<'now' | 'tonight' | 'tomorrow_morning'>('now');
+  const [callDurationHours, setCallDurationHours] = useState(2);
+  const [callCapacity, setCallCapacity] = useState(2);
+  const [callNote, setCallNote] = useState('');
 
   // Session state
   const [category, setCategory] = useState<Category>('top_rope');
@@ -72,7 +82,15 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const adminGroups = groups.filter((g) => g.admin_ids.includes(me?.id ?? 'me'));
 
   const reset = () => {
-    setType('session');
+    setType('call');
+    setCallRole('both');
+    setCallCategory('top_rope');
+    setCallGrade('5.10a–5.11a');
+    setCallGymId(me?.home_gym_id ?? gyms[0]?.id ?? '');
+    setCallWhen('now');
+    setCallDurationHours(2);
+    setCallCapacity(2);
+    setCallNote('');
     setCategory('top_rope');
     setSubtitle('');
     setGymId(me?.home_gym_id ?? gyms[0]?.id ?? '');
@@ -90,6 +108,38 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     setEvtCapacity(20);
     setEvtDesc('');
     setEvtGroupId('');
+  };
+
+  const handleSubmitCall = () => {
+    let startsAt: string;
+    if (callWhen === 'now') {
+      startsAt = new Date().toISOString();
+    } else if (callWhen === 'tonight') {
+      const d = new Date();
+      d.setHours(18, 0, 0, 0);
+      startsAt = d.toISOString();
+    } else {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      d.setHours(9, 0, 0, 0);
+      startsAt = d.toISOString();
+    }
+    postClimbCall({
+      role: callRole,
+      category: callCategory,
+      grade: callGrade,
+      gym_id: callGymId,
+      starts_at: startsAt,
+      ends_at: plusHours(startsAt, callDurationHours),
+      note: callNote.trim() || undefined,
+      is_friend_only: false,
+      weight_kg: me?.weight_kg,
+      capacity: callCapacity,
+      participant_ids: [me!.id],
+    });
+    toast('Climb call live', { description: `Belay partners can request to pair.` });
+    onOpenChange(false);
+    reset();
   };
 
   const handleSubmitSession = () => {
@@ -145,25 +195,160 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
         if (!o) reset();
       }}
     >
-      <SheetContent title={type === 'session' ? 'Post a session' : 'Post an event'}>
+      <SheetContent title={type === 'call' ? 'Drop a climb call' : type === 'session' ? 'Post a session' : 'Post an event'}>
         <div className="flex gap-2 mb-5 -mt-1">
-          {(['session', 'event'] as const).map((t) => (
+          {(
+            [
+              { value: 'call', label: 'Climb call' },
+              { value: 'session', label: 'Session' },
+              { value: 'event', label: 'Event' },
+            ] as const
+          ).map((t) => (
             <button
-              key={t}
-              onClick={() => setType(t)}
+              key={t.value}
+              onClick={() => setType(t.value)}
               className={cn(
-                'flex-1 rounded-xl border py-2 text-sm font-medium capitalize transition-colors',
-                type === t
+                'flex-1 rounded-xl border py-2 text-xs font-medium transition-colors',
+                type === t.value
                   ? 'bg-ink-900 text-white border-ink-900'
                   : 'bg-white text-ink-500 border-ink-100',
               )}
             >
-              {t}
+              {t.label}
             </button>
           ))}
         </div>
 
-        {type === 'session' ? (
+        {type === 'call' ? (
+          <div className="flex flex-col gap-5">
+            <p className="text-xs text-ink-500 -mt-1">
+              A 1:1 belay call. Solo — no capacity. Others tap "Request to pair" to lock it in.
+            </p>
+            <div>
+              <Label>I'm looking for a…</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['belayer', 'climber', 'both'] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setCallRole(r)}
+                    className={cn(
+                      'rounded-xl border py-2.5 text-xs font-semibold uppercase tracking-wider',
+                      callRole === r ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                    )}
+                  >
+                    {r === 'both' ? 'Either' : r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>Style</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {(['top_rope', 'lead'] as const).map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setCallCategory(c)}
+                    className={cn(
+                      'rounded-xl border py-2.5 text-sm',
+                      callCategory === c ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                    )}
+                  >
+                    {c === 'top_rope' ? 'Top rope' : 'Lead'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>Grade or range</Label>
+              <Input value={callGrade} onChange={(e) => setCallGrade(e.target.value)} placeholder="e.g. 5.10a–5.11a" />
+            </div>
+            <div>
+              <Label>Gym</Label>
+              <select
+                value={callGymId}
+                onChange={(e) => setCallGymId(e.target.value)}
+                className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900"
+              >
+                {gyms.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>When</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    { v: 'now', l: 'Now' },
+                    { v: 'tonight', l: 'Tonight 6pm' },
+                    { v: 'tomorrow_morning', l: 'Tomorrow 9am' },
+                  ] as const
+                ).map((w) => (
+                  <button
+                    key={w.v}
+                    onClick={() => setCallWhen(w.v)}
+                    className={cn(
+                      'rounded-xl border py-2 text-xs',
+                      callWhen === w.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                    )}
+                  >
+                    {w.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Duration</Label>
+                <select
+                  value={callDurationHours}
+                  onChange={(e) => setCallDurationHours(Number(e.target.value))}
+                  className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900"
+                >
+                  {[1, 2, 3, 4].map((h) => (
+                    <option key={h} value={h}>
+                      +{h}h
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Party size</Label>
+                <select
+                  value={callCapacity}
+                  onChange={(e) => setCallCapacity(Number(e.target.value))}
+                  className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900"
+                >
+                  {[2, 3, 4, 5, 6].map((n) => (
+                    <option key={n} value={n}>
+                      {n} people
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <Label>Note (optional · 140 char)</Label>
+              <Textarea
+                value={callNote}
+                onChange={(e) => setCallNote(e.target.value.slice(0, 140))}
+                rows={2}
+                placeholder="e.g. Projecting 5.11a — soft catches please"
+              />
+              <p className="text-[10px] text-ink-300 mt-1 text-right">{callNote.length} / 140</p>
+            </div>
+            {!me?.weight_kg && (
+              <div className="rounded-xl bg-gold-100 border border-gold-500/30 p-3 text-xs text-ink-700">
+                Add your weight in Profile to unlock <b>weight-safe</b> matching. It stays hidden from other users.
+              </div>
+            )}
+            <Button className="bg-teal-600 hover:bg-teal-500 border-teal-600" onClick={handleSubmitCall}>
+              Drop climb call
+            </Button>
+          </div>
+        ) : type === 'session' ? (
           <div className="flex flex-col gap-5">
             <div>
               <Label>Category</Label>

@@ -10,6 +10,8 @@ import type {
   Route,
   ChatMessage,
   Rating,
+  ClimbCall,
+  ReactionKey,
   VerificationCategory,
   VerificationStatus,
   Style,
@@ -22,6 +24,7 @@ import {
   SEED_GROUPS,
   SEED_USERS,
   SEED_CRUXMATES,
+  SEED_CLIMB_CALLS,
 } from '@/seed';
 import { uid } from '@/lib/utils';
 
@@ -30,9 +33,13 @@ export type Verification = { status: VerificationStatus; photo_url?: string; ver
 export interface FiltersIndoor {
   gym_id?: string;
   date?: 'today' | 'tomorrow' | 'this_week';
+  date_specific?: string;               // ISO date (YYYY-MM-DD), takes precedence
   time?: 'morning' | 'afternoon' | 'evening';
   styles: string[];
   grade_band?: string;
+  sub_tab: 'belay' | 'boulder';         // NEW: sub-segment within Indoor
+  role?: 'belayer' | 'climber' | 'both'; // NEW: for Belay sub-tab
+  weight_safe_only: boolean;            // NEW: filter to weight-safe matches
 }
 
 export interface FiltersOutdoor {
@@ -50,6 +57,15 @@ export interface FiltersEvents {
   time?: 'morning' | 'afternoon' | 'evening';
   host?: string;
   freeOnly: boolean;
+}
+
+export interface SessionChat {
+  id: string;                                     // === source session/event/call id
+  source: 'session' | 'event' | 'call';
+  title: string;                                  // for chat list rendering
+  subtitle?: string;                              // gym or venue
+  participant_ids: string[];
+  messages: ChatMessage[];
 }
 
 export type BadgeId =
@@ -70,15 +86,18 @@ interface Store {
   events: EventItem[];
   groups: Group[];
   users: NpcUser[];
+  climbCalls: ClimbCall[];
 
   // relations
   myGroupMemberships: string[];
   cruxmates: string[];
-  chats: Record<string, ChatMessage[]>;
+  chats: Record<string, ChatMessage[]>;                 // 1:1 DMs, keyed by userId
+  sessionChats: Record<string, SessionChat>;            // group chats, keyed by session/event/call id
   verifications: Record<VerificationCategory, Verification>;
   gearChecklists: Record<string, Record<string, boolean>>;
   badges: BadgeId[];
   ratings: Record<string, Rating>;
+  pairRequests: string[];               // callIds we've requested to pair on
 
   // UI state
   filters: {
@@ -104,6 +123,9 @@ interface Store {
 
   postSession: (session: Omit<Session, 'id' | 'host_id' | 'participant_ids'>) => Session;
   postEvent: (event: Omit<EventItem, 'id' | 'attendee_ids' | 'waitlist_ids'>) => EventItem;
+  postClimbCall: (call: Omit<ClimbCall, 'id' | 'user_id' | 'status'>) => ClimbCall;
+  requestPair: (callId: string) => void;
+  cancelPairRequest: (callId: string) => void;
 
   joinGroup: (groupId: string) => void;
   leaveGroup: (groupId: string) => void;
@@ -112,6 +134,16 @@ interface Store {
   removeCruxMate: (userId: string) => void;
 
   sendMessage: (userId: string, text: string) => void;
+  sendSessionMessage: (sessionChatId: string, text: string) => void;
+  toggleReactionDm: (userId: string, msgId: string, key: ReactionKey) => void;
+  toggleReactionSession: (sessionChatId: string, msgId: string, key: ReactionKey) => void;
+  ensureSessionChat: (
+    id: string,
+    source: 'session' | 'event' | 'call',
+    title: string,
+    subtitle: string | undefined,
+    participantIds: string[],
+  ) => void;
 
   submitVerification: (category: VerificationCategory, photo_url?: string) => void;
 
@@ -136,7 +168,7 @@ const initialVerifications: Record<VerificationCategory, Verification> = {
 
 const initialFilters: Store['filters'] = {
   tab: 'indoor',
-  indoor: { styles: [] },
+  indoor: { styles: [], sub_tab: 'belay', weight_safe_only: false },
   outdoor: { styles: [] },
   events: { types: [], freeOnly: false },
 };
@@ -151,13 +183,16 @@ export const useAppStore = create<Store>()(
       events: [],
       groups: [],
       users: [],
+      climbCalls: [],
       myGroupMemberships: [],
       cruxmates: [],
       chats: {},
+      sessionChats: {},
       verifications: initialVerifications,
       gearChecklists: {},
       badges: [],
       ratings: {},
+      pairRequests: [],
       filters: initialFilters,
       seededAt: null,
 
@@ -170,6 +205,7 @@ export const useAppStore = create<Store>()(
           events: SEED_EVENTS,
           groups: SEED_GROUPS,
           users: SEED_USERS,
+          climbCalls: SEED_CLIMB_CALLS,
           cruxmates: SEED_CRUXMATES,
           myGroupMemberships: ['grp_seattle_queer_climbers'],
           badges: ['first_session', 'community'],
@@ -251,6 +287,18 @@ export const useAppStore = create<Store>()(
               : s
           ),
         });
+        // Auto-create session chat for logistics
+        const s = get().sessions.find((x) => x.id === sessionId);
+        if (s) {
+          const gym = get().gyms.find((g) => g.id === s.gym_id);
+          get().ensureSessionChat(
+            s.id,
+            'session',
+            s.title,
+            gym?.short_name ?? s.area,
+            s.participant_ids,
+          );
+        }
         get().checkBadges();
       },
 
@@ -278,6 +326,12 @@ export const useAppStore = create<Store>()(
             return { ...e, attendee_ids: [...new Set([...e.attendee_ids, me.id])] };
           }),
         });
+        if (!waitlist) {
+          const ev = get().events.find((e) => e.id === eventId);
+          if (ev) {
+            get().ensureSessionChat(ev.id, 'event', ev.title, ev.venue, ev.attendee_ids);
+          }
+        }
       },
 
       unrsvpEvent: (eventId) => {
@@ -320,6 +374,61 @@ export const useAppStore = create<Store>()(
         return newEvent;
       },
 
+      postClimbCall: (call) => {
+        const me = get().me!;
+        const seededParticipants = call.participant_ids?.length ? call.participant_ids : [me.id];
+        const newCall: ClimbCall = {
+          ...call,
+          id: uid('call'),
+          user_id: me.id,
+          status: 'live',
+          participant_ids: seededParticipants,
+        };
+        set({ climbCalls: [newCall, ...get().climbCalls] });
+        return newCall;
+      },
+
+      requestPair: (callId) => {
+        const me = get().me;
+        if (!me) return;
+        if (get().pairRequests.includes(callId)) return;
+        set({
+          pairRequests: [...get().pairRequests, callId],
+          climbCalls: get().climbCalls.map((c) => {
+            if (c.id !== callId) return c;
+            if (c.participant_ids.includes(me.id)) return c;
+            if (c.participant_ids.length >= c.capacity) return c;
+            return { ...c, participant_ids: [...c.participant_ids, me.id] };
+          }),
+        });
+        // Auto-create session chat for logistics
+        const call = get().climbCalls.find((c) => c.id === callId);
+        if (call) {
+          const gym = get().gyms.find((g) => g.id === call.gym_id);
+          const host = call.user_id === 'me'
+            ? get().me?.display_name
+            : get().users.find((u) => u.id === call.user_id)?.display_name;
+          get().ensureSessionChat(
+            call.id,
+            'call',
+            `${host}'s ${call.category === 'top_rope' ? 'top-rope' : 'lead'} call`,
+            gym?.short_name,
+            call.participant_ids,
+          );
+        }
+      },
+
+      cancelPairRequest: (callId) => {
+        const me = get().me;
+        if (!me) return;
+        set({
+          pairRequests: get().pairRequests.filter((id) => id !== callId),
+          climbCalls: get().climbCalls.map((c) =>
+            c.id === callId ? { ...c, participant_ids: c.participant_ids.filter((id) => id !== me.id) } : c,
+          ),
+        });
+      },
+
       joinGroup: (groupId) => {
         if (get().myGroupMemberships.includes(groupId)) return;
         set({
@@ -356,6 +465,107 @@ export const useAppStore = create<Store>()(
         const existing = get().chats[userId] ?? [];
         set({
           chats: { ...get().chats, [userId]: [...existing, msg] },
+        });
+      },
+
+      sendSessionMessage: (sessionChatId: string, text: string) => {
+        const now = new Date().toISOString();
+        const msg: ChatMessage = { id: uid('msg'), from: 'me', text, sent_at: now };
+        const existing = get().sessionChats[sessionChatId];
+        if (!existing) return;
+        set({
+          sessionChats: {
+            ...get().sessionChats,
+            [sessionChatId]: { ...existing, messages: [...existing.messages, msg] },
+          },
+        });
+      },
+
+      toggleReactionDm: (userId: string, msgId: string, key: ReactionKey) => {
+        const me = get().me;
+        if (!me) return;
+        set({
+          chats: {
+            ...get().chats,
+            [userId]: (get().chats[userId] ?? []).map((m) => {
+              if (m.id !== msgId) return m;
+              const reactions = m.reactions ?? [];
+              const has = reactions.find((r) => r.by === me.id && r.key === key);
+              const next = has
+                ? reactions.filter((r) => !(r.by === me.id && r.key === key))
+                : [...reactions, { key, by: me.id }];
+              return { ...m, reactions: next };
+            }),
+          },
+        });
+      },
+
+      toggleReactionSession: (sessionChatId: string, msgId: string, key: ReactionKey) => {
+        const me = get().me;
+        if (!me) return;
+        const existing = get().sessionChats[sessionChatId];
+        if (!existing) return;
+        set({
+          sessionChats: {
+            ...get().sessionChats,
+            [sessionChatId]: {
+              ...existing,
+              messages: existing.messages.map((m) => {
+                if (m.id !== msgId) return m;
+                const reactions = m.reactions ?? [];
+                const has = reactions.find((r) => r.by === me.id && r.key === key);
+                const next = has
+                  ? reactions.filter((r) => !(r.by === me.id && r.key === key))
+                  : [...reactions, { key, by: me.id }];
+                return { ...m, reactions: next };
+              }),
+            },
+          },
+        });
+      },
+
+      ensureSessionChat: (
+        id: string,
+        source: 'session' | 'event' | 'call',
+        title: string,
+        subtitle: string | undefined,
+        participantIds: string[],
+      ) => {
+        const existing = get().sessionChats[id];
+        const me = get().me;
+        if (existing) {
+          // Sync participants (someone else joined since we last checked)
+          const merged = Array.from(new Set([...existing.participant_ids, ...participantIds]));
+          if (merged.length !== existing.participant_ids.length) {
+            set({
+              sessionChats: {
+                ...get().sessionChats,
+                [id]: { ...existing, participant_ids: merged },
+              },
+            });
+          }
+          return;
+        }
+        // Fresh chat: seed with a system welcome message
+        const now = new Date().toISOString();
+        const welcome: ChatMessage = {
+          id: uid('msg'),
+          from: 'system',
+          text: `Chat opened for ${title}. Say hi + confirm logistics.`,
+          sent_at: now,
+        };
+        set({
+          sessionChats: {
+            ...get().sessionChats,
+            [id]: {
+              id,
+              source,
+              title,
+              subtitle,
+              participant_ids: Array.from(new Set([...participantIds, ...(me ? [me.id] : [])])),
+              messages: [welcome],
+            },
+          },
         });
       },
 
@@ -404,7 +614,14 @@ export const useAppStore = create<Store>()(
         set({ filters: { ...get().filters, outdoor: { ...get().filters.outdoor, ...patch } } }),
       setEventsFilter: (patch) =>
         set({ filters: { ...get().filters, events: { ...get().filters.events, ...patch } } }),
-      clearFilters: () => set({ filters: { ...get().filters, indoor: { styles: [] }, outdoor: { styles: [] }, events: { types: [], freeOnly: false } } }),
+      clearFilters: () => set({
+        filters: {
+          ...get().filters,
+          indoor: { styles: [], sub_tab: get().filters.indoor.sub_tab, weight_safe_only: false },
+          outdoor: { styles: [] },
+          events: { types: [], freeOnly: false },
+        },
+      }),
 
       checkBadges: () => {
         const s = get();
