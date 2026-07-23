@@ -134,6 +134,8 @@ export interface Profile {
   pronouns?: string;
   dob?: string;
   avatar: AvatarConfig;
+  /** Optional uploaded photo (downscaled data URL). Wins over `avatar`. */
+  photo_url?: string;
   home_gym_id: string;
   top_grade: string;
   preferred_styles: Style[];

@@ -63,6 +63,7 @@ export function Profile() {
   const [hwOpen, setHwOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [draftAvatar, setDraftAvatar] = useState(me?.avatar ?? DEFAULT_AVATAR);
+  const [draftPhoto, setDraftPhoto] = useState<string | undefined>(me?.photo_url);
   const [weightLbs, setWeightLbs] = useState(me?.weight_kg ? String(kgToLbs(me.weight_kg)) : '');
   const [heightFt, setHeightFt] = useState(me?.height_cm ? String(Math.floor(me.height_cm / 2.54 / 12)) : '');
   const [heightIn, setHeightIn] = useState(
@@ -89,12 +90,13 @@ export function Profile() {
           <button
             onClick={() => {
               setDraftAvatar(me.avatar);
+              setDraftPhoto(me.photo_url);
               setAvatarOpen(true);
             }}
             className="relative shrink-0 group"
             aria-label="Edit avatar"
           >
-            <Avatar config={me.avatar} alt={me.display_name} size={80} fallback={me.display_name} />
+            <Avatar photoUrl={me.photo_url} config={me.avatar} alt={me.display_name} size={80} fallback={me.display_name} />
             <span className="absolute -bottom-1 -right-1 rounded-full bg-ink-900 text-white text-[9px] font-semibold px-2 py-0.5 border-2 border-white">
               Edit
             </span>
@@ -347,7 +349,12 @@ export function Profile() {
       {/* Avatar customizer sheet */}
       <Sheet open={avatarOpen} onOpenChange={setAvatarOpen}>
         <SheetContent title="Your climber">
-          <AvatarCustomizer value={draftAvatar} onChange={setDraftAvatar} />
+          <AvatarCustomizer
+            value={draftAvatar}
+            onChange={setDraftAvatar}
+            photoUrl={draftPhoto}
+            onPhotoChange={setDraftPhoto}
+          />
           <div className="flex gap-2 pt-6">
             <Button variant="outline" className="flex-1" onClick={() => setAvatarOpen(false)}>
               Cancel
@@ -355,7 +362,7 @@ export function Profile() {
             <Button
               className="flex-1"
               onClick={() => {
-                updateProfile({ avatar: draftAvatar });
+                updateProfile({ avatar: draftAvatar, photo_url: draftPhoto });
                 toast('Look updated');
                 setAvatarOpen(false);
               }}

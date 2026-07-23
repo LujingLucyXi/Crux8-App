@@ -38,6 +38,7 @@ interface SessionCardProps {
 
 export function SessionCard({ session, users, gymName, onClick, matchScore, groupName }: SessionCardProps) {
   const meAvatar = useAppStore((s) => s.me?.avatar);
+  const mePhoto = useAppStore((s) => s.me?.photo_url);
   const color = categoryColor[session.category];
   const Icon = categoryIcon[session.category];
   const participants = session.participant_ids
@@ -47,7 +48,7 @@ export function SessionCard({ session, users, gymName, onClick, matchScore, grou
   const meIncluded = session.participant_ids.includes('me');
   // If me is in participants but not resolved from users list, add pseudo-entry
   const displayUsers = meIncluded
-    ? [{ id: 'me', display_name: 'You', avatar: meAvatar }, ...participants]
+    ? [{ id: 'me', display_name: 'You', avatar: meAvatar, photo_url: mePhoto }, ...participants]
     : participants;
 
   return (

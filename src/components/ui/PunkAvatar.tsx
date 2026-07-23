@@ -140,6 +140,82 @@ function Hair({ style, color }: { style: AvatarConfig['hair']; color: string }) 
           <path d="M74 34 Q70 52 66 56 Q70 40 62 32 Z" {...s} />
         </g>
       );
+    case 'long':
+      return (
+        <g>
+          <path d="M22 92 Q20 46 26 34 L74 34 Q80 46 78 92 L68 92 Q72 54 66 40 L34 40 Q28 54 32 92 Z" {...s} />
+          <path d="M26 42 Q26 20 50 20 Q74 20 74 42 Q74 28 50 28 Q26 28 26 42 Z" {...s} />
+        </g>
+      );
+    case 'wavy':
+      return (
+        <g>
+          <path d="M22 90 Q30 78 22 66 Q30 54 24 34 L76 34 Q70 54 78 66 Q70 78 78 90 L68 90 Q62 62 66 40 L34 40 Q38 62 32 90 Z" {...s} />
+          <path d="M26 42 Q26 20 50 20 Q74 20 74 42 Q74 28 50 28 Q26 28 26 42 Z" {...s} />
+        </g>
+      );
+    case 'bob':
+      return (
+        <g>
+          <path d="M24 40 Q24 18 50 18 Q76 18 76 40 L76 62 Q76 70 68 70 Q74 52 70 38 L30 38 Q26 52 32 70 Q24 70 24 62 Z" {...s} />
+          <path d="M24 40 L24 46 Q36 38 50 39 Q64 38 76 46 L76 40 Q64 32 50 33 Q36 32 24 40 Z" {...s} />
+        </g>
+      );
+    case 'halfshave':
+      return (
+        <g>
+          {/* long panel on the left */}
+          <path d="M22 88 Q20 46 26 32 L50 32 L50 40 L34 40 Q28 56 32 88 Z" {...s} />
+          <path d="M26 42 Q26 20 50 20 L50 28 Q30 28 26 42 Z" {...s} />
+          {/* shaved stubble on the right */}
+          <path d="M50 20 Q74 20 74 42 Q74 30 50 29 Z" fill={color} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" opacity={0.55} />
+          <g stroke={color} strokeWidth={1.6} strokeLinecap="round" opacity={0.9}>
+            <line x1="58" y1="30" x2="58" y2="35" />
+            <line x1="64" y1="31" x2="64" y2="36" />
+            <line x1="70" y1="34" x2="70" y2="39" />
+          </g>
+        </g>
+      );
+    case 'pigtails':
+      return (
+        <g>
+          <path d="M26 42 Q26 20 50 20 Q74 20 74 42 Q74 28 50 28 Q26 28 26 42 Z" {...s} />
+          <path d="M26 36 Q10 40 12 56 Q14 68 24 66 Q18 52 30 44 Z" {...s} />
+          <path d="M74 36 Q90 40 88 56 Q86 68 76 66 Q82 52 70 44 Z" {...s} />
+          <circle cx="28" cy="38" r="4" {...s} />
+          <circle cx="72" cy="38" r="4" {...s} />
+        </g>
+      );
+    case 'spacebuns':
+      return (
+        <g>
+          <path d="M26 42 Q26 22 50 22 Q74 22 74 42 Q74 30 50 30 Q26 30 26 42 Z" {...s} />
+          <circle cx="32" cy="16" r="9" {...s} />
+          <circle cx="68" cy="16" r="9" {...s} />
+        </g>
+      );
+    case 'ponytail':
+      return (
+        <g>
+          <path d="M74 34 Q90 40 88 60 Q86 76 76 78 Q86 58 70 42 Z" {...s} />
+          <path d="M26 42 Q26 20 50 20 Q74 20 74 42 Q74 28 50 28 Q26 28 26 42 Z" {...s} />
+          <circle cx="73" cy="36" r="4.5" {...s} />
+        </g>
+      );
+    case 'braids':
+      return (
+        <g>
+          <path d="M26 42 Q26 20 50 20 Q74 20 74 42 Q74 28 50 28 Q26 28 26 42 Z" {...s} />
+          <g {...s}>
+            <ellipse cx="24" cy="46" rx="5" ry="6" />
+            <ellipse cx="23" cy="58" rx="5" ry="6" />
+            <ellipse cx="24" cy="70" rx="4.5" ry="5.5" />
+            <ellipse cx="76" cy="46" rx="5" ry="6" />
+            <ellipse cx="77" cy="58" rx="5" ry="6" />
+            <ellipse cx="76" cy="70" rx="4.5" ry="5.5" />
+          </g>
+        </g>
+      );
     case 'bald':
     default:
       return null;
@@ -246,6 +322,13 @@ function Accessory({ kind, hairColor }: { kind: AvatarConfig['accessory']; hairC
   switch (kind) {
     case 'nosering':
       return <circle cx="54" cy="61" r="3.2" fill="none" stroke="#C9CDD4" strokeWidth={2.2} />;
+    case 'hoops':
+      return (
+        <g fill="none" stroke="#E8C86A" strokeWidth={2.4}>
+          <ellipse cx="26" cy="60" rx="4.5" ry="6" />
+          <ellipse cx="74" cy="60" rx="4.5" ry="6" />
+        </g>
+      );
     case 'gauges':
       return (
         <g>

@@ -20,7 +20,16 @@ export type HairStyle =
   | 'topknot'
   | 'locs'
   | 'curtain'
-  | 'bald';
+  | 'bald'
+  // longer / softer silhouettes — still punk, just not all buzzed
+  | 'long'
+  | 'halfshave'    // long one side, shaved the other
+  | 'bob'
+  | 'wavy'
+  | 'pigtails'
+  | 'spacebuns'
+  | 'ponytail'
+  | 'braids';
 export type HairColor =
   | 'jet'
   | 'bleach'
@@ -31,7 +40,7 @@ export type HairColor =
   | 'cyan'
   | 'bubblegum';   // pink
 export type Eyes = 'sharp' | 'tired' | 'wink' | 'shades' | 'stoked' | 'deadpan';
-export type Accessory = 'none' | 'nosering' | 'gauges' | 'bandana' | 'beanie' | 'chalkdust';
+export type Accessory = 'none' | 'nosering' | 'gauges' | 'hoops' | 'bandana' | 'beanie' | 'chalkdust';
 export type Backdrop = 'ink' | 'teal' | 'gold' | 'coral' | 'sky' | 'slate';
 
 export interface AvatarConfig {
@@ -74,13 +83,15 @@ export const BACKDROP_HEX: Record<Backdrop, string> = {
 
 export const SKIN_TONES: SkinTone[] = ['porcelain', 'sand', 'honey', 'clay', 'umber', 'espresso'];
 export const HAIR_STYLES: HairStyle[] = [
-  'mohawk', 'liberty', 'shaved', 'undercut', 'bangs', 'buzz', 'topknot', 'locs', 'curtain', 'bald',
+  'mohawk', 'liberty', 'halfshave', 'undercut', 'shaved', 'buzz',
+  'long', 'wavy', 'bob', 'bangs', 'curtain',
+  'pigtails', 'spacebuns', 'ponytail', 'braids', 'topknot', 'locs', 'bald',
 ];
 export const HAIR_COLORS: HairColor[] = [
   'jet', 'bleach', 'toxic', 'ultraviolet', 'hazard', 'cherry', 'cyan', 'bubblegum',
 ];
 export const EYES_OPTS: Eyes[] = ['sharp', 'tired', 'wink', 'shades', 'stoked', 'deadpan'];
-export const ACCESSORIES: Accessory[] = ['none', 'nosering', 'gauges', 'bandana', 'beanie', 'chalkdust'];
+export const ACCESSORIES: Accessory[] = ['none', 'nosering', 'gauges', 'hoops', 'bandana', 'beanie', 'chalkdust'];
 export const BACKDROPS: Backdrop[] = ['ink', 'teal', 'gold', 'coral', 'sky', 'slate'];
 
 export const HAIR_STYLE_LABEL: Record<HairStyle, string> = {
@@ -94,6 +105,14 @@ export const HAIR_STYLE_LABEL: Record<HairStyle, string> = {
   locs: 'Locs',
   curtain: 'Curtains',
   bald: 'Bald',
+  long: 'Long',
+  halfshave: 'Half-shave',
+  bob: 'Bob',
+  wavy: 'Wavy',
+  pigtails: 'Pigtails',
+  spacebuns: 'Space buns',
+  ponytail: 'Ponytail',
+  braids: 'Braids',
 };
 
 export const EYES_LABEL: Record<Eyes, string> = {
@@ -109,6 +128,7 @@ export const ACCESSORY_LABEL: Record<Accessory, string> = {
   none: 'None',
   nosering: 'Nose ring',
   gauges: 'Ear gauges',
+  hoops: 'Hoop earrings',
   bandana: 'Bandana',
   beanie: 'Beanie',
   chalkdust: 'Chalk dust',

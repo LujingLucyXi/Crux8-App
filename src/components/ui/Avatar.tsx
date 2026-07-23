@@ -4,6 +4,8 @@ import { PunkAvatar } from './PunkAvatar';
 import { avatarFromSeed, type AvatarConfig } from '@/lib/avatar';
 
 interface AvatarProps {
+  /** Uploaded photo. Wins over everything else. */
+  photoUrl?: string;
   /** Explicit avatar config. Wins over `seed`. */
   config?: AvatarConfig;
   /** Any stable string (userId, name). Deterministically generates a config. */
@@ -15,20 +17,31 @@ interface AvatarProps {
 }
 
 /**
- * All CruxMate avatars are generated punk-rock SVGs — no photo uploads,
- * no external services. Pass either an explicit `config` (the user's saved
- * customization) or a `seed` string to derive one deterministically.
+ * Resolution order: uploaded photo → explicit config → deterministic
+ * config derived from a seed string. No external avatar services.
  */
-export function Avatar({ config, seed, alt, size = 32, fallback, className }: AvatarProps) {
+export function Avatar({ photoUrl, config, seed, alt, size = 32, fallback, className }: AvatarProps) {
   const resolved = React.useMemo(
     () => config ?? avatarFromSeed(seed ?? fallback ?? alt ?? 'anon'),
     [config, seed, fallback, alt],
   );
+  if (photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt={alt ?? 'avatar'}
+        width={size}
+        height={size}
+        style={{ width: size, height: size }}
+        className={cn('rounded-full object-cover shrink-0 bg-ink-100', className)}
+      />
+    );
+  }
   return <PunkAvatar config={resolved} size={size} className={className} />;
 }
 
 interface AvatarStackProps {
-  users: Array<{ id: string; avatar?: AvatarConfig; display_name: string }>;
+  users: Array<{ id: string; avatar?: AvatarConfig; photo_url?: string; display_name: string }>;
   max?: number;
   size?: number;
 }
@@ -44,7 +57,7 @@ export function AvatarStack({ users, max = 3, size = 24 }: AvatarStackProps) {
           style={{ marginLeft: i === 0 ? 0 : -overlap, zIndex: shown.length - i }}
           className={cn('ring-2 ring-white rounded-full')}
         >
-          <Avatar config={u.avatar} seed={u.id} alt={u.display_name} size={size} fallback={u.display_name} />
+          <Avatar photoUrl={u.photo_url} config={u.avatar} seed={u.id} alt={u.display_name} size={size} fallback={u.display_name} />
         </div>
       ))}
     </div>

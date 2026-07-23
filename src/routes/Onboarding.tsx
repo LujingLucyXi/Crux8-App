@@ -38,6 +38,7 @@ export function Onboarding() {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [dob, setDob] = useState(me?.dob ?? '');
   const [avatar, setAvatar] = useState<AvatarConfig>(me?.avatar ?? avatarFromSeed(me?.display_name ?? 'anon'));
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>(me?.photo_url);
   const [homeGymId, setHomeGymId] = useState<string>(me?.home_gym_id ?? gyms[0]?.id ?? '');
   const [topGrade, setTopGrade] = useState<string>(me?.top_grade ?? '5.10a-5.10c');
   const [preferredStyles, setPreferredStyles] = useState<Style[]>(me?.preferred_styles ?? ['top_rope', 'lead']);
@@ -61,6 +62,7 @@ export function Onboarding() {
     completeOnboarding({
       dob: dob || undefined,
       avatar,
+      photo_url: photoUrl,
       home_gym_id: homeGymId,
       top_grade: topGrade,
       preferred_styles: preferredStyles,
@@ -121,7 +123,12 @@ export function Onboarding() {
               No photos, no uploads — just you, rendered in CruxMate house style.
             </p>
             <div className="mt-6">
-              <AvatarCustomizer value={avatar} onChange={setAvatar} />
+              <AvatarCustomizer
+                value={avatar}
+                onChange={setAvatar}
+                photoUrl={photoUrl}
+                onPhotoChange={setPhotoUrl}
+              />
             </div>
             <div className="mt-8 flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>

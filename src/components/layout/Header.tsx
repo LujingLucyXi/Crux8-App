@@ -54,7 +54,7 @@ export function Header() {
               )}
             </button>
             <button onClick={() => nav('/profile')} aria-label="Profile">
-              <Avatar config={me?.avatar} alt={me?.display_name} size={30} fallback={me?.display_name} />
+              <Avatar photoUrl={me?.photo_url} config={me?.avatar} alt={me?.display_name} size={30} fallback={me?.display_name} />
             </button>
           </div>
         </div>

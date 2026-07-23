@@ -58,11 +58,11 @@ export function ClimbCallCard({
 
   const participants = call.participant_ids
     .map((id) => {
-      if (id === me?.id) return { id: me.id, display_name: 'You', avatar: me.avatar };
+      if (id === me?.id) return { id: me.id, display_name: 'You', avatar: me.avatar, photo_url: me.photo_url };
       const u = users.find((x) => x.id === id);
       return u ? { id: u.id, display_name: u.display_name, avatar: u.avatar } : null;
     })
-    .filter(Boolean) as Array<{ id: string; display_name: string; avatar: Profile['avatar'] }>;
+    .filter(Boolean) as Array<{ id: string; display_name: string; avatar: Profile['avatar']; photo_url?: string }>;
 
   const start = new Date(call.starts_at);
   const end = new Date(call.ends_at);
