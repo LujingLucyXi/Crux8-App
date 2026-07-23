@@ -40,9 +40,9 @@ const BELAY_STYLES = [
 ];
 
 const ROLE_OPTS = [
-  { value: 'both', label: 'Either' },
-  { value: 'belayer', label: 'Belayers only' },
-  { value: 'climber', label: 'Climbers only' },
+  { value: 'belayer', label: 'Needs belayer' },
+  { value: 'climber', label: 'Needs climber' },
+  { value: 'take_turns', label: 'Take turns' },
 ] as const;
 
 const OUTDOOR_STYLES = [
@@ -86,7 +86,7 @@ export function FilterRow() {
           filters.indoor.time ||
           filters.indoor.styles.length ||
           filters.indoor.grade_band ||
-          filters.indoor.role ||
+          filters.indoor.looking_for ||
           filters.indoor.weight_safe_only,
         )
       : filters.tab === 'outdoor'
@@ -134,10 +134,10 @@ export function FilterRow() {
                   {filters.indoor.styles.length > 0 ? `${filters.indoor.styles.length} styles` : 'Style'}
                   <NavArrowDown width={12} height={12} />
                 </button>
-                <button className={chipCls(!!filters.indoor.role)} onClick={() => setOpen('role')}>
-                  {filters.indoor.role
-                    ? ROLE_OPTS.find((r) => r.value === filters.indoor.role)?.label
-                    : 'Role'}
+                <button className={chipCls(!!filters.indoor.looking_for)} onClick={() => setOpen('role')}>
+                  {filters.indoor.looking_for
+                    ? ROLE_OPTS.find((r) => r.value === filters.indoor.looking_for)?.label
+                    : 'Looking for'}
                   <NavArrowDown width={12} height={12} />
                 </button>
                 <button
@@ -464,10 +464,10 @@ export function FilterRow() {
               <button
                 className={cn(
                   'text-left px-3 py-3 rounded-xl',
-                  !filters.indoor.role ? 'bg-ink-900 text-white' : 'text-ink-900 hover:bg-paper-50',
+                  !filters.indoor.looking_for ? 'bg-ink-900 text-white' : 'text-ink-900 hover:bg-paper-50',
                 )}
                 onClick={() => {
-                  setIndoor({ role: undefined });
+                  setIndoor({ looking_for: undefined });
                   setOpen(null);
                 }}
               >
@@ -478,10 +478,10 @@ export function FilterRow() {
                   key={r.value}
                   className={cn(
                     'text-left px-3 py-3 rounded-xl',
-                    filters.indoor.role === r.value ? 'bg-ink-900 text-white' : 'text-ink-900 hover:bg-paper-50',
+                    filters.indoor.looking_for === r.value ? 'bg-ink-900 text-white' : 'text-ink-900 hover:bg-paper-50',
                   )}
                   onClick={() => {
-                    setIndoor({ role: r.value });
+                    setIndoor({ looking_for: r.value });
                     setOpen(null);
                   }}
                 >

@@ -48,7 +48,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const [type, setType] = useState<'session' | 'call' | 'event'>('call');
 
   // Call state
-  const [callRole, setCallRole] = useState<ClimbCall['role']>('both');
+  const [callLookingFor, setCallLookingFor] = useState<ClimbCall['looking_for']>('take_turns');
   const [callCategory, setCallCategory] = useState<ClimbCall['category']>('top_rope');
   const [callTitle, setCallTitle] = useState('');
   const [callGrade, setCallGrade] = useState('5.10a–5.11a');
@@ -85,7 +85,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
 
   const reset = () => {
     setType('call');
-    setCallRole('both');
+    setCallLookingFor('take_turns');
     setCallCategory('top_rope');
     setCallTitle('');
     setCallGrade('5.10a–5.11a');
@@ -130,7 +130,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     }
     postClimbCall({
       title: callTitle.trim() || undefined,
-      role: callRole,
+      looking_for: callLookingFor,
       category: callCategory,
       grade: callGrade,
       gym_id: callGymId,
@@ -232,16 +232,20 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
             <div>
               <Label>I'm looking for a…</Label>
               <div className="grid grid-cols-3 gap-2">
-                {(['belayer', 'climber', 'both'] as const).map((r) => (
+                {([
+                  { v: 'belayer', l: 'Belayer' },
+                  { v: 'climber', l: 'Climber' },
+                  { v: 'take_turns', l: 'Take turns' },
+                ] as const).map((r) => (
                   <button
-                    key={r}
-                    onClick={() => setCallRole(r)}
+                    key={r.v}
+                    onClick={() => setCallLookingFor(r.v)}
                     className={cn(
-                      'rounded-xl border py-2.5 text-xs font-semibold uppercase tracking-wider',
-                      callRole === r ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                      'rounded-xl border py-2.5 text-xs font-semibold',
+                      callLookingFor === r.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
                     )}
                   >
-                    {r === 'both' ? 'Either' : r}
+                    {r.l}
                   </button>
                 ))}
               </div>

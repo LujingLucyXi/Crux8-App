@@ -2,7 +2,7 @@ import type { ClimbCall } from './types';
 import { daysFromNow, plusHours } from './types';
 
 /**
- * 6 seeded 1:1 climb calls (belay-only). Distinct from Sessions —
+ * 6 seeded belay climb calls. Distinct from Sessions —
  * these are individual "looking for a partner" broadcasts, not group meetups.
  *
  * Weight ranges chosen so `me` (default 63kg from onboarding) has a mix of
@@ -12,7 +12,7 @@ export const SEED_CLIMB_CALLS: ClimbCall[] = [
   {
     id: 'call_lilly_top_rope',
     user_id: 'usr_lilly',
-    role: 'both',
+    looking_for: 'take_turns',
     category: 'top_rope',
     grade: '5.10–5.11a',
     gym_id: 'gym_sbp_poplar',
@@ -28,7 +28,7 @@ export const SEED_CLIMB_CALLS: ClimbCall[] = [
   {
     id: 'call_marcus_lead',
     user_id: 'usr_marcus',
-    role: 'belayer',
+    looking_for: 'climber',
     category: 'lead',
     grade: '5.10c',
     gym_id: 'gym_stone_gardens_ballard',
@@ -44,7 +44,7 @@ export const SEED_CLIMB_CALLS: ClimbCall[] = [
   {
     id: 'call_priya_top_rope',
     user_id: 'usr_priya',
-    role: 'climber',
+    looking_for: 'belayer',
     category: 'top_rope',
     grade: '5.10a–5.10c',
     gym_id: 'gym_vertical_world',
@@ -60,7 +60,7 @@ export const SEED_CLIMB_CALLS: ClimbCall[] = [
   {
     id: 'call_kai_lead',
     user_id: 'usr_kai',
-    role: 'both',
+    looking_for: 'take_turns',
     category: 'lead',
     grade: '5.11c–5.12a',
     gym_id: 'gym_vertical_world',
@@ -76,7 +76,7 @@ export const SEED_CLIMB_CALLS: ClimbCall[] = [
   {
     id: 'call_ash_top_rope',
     user_id: 'usr_ash',
-    role: 'belayer',
+    looking_for: 'climber',
     category: 'top_rope',
     grade: '5.9–5.10b',
     gym_id: 'gym_stone_gardens_bellevue',
@@ -92,7 +92,7 @@ export const SEED_CLIMB_CALLS: ClimbCall[] = [
   {
     id: 'call_sam_top_rope_tomorrow',
     user_id: 'usr_sam',
-    role: 'both',
+    looking_for: 'take_turns',
     category: 'top_rope',
     grade: '5.10a–5.10d',
     gym_id: 'gym_movement_bellevue',

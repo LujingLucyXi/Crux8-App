@@ -13,6 +13,7 @@ import { computeChallenges, daysLeftInWeek } from '@/lib/challenges';
 import { computeBadgeProgress, nextUpBadges } from '@/lib/badges';
 import { rankMatches } from '@/lib/match';
 import { formatSessionWhen } from '@/lib/date';
+import { LOOKING_FOR_LABEL } from '@/components/cards/ClimbCallCard';
 import type { Session, ClimbCall, EventItem } from '@/seed/types';
 
 /** Time-of-day greeting — small touch, makes the app feel alive. */
@@ -244,7 +245,7 @@ export function Home() {
             return (
               <MiniScheduleCard
                 key={c.id} accent="bg-sky-200" emoji="🪢"
-                title={c.title ?? `${host?.display_name.split(' ')[0] ?? 'Someone'} needs a ${c.role === 'belayer' ? 'climber' : 'belayer'}`}
+                title={c.title ?? `${host?.display_name.split(' ')[0] ?? 'Someone'} · ${LOOKING_FOR_LABEL[c.looking_for]}`}
                 subtitle={`${c.category === 'top_rope' ? 'Top-rope' : 'Lead'} · ${c.grade}`}
                 startsAt={c.starts_at} where={gymName(c.gym_id)}
                 onClick={() => setDetailCall(c)}

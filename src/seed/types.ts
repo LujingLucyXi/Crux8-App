@@ -154,7 +154,8 @@ export interface ClimbCall {
   id: string;
   user_id: string;                    // who's calling ('me' or an NPC)
   title?: string;                     // optional custom name set by host
-  role: 'belayer' | 'climber' | 'both';
+  /** What the host NEEDS from you (not what they are). */
+  looking_for: 'belayer' | 'climber' | 'take_turns';
   category: 'top_rope' | 'lead';
   grade: string;                      // e.g. '5.10a–5.11c'
   gym_id: string;

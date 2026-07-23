@@ -81,7 +81,7 @@ export function Find() {
       .filter((c) => {
         if (fi.gym_id && c.gym_id !== fi.gym_id) return false;
         if (fi.styles.length > 0 && !fi.styles.includes(c.category)) return false;
-        if (fi.role && c.role !== fi.role && c.role !== 'both') return false;
+        if (fi.looking_for && c.looking_for !== fi.looking_for) return false;
         if (!withinDate(c.starts_at, fi.date, fi.date_specific)) return false;
         if (!withinTime(c.starts_at, fi.time)) return false;
         if (fi.weight_safe_only && !isWeightSafe(me?.weight_kg, c.weight_kg)) return false;
@@ -216,6 +216,7 @@ export function Find() {
                 call={c}
                 caller={caller}
                 gymName={gym.short_name}
+                users={users}
                 isFriend={isFriend}
                 onRequest={() => setDetailCall(c)}
                 onViewCard={() => setDetailCall(c)}

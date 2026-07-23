@@ -39,7 +39,7 @@ export interface FiltersIndoor {
   styles: string[];
   grade_band?: string;
   sub_tab: 'belay' | 'boulder';         // NEW: sub-segment within Indoor
-  role?: 'belayer' | 'climber' | 'both'; // NEW: for Belay sub-tab
+  looking_for?: 'belayer' | 'climber' | 'take_turns'; // Belay sub-tab only
   weight_safe_only: boolean;            // NEW: filter to weight-safe matches
 }
 
@@ -669,7 +669,39 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 1,
+      version: 2,
+      /**
+       * v1 → v2: ClimbCall.role ("what the host is") became
+       * ClimbCall.looking_for ("what the host needs"). Without this,
+       * anyone with existing localStorage renders a blank role chip
+       * because seedIfEmpty() short-circuits on a set seededAt.
+       */
+      migrate: (persisted: unknown, version: number) => {
+        const s = persisted as Record<string, unknown> | null;
+        if (!s) return s as never;
+        if (version < 2) {
+          const flip: Record<string, 'belayer' | 'climber' | 'take_turns'> = {
+            climber: 'belayer',   // they climb → they need a belayer
+            belayer: 'climber',   // they belay → they need a climber
+            both: 'take_turns',
+          };
+          const calls = Array.isArray(s.climbCalls) ? s.climbCalls : [];
+          s.climbCalls = calls.map((c) => {
+            const call = c as Record<string, unknown>;
+            if (call.looking_for) return call;
+            const legacy = typeof call.role === 'string' ? call.role : 'both';
+            const { role: _drop, ...rest } = call;
+            return { ...rest, looking_for: flip[legacy] ?? 'take_turns' };
+          });
+          // Filter state also renamed role → looking_for
+          const filters = s.filters as Record<string, Record<string, unknown>> | undefined;
+          if (filters?.indoor && 'role' in filters.indoor) {
+            const { role: _r, ...restIndoor } = filters.indoor;
+            filters.indoor = { ...restIndoor, looking_for: undefined };
+          }
+        }
+        return s as never;
+      },
     }
   )
 );

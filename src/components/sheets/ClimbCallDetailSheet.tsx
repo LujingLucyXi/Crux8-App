@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAppStore } from '@/store/useAppStore';
 import { isWeightSafe } from '@/lib/weight';
+import { LOOKING_FOR_LABEL } from '@/components/cards/ClimbCallCard';
 import type { ClimbCall } from '@/seed/types';
 
 interface Props {
@@ -65,7 +66,7 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
 
           <div className="mt-3 flex flex-wrap gap-1.5 justify-center">
             <span className="rounded-full bg-paper-50 border border-ink-100 text-ink-700 text-[11px] font-semibold px-2.5 py-0.5 tracking-wider">
-              {call.role === 'both' ? 'CLIMBER + BELAYER' : call.role === 'belayer' ? 'BELAYER' : 'CLIMBER'}
+              {LOOKING_FOR_LABEL[call.looking_for].toUpperCase()}
             </span>
             {weightSafe && (
               <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 text-teal-600 text-[11px] font-semibold px-2.5 py-0.5">
