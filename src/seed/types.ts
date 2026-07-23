@@ -160,7 +160,9 @@ export interface ClimbCall {
   looking_for: 'belayer' | 'climber' | 'take_turns';
   category: 'top_rope' | 'lead';
   grade: string;                      // e.g. '5.10a–5.11c'
-  gym_id: string;
+  location_type: 'indoor' | 'outdoor';
+  gym_id?: string;                    // set when indoor
+  area?: string;                      // exact location text (crag) when outdoor
   starts_at: string;                  // ISO
   ends_at: string;                    // ISO
   note?: string;                      // "Projecting 5.11a — soft catches please"

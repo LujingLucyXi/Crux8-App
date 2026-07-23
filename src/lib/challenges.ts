@@ -70,7 +70,10 @@ export function computeChallenges({
   // Distinct gyms across everything I'm on this week
   const gymsThisWeek = new Set<string>();
   mySessionsThisWeek.forEach((s) => s.gym_id && gymsThisWeek.add(s.gym_id));
-  myCallsThisWeek.forEach((c) => gymsThisWeek.add(c.gym_id));
+  myCallsThisWeek.forEach((c) => {
+    if (c.gym_id) gymsThisWeek.add(c.gym_id);
+    else if (c.area) gymsThisWeek.add(c.area);
+  });
 
   const outdoorThisWeek = mySessionsThisWeek.filter((s) => s.location_type === 'outdoor');
 

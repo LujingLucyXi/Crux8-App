@@ -80,7 +80,7 @@ export function Find() {
     if (!isIndoorBelay) return [];
     const fi = filters.indoor;
     return climbCalls
-      .filter((c) => c.status === 'live')
+      .filter((c) => c.status === 'live' && c.location_type === 'indoor')
       .filter((c) => {
         if (fi.gym_id && c.gym_id !== fi.gym_id) return false;
         if (fi.styles.length > 0 && !fi.styles.includes(c.category)) return false;
@@ -92,6 +92,22 @@ export function Find() {
       })
       .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
   }, [isIndoorBelay, filters.indoor, climbCalls, me?.weight_kg]);
+
+  // Outdoor belay calls surface inline in the Outdoor tab (which shows the
+  // whole outdoor scene — trips + partner requests).
+  const outdoorCalls = useMemo(() => {
+    if (filters.tab !== 'outdoor') return [];
+    const fo = filters.outdoor;
+    return climbCalls
+      .filter((c) => c.status === 'live' && c.location_type === 'outdoor')
+      .filter((c) => {
+        if (fo.area && c.area !== fo.area) return false;
+        if (!withinDate(c.starts_at, fo.date)) return false;
+        if (!withinTime(c.starts_at, fo.time)) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+  }, [filters.tab, filters.outdoor, climbCalls]);
 
   const filteredSessions = useMemo(() => {
     if (filters.tab === 'events') return [];
@@ -241,6 +257,23 @@ export function Find() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
+          {/* Outdoor tab also shows outdoor belay calls (partner requests) */}
+          {outdoorCalls.map((c) => {
+            const caller = c.user_id === me?.id ? me : users.find((u) => u.id === c.user_id);
+            if (!caller) return null;
+            return (
+              <ClimbCallCard
+                key={c.id}
+                call={c}
+                caller={caller}
+                gymName={c.area ?? 'Outdoor'}
+                users={users}
+                isFriend={cruxmates.includes(c.user_id)}
+                onRequest={() => setDetailCall(c)}
+                onViewCard={() => setDetailCall(c)}
+              />
+            );
+          })}
           {filteredSessions.map((s) => {
             const gym = s.gym_id ? gyms.find((g) => g.id === s.gym_id) : undefined;
             const grp = s.posted_by_group_id ? groups.find((g) => g.id === s.posted_by_group_id) : undefined;
@@ -255,7 +288,7 @@ export function Find() {
               />
             );
           })}
-          {filteredSessions.length === 0 && <EmptyState />}
+          {filteredSessions.length === 0 && outdoorCalls.length === 0 && <EmptyState />}
         </div>
       )}
 

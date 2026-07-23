@@ -29,7 +29,8 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
 
   if (!call || !me) return null;
   const caller = users.find((u) => u.id === call.user_id);
-  const gym = gyms.find((g) => g.id === call.gym_id);
+  const gym = call.gym_id ? gyms.find((g) => g.id === call.gym_id) : undefined;
+  const locationLabel = gym?.name ?? call.area ?? 'Location TBD';
   if (!caller) return null;
 
   const isRequested = pairRequests.includes(call.id);
@@ -46,7 +47,7 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
     requestPair(call.id);
     // Auto-add as CruxMate + start chat
     if (!isFriend) addCruxMate(caller.id);
-    sendMessage(caller.id, `Hi! Requesting to pair on your ${call.category === 'top_rope' ? 'top-rope' : 'lead'} call at ${gym?.short_name}.`);
+    sendMessage(caller.id, `Hi! Requesting to pair on your ${call.category === 'top_rope' ? 'top-rope' : 'lead'} call at ${gym?.short_name ?? call.area}.`);
     toast(`Paired with ${caller.display_name}`, {
       description: 'Chat opened — say hi and confirm details.',
     });
@@ -104,7 +105,7 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
         <div className="space-y-2 mb-4">
           <div className="flex items-center gap-2 text-sm text-ink-700">
             <MapPin width={16} height={16} className="text-ink-500" />
-            <span>{gym?.name}</span>
+            <span>{locationLabel}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-ink-700">
             <Clock width={16} height={16} className="text-ink-500" />
