@@ -5,6 +5,7 @@ import { Landing } from '@/routes/Landing';
 import { Onboarding } from '@/routes/Onboarding';
 import { Home } from '@/routes/Home';
 import { Find } from '@/routes/Find';
+import { Sessions } from '@/routes/Sessions';
 import { Community } from '@/routes/Community';
 import { GroupDetail } from '@/routes/GroupDetail';
 import { Chat } from '@/routes/Chat';
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/home', element: <Home /> },
           { path: '/find', element: <Find /> },
+          { path: '/sessions', element: <Sessions /> },
           { path: '/community', element: <Community /> },
           { path: '/community/:groupId', element: <GroupDetail /> },
           { path: '/chat', element: <Chat /> },

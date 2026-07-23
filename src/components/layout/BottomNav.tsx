@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Compass, Community, User, Plus } from 'iconoir-react';
+import { Home, Compass, Calendar, User, Plus } from 'iconoir-react';
 import { cn } from '@/lib/utils';
 
 interface BottomNavProps {
@@ -7,7 +7,7 @@ interface BottomNavProps {
 }
 
 /**
- * 5 slots: Home · Find · [+] · Community · Profile.
+ * 5 slots: Home · Find · [+] · Climbs · Profile.
  * Chat lives in the header (with an unread dot) — standard pattern that
  * keeps the bottom bar at the 4-destination sweet spot.
  */
@@ -15,7 +15,7 @@ const items = [
   { to: '/home', label: 'Home', Icon: Home },
   { to: '/find', label: 'Find', Icon: Compass },
   null, // FAB slot
-  { to: '/community', label: 'Crews', Icon: Community },
+  { to: '/sessions', label: 'Climbs', Icon: Calendar },
   { to: '/profile', label: 'Profile', Icon: User },
 ] as const;
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Home, Trekking, Sparks, Sparks as SparksIcon, SearchEngine } from 'iconoir-react';
+import { Home, Trekking, Sparks, Sparks as SparksIcon, SearchEngine, Community } from 'iconoir-react';
 import { SessionCard } from '@/components/cards/SessionCard';
 import { EventCard } from '@/components/cards/EventCard';
 import { ClimbCallCard } from '@/components/cards/ClimbCallCard';
@@ -8,6 +8,7 @@ import { EventDetailSheet } from '@/components/sheets/EventDetailSheet';
 import { ClimbCallDetailSheet } from '@/components/sheets/ClimbCallDetailSheet';
 import { AiMatchSheet } from '@/components/sheets/AiMatchSheet';
 import { FilterRow } from '@/components/filters/FilterRow';
+import { CrewsBrowser } from '@/components/crews/CrewsBrowser';
 import { useAppStore } from '@/store/useAppStore';
 import { inHour } from '@/lib/date';
 import { isWeightSafe } from '@/lib/weight';
@@ -18,6 +19,7 @@ const TABS = [
   { value: 'indoor', label: 'INDOOR', Icon: Home },
   { value: 'outdoor', label: 'OUTDOOR', Icon: Trekking },
   { value: 'events', label: 'EVENTS', Icon: Sparks },
+  { value: 'crews', label: 'CREWS', Icon: Community },
 ] as const;
 
 function withinTime(iso: string, time?: 'morning' | 'afternoon' | 'evening'): boolean {
@@ -70,6 +72,7 @@ export function Find() {
   const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
   const [detailCall, setDetailCall] = useState<ClimbCall | null>(null);
   const [aiMatchOpen, setAiMatchOpen] = useState(false);
+  const [crewsView, setCrewsView] = useState(false);
 
   const isIndoorBelay = filters.tab === 'indoor' && filters.indoor.sub_tab === 'belay';
 
@@ -134,23 +137,34 @@ export function Find() {
     <div className="pb-4">
       {/* Segmented tabs */}
       <div className="flex gap-1.5 mb-4">
-        {TABS.map(({ value, label, Icon }) => (
-          <button
-            key={value}
-            onClick={() => setFilterTab(value)}
-            className={cn(
-              'flex-1 rounded-full border py-2.5 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold transition-colors',
-              filters.tab === value
-                ? 'bg-ink-900 text-white border-ink-900'
-                : 'bg-white text-ink-500 border-ink-100',
-            )}
-          >
-            <Icon width={14} height={14} />
-            {label}
-          </button>
-        ))}
+        {TABS.map(({ value, label, Icon }) => {
+          const active = value === 'crews' ? crewsView : !crewsView && filters.tab === value;
+          return (
+            <button
+              key={value}
+              onClick={() => {
+                if (value === 'crews') setCrewsView(true);
+                else {
+                  setCrewsView(false);
+                  setFilterTab(value as 'indoor' | 'outdoor' | 'events');
+                }
+              }}
+              className={cn(
+                'flex-1 rounded-full border py-2.5 px-2 flex items-center justify-center gap-1 text-[11px] font-semibold transition-colors',
+                active ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-500 border-ink-100',
+              )}
+            >
+              <Icon width={13} height={13} />
+              {label}
+            </button>
+          );
+        })}
       </div>
 
+      {crewsView ? (
+        <CrewsBrowser />
+      ) : (
+      <>
       {/* Belay / Boulder sub-tabs (Indoor only) */}
       {filters.tab === 'indoor' && (
         <div className="flex gap-1.5 mb-4">
@@ -243,6 +257,9 @@ export function Find() {
           })}
           {filteredSessions.length === 0 && <EmptyState />}
         </div>
+      )}
+
+      </>
       )}
 
       <SessionDetailSheet
