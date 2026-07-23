@@ -10,6 +10,7 @@ import { EventDetailSheet } from '@/components/sheets/EventDetailSheet';
 import { NewSessionSheet } from '@/components/sheets/NewSessionSheet';
 import { useAppStore } from '@/store/useAppStore';
 import type { Session, EventItem } from '@/seed/types';
+import type { AvatarConfig } from '@/lib/avatar';
 
 export function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -42,8 +43,8 @@ export function GroupDetail() {
 
   const joined = memberships.includes(group.id);
   const admins = group.admin_ids
-    .map((id) => (id === 'me' ? { id: 'me', display_name: me?.display_name ?? 'You', avatar_url: me?.avatar_url } : users.find((u) => u.id === id)))
-    .filter(Boolean) as Array<{ id: string; display_name: string; avatar_url?: string }>;
+    .map((id) => (id === 'me' ? { id: 'me', display_name: me?.display_name ?? 'You', avatar: me?.avatar } : users.find((u) => u.id === id)))
+    .filter(Boolean) as Array<{ id: string; display_name: string; avatar?: AvatarConfig }>;
   const isAdmin = group.admin_ids.includes(me?.id ?? 'me');
 
   const groupSessions = sessions.filter((s) => s.posted_by_group_id === group.id);
@@ -87,7 +88,7 @@ export function GroupDetail() {
             <div className="flex flex-wrap gap-2">
               {admins.map((a) => (
                 <div key={a.id} className="flex items-center gap-2 rounded-full bg-paper-50 border border-ink-100 pl-1 pr-3 py-1">
-                  <Avatar src={a.avatar_url} alt={a.display_name} size={22} fallback={a.display_name} />
+                  <Avatar config={a.avatar} alt={a.display_name} size={22} fallback={a.display_name} />
                   <span className="text-xs font-medium text-ink-700">{a.display_name}</span>
                   <span className="text-[9px] font-semibold text-teal-600 uppercase tracking-wider">Admin</span>
                 </div>

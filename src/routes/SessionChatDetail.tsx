@@ -8,6 +8,7 @@ import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { ReactionPicker } from '@/components/chat/ReactionPicker';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
+import type { AvatarConfig } from '@/lib/avatar';
 
 export function SessionChatDetail() {
   const { sessionChatId } = useParams<{ sessionChatId: string }>();
@@ -42,7 +43,7 @@ export function SessionChatDetail() {
   const participants = chat.participant_ids
     .filter((id) => id !== 'me')
     .map((id) => users.find((u) => u.id === id))
-    .filter(Boolean) as { id: string; display_name: string; avatar_url: string }[];
+    .filter(Boolean) as { id: string; display_name: string; avatar: AvatarConfig }[];
 
   const handleSend = () => {
     const t = text.trim();
@@ -109,7 +110,7 @@ export function SessionChatDetail() {
                 <div className={cn('flex gap-2', isMe ? 'justify-end' : 'justify-start')}>
                   {!isMe && (
                     <Avatar
-                      src={author?.avatar_url}
+                      config={author?.avatar}
                       alt={author?.display_name ?? '?'}
                       size={28}
                       fallback={author?.display_name}

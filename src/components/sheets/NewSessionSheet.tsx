@@ -50,6 +50,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   // Call state
   const [callRole, setCallRole] = useState<ClimbCall['role']>('both');
   const [callCategory, setCallCategory] = useState<ClimbCall['category']>('top_rope');
+  const [callTitle, setCallTitle] = useState('');
   const [callGrade, setCallGrade] = useState('5.10a–5.11a');
   const [callGymId, setCallGymId] = useState<string>(me?.home_gym_id ?? gyms[0]?.id ?? '');
   const [callWhen, setCallWhen] = useState<'now' | 'tonight' | 'tomorrow_morning'>('now');
@@ -59,6 +60,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
 
   // Session state
   const [category, setCategory] = useState<Category>('top_rope');
+  const [sessionTitle, setSessionTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [gymId, setGymId] = useState<string>(me?.home_gym_id ?? gyms[0]?.id ?? '');
   const [area, setArea] = useState<string>('Index');
@@ -85,6 +87,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     setType('call');
     setCallRole('both');
     setCallCategory('top_rope');
+    setCallTitle('');
     setCallGrade('5.10a–5.11a');
     setCallGymId(me?.home_gym_id ?? gyms[0]?.id ?? '');
     setCallWhen('now');
@@ -92,6 +95,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     setCallCapacity(2);
     setCallNote('');
     setCategory('top_rope');
+    setSessionTitle('');
     setSubtitle('');
     setGymId(me?.home_gym_id ?? gyms[0]?.id ?? '');
     setArea('Index');
@@ -125,6 +129,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
       startsAt = d.toISOString();
     }
     postClimbCall({
+      title: callTitle.trim() || undefined,
       role: callRole,
       category: callCategory,
       grade: callGrade,
@@ -146,7 +151,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     const startsIso = new Date().toISOString();
     const session = postSession({
       category,
-      title: catInfo.label,
+      title: sessionTitle.trim() || catInfo.label,
       subtitle: subtitle || 'All levels welcome',
       starts_at: startsIso,
       ends_at: plusHours(startsIso, durationHours),
@@ -263,6 +268,14 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               <Input value={callGrade} onChange={(e) => setCallGrade(e.target.value)} placeholder="e.g. 5.10a–5.11a" />
             </div>
             <div>
+              <Label>Call name (optional)</Label>
+              <Input
+                value={callTitle}
+                onChange={(e) => setCallTitle(e.target.value.slice(0, 48))}
+                placeholder="e.g. Sunset lead sesh"
+              />
+            </div>
+            <div>
               <Label>Gym</Label>
               <select
                 value={callGymId}
@@ -371,12 +384,23 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
             </div>
 
             <div>
-              <Label>Grade or level</Label>
+              <Label>Session name (optional)</Label>
+              <Input
+                value={sessionTitle}
+                onChange={(e) => setSessionTitle(e.target.value.slice(0, 48))}
+                placeholder={`Defaults to "${catInfo.label}"`}
+              />
+              <p className="text-[10px] text-ink-300 mt-1 text-right">{sessionTitle.length} / 48</p>
+            </div>
+
+            <div>
+              <Label>Tagline · grade or level</Label>
               <Input
                 value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
+                onChange={(e) => setSubtitle(e.target.value.slice(0, 60))}
                 placeholder="e.g. 5.10a – 5.11c, V3 – V6, or 'All levels welcome'"
               />
+              <p className="text-[10px] text-ink-300 mt-1 text-right">{subtitle.length} / 60</p>
             </div>
 
             {catInfo.loc === 'indoor' ? (

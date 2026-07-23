@@ -1,51 +1,34 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { PunkAvatar } from './PunkAvatar';
+import { avatarFromSeed, type AvatarConfig } from '@/lib/avatar';
 
 interface AvatarProps {
-  src?: string;
+  /** Explicit avatar config. Wins over `seed`. */
+  config?: AvatarConfig;
+  /** Any stable string (userId, name). Deterministically generates a config. */
+  seed?: string;
   alt?: string;
   size?: number;
   fallback?: string;
   className?: string;
 }
 
-export function Avatar({ src, alt, size = 32, fallback, className }: AvatarProps) {
-  const [errored, setErrored] = React.useState(false);
-  const initials = (fallback ?? alt ?? '?')
-    .split(' ')
-    .map((s) => s[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
-  const style: React.CSSProperties = { width: size, height: size };
-
-  if (!src || errored) {
-    return (
-      <div
-        style={style}
-        className={cn(
-          'inline-flex items-center justify-center rounded-full bg-ink-100 text-ink-700 font-semibold text-xs',
-          className,
-        )}
-      >
-        {initials}
-      </div>
-    );
-  }
-  return (
-    <img
-      src={src}
-      alt={alt ?? 'avatar'}
-      style={style}
-      onError={() => setErrored(true)}
-      className={cn('rounded-full object-cover bg-ink-100', className)}
-    />
+/**
+ * All CruxMate avatars are generated punk-rock SVGs — no photo uploads,
+ * no external services. Pass either an explicit `config` (the user's saved
+ * customization) or a `seed` string to derive one deterministically.
+ */
+export function Avatar({ config, seed, alt, size = 32, fallback, className }: AvatarProps) {
+  const resolved = React.useMemo(
+    () => config ?? avatarFromSeed(seed ?? fallback ?? alt ?? 'anon'),
+    [config, seed, fallback, alt],
   );
+  return <PunkAvatar config={resolved} size={size} className={className} />;
 }
 
 interface AvatarStackProps {
-  users: Array<{ id: string; avatar_url?: string; display_name: string }>;
+  users: Array<{ id: string; avatar?: AvatarConfig; display_name: string }>;
   max?: number;
   size?: number;
 }
@@ -59,9 +42,9 @@ export function AvatarStack({ users, max = 3, size = 24 }: AvatarStackProps) {
         <div
           key={u.id}
           style={{ marginLeft: i === 0 ? 0 : -overlap, zIndex: shown.length - i }}
-          className="ring-2 ring-white rounded-full"
+          className={cn('ring-2 ring-white rounded-full')}
         >
-          <Avatar src={u.avatar_url} alt={u.display_name} size={size} fallback={u.display_name} />
+          <Avatar config={u.avatar} seed={u.id} alt={u.display_name} size={size} fallback={u.display_name} />
         </div>
       ))}
     </div>

@@ -34,12 +34,6 @@ const TIME_OPTS = [
   { value: 'evening', label: 'Evening · 5p–10p' },
 ] as const;
 
-const INDOOR_STYLES = [
-  { value: 'top_rope', label: 'Top Rope' },
-  { value: 'lead', label: 'Lead' },
-  { value: 'boulder', label: 'Boulder' },
-];
-
 const BELAY_STYLES = [
   { value: 'top_rope', label: 'Top Rope' },
   { value: 'lead', label: 'Lead' },
@@ -132,11 +126,14 @@ export function FilterRow() {
             <button className={chipCls(!!filters.indoor.time)} onClick={() => setOpen('time')}>
               {TIME_OPTS.find((t) => t.value === filters.indoor.time)?.label.split(' ')[0] ?? 'Time'} <NavArrowDown width={12} height={12} />
             </button>
-            <button className={chipCls(filters.indoor.styles.length > 0)} onClick={() => setOpen('style')}>
-              {filters.indoor.styles.length > 0 ? `${filters.indoor.styles.length} styles` : 'Style'} <NavArrowDown width={12} height={12} />
-            </button>
+            {/* Style only matters on Belay (top-rope vs lead).
+                Boulder sub-tab is single-style, so we hide it there. */}
             {isBelaySub && (
               <>
+                <button className={chipCls(filters.indoor.styles.length > 0)} onClick={() => setOpen('style')}>
+                  {filters.indoor.styles.length > 0 ? `${filters.indoor.styles.length} styles` : 'Style'}
+                  <NavArrowDown width={12} height={12} />
+                </button>
                 <button className={chipCls(!!filters.indoor.role)} onClick={() => setOpen('role')}>
                   {filters.indoor.role
                     ? ROLE_OPTS.find((r) => r.value === filters.indoor.role)?.label
@@ -363,12 +360,9 @@ export function FilterRow() {
 
           {open === 'style' && (
             <div className="flex flex-col gap-2">
-              {(filters.tab === 'indoor'
-                ? isBelaySub
-                  ? BELAY_STYLES
-                  : INDOOR_STYLES
-                : OUTDOOR_STYLES
-              ).map((s) => {
+              {/* Indoor only opens this sheet from the Belay sub-tab,
+                  so top-rope / lead are the only relevant options there. */}
+              {(filters.tab === 'indoor' ? BELAY_STYLES : OUTDOOR_STYLES).map((s) => {
                 const styles = filters.tab === 'indoor' ? filters.indoor.styles : filters.outdoor.styles;
                 const checked = styles.includes(s.value);
                 return (

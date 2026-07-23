@@ -3,6 +3,7 @@ import type { Session, NpcUser } from '@/seed/types';
 import { formatSessionWhen } from '@/lib/date';
 import { AvatarStack } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/store/useAppStore';
 
 const categoryColor: Record<Session['category'], { bg: string; text: string }> = {
   top_rope: { bg: 'bg-ink-900', text: 'text-ink-900' },
@@ -36,6 +37,7 @@ interface SessionCardProps {
 }
 
 export function SessionCard({ session, users, gymName, onClick, matchScore, groupName }: SessionCardProps) {
+  const meAvatar = useAppStore((s) => s.me?.avatar);
   const color = categoryColor[session.category];
   const Icon = categoryIcon[session.category];
   const participants = session.participant_ids
@@ -45,7 +47,7 @@ export function SessionCard({ session, users, gymName, onClick, matchScore, grou
   const meIncluded = session.participant_ids.includes('me');
   // If me is in participants but not resolved from users list, add pseudo-entry
   const displayUsers = meIncluded
-    ? [{ id: 'me', display_name: 'You', avatar_url: 'https://i.pravatar.cc/48?img=4' }, ...participants]
+    ? [{ id: 'me', display_name: 'You', avatar: meAvatar }, ...participants]
     : participants;
 
   return (

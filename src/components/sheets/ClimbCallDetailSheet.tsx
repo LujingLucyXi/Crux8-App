@@ -59,7 +59,7 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent title=" ">
         <div className="flex flex-col items-center -mt-4 mb-5">
-          <Avatar src={caller.avatar_url} alt={caller.display_name} size={96} fallback={caller.display_name} />
+          <Avatar config={caller.avatar} alt={caller.display_name} size={96} fallback={caller.display_name} />
           <h2 className="mt-3 text-xl font-semibold text-ink-900">{caller.display_name}</h2>
           {caller.pronouns && <p className="text-sm text-ink-500">{caller.pronouns}</p>}
 

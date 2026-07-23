@@ -51,7 +51,7 @@ export function ChatDetail() {
         <button onClick={() => nav('/chat')} aria-label="Back">
           <NavArrowLeft width={22} height={22} className="text-ink-700" />
         </button>
-        <Avatar src={user.avatar_url} alt={user.display_name} size={36} fallback={user.display_name} />
+        <Avatar config={user.avatar} alt={user.display_name} size={36} fallback={user.display_name} />
         <div className="flex-1">
           <p className="font-semibold text-ink-900">{user.display_name}</p>
           <div className="flex gap-1 mt-0.5">

@@ -1,0 +1,153 @@
+import { PunkAvatar } from './PunkAvatar';
+import { Button } from './Button';
+import {
+  type AvatarConfig,
+  SKIN_TONES, SKIN_HEX,
+  HAIR_STYLES, HAIR_STYLE_LABEL,
+  HAIR_COLORS, HAIR_HEX, HAIR_COLOR_LABEL,
+  EYES_OPTS, EYES_LABEL,
+  ACCESSORIES, ACCESSORY_LABEL,
+  BACKDROPS, BACKDROP_HEX,
+  avatarFromSeed,
+} from '@/lib/avatar';
+import { cn } from '@/lib/utils';
+
+interface Props {
+  value: AvatarConfig;
+  onChange: (next: AvatarConfig) => void;
+}
+
+/**
+ * Punk-rock avatar builder. Live preview + 6 trait rows.
+ * Used in Onboarding step 2 and the Profile edit sheet.
+ */
+export function AvatarCustomizer({ value, onChange }: Props) {
+  const set = <K extends keyof AvatarConfig>(k: K, v: AvatarConfig[K]) =>
+    onChange({ ...value, [k]: v });
+
+  return (
+    <div>
+      {/* Live preview + randomize */}
+      <div className="flex flex-col items-center gap-3 mb-6">
+        <PunkAvatar config={value} size={128} className="ring-4 ring-white" />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onChange(avatarFromSeed(Math.random().toString(36)))}
+        >
+          🎲 Randomize
+        </Button>
+      </div>
+
+      <div className="space-y-5">
+        {/* Skin */}
+        <Row label="Skin">
+          {SKIN_TONES.map((t) => (
+            <Swatch
+              key={t}
+              color={SKIN_HEX[t]}
+              active={value.skin === t}
+              onClick={() => set('skin', t)}
+              title={t}
+            />
+          ))}
+        </Row>
+
+        {/* Hair style */}
+        <Row label="Hair">
+          {HAIR_STYLES.map((h) => (
+            <Pill key={h} active={value.hair === h} onClick={() => set('hair', h)}>
+              {HAIR_STYLE_LABEL[h]}
+            </Pill>
+          ))}
+        </Row>
+
+        {/* Hair color */}
+        <Row label="Hair color">
+          {HAIR_COLORS.map((c) => (
+            <Swatch
+              key={c}
+              color={HAIR_HEX[c]}
+              active={value.hairColor === c}
+              onClick={() => set('hairColor', c)}
+              title={HAIR_COLOR_LABEL[c]}
+            />
+          ))}
+        </Row>
+
+        {/* Eyes */}
+        <Row label="Face">
+          {EYES_OPTS.map((e) => (
+            <Pill key={e} active={value.eyes === e} onClick={() => set('eyes', e)}>
+              {EYES_LABEL[e]}
+            </Pill>
+          ))}
+        </Row>
+
+        {/* Accessory */}
+        <Row label="Accessory">
+          {ACCESSORIES.map((a) => (
+            <Pill key={a} active={value.accessory === a} onClick={() => set('accessory', a)}>
+              {ACCESSORY_LABEL[a]}
+            </Pill>
+          ))}
+        </Row>
+
+        {/* Backdrop */}
+        <Row label="Backdrop">
+          {BACKDROPS.map((b) => (
+            <Swatch
+              key={b}
+              color={BACKDROP_HEX[b]}
+              active={value.backdrop === b}
+              onClick={() => set('backdrop', b)}
+              title={b}
+            />
+          ))}
+        </Row>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wider text-ink-500 mb-2">{label}</p>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+
+function Swatch({
+  color, active, onClick, title,
+}: { color: string; active: boolean; onClick: () => void; title: string }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className={cn(
+        'w-9 h-9 rounded-full border-2 transition-transform',
+        active ? 'border-ink-900 scale-110' : 'border-ink-100 hover:scale-105',
+      )}
+      style={{ background: color }}
+    />
+  );
+}
+
+function Pill({
+  active, onClick, children,
+}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+        active ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100 hover:border-ink-300',
+      )}
+    >
+      {children}
+    </button>
+  );
+}

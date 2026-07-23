@@ -12,6 +12,7 @@ import type { Session, VerificationCategory } from '@/seed/types';
 import { GearChecklistSheet } from './GearChecklistSheet';
 import { CertVerificationSheet } from './CertVerificationSheet';
 import { UserProfileSheet } from './UserProfileSheet';
+import type { AvatarConfig } from '@/lib/avatar';
 
 interface Props {
   session: Session | null;
@@ -52,11 +53,11 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const host = users.find((u) => u.id === session.host_id);
   const participants = session.participant_ids
     .map((id) => {
-      if (id === 'me') return { id: 'me', display_name: me.display_name, avatar_url: me.avatar_url, isMe: true };
+      if (id === 'me') return { id: 'me', display_name: me.display_name, avatar: me.avatar, isMe: true };
       const u = users.find((x) => x.id === id);
       return u ? { ...u, isMe: false } : null;
     })
-    .filter(Boolean) as Array<{ id: string; display_name: string; avatar_url?: string; isMe?: boolean }>;
+    .filter(Boolean) as Array<{ id: string; display_name: string; avatar?: AvatarConfig; isMe?: boolean }>;
 
   const requiredVerification = catToVerification(session.category);
   const isVerified = requiredVerification ? verifications[requiredVerification].status === 'verified' : true;
@@ -154,7 +155,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
                   disabled={p.isMe}
                   className="flex items-center gap-3 p-2 rounded-xl hover:bg-paper-50 disabled:cursor-default disabled:hover:bg-transparent text-left"
                 >
-                  <Avatar src={p.avatar_url} alt={p.display_name} size={32} fallback={p.display_name} />
+                  <Avatar config={p.avatar} alt={p.display_name} size={32} fallback={p.display_name} />
                   <span className="text-sm text-ink-900 flex-1">{p.display_name}</span>
                   {p.id === session.host_id && (
                     <span className="text-[10px] font-semibold text-ink-500 uppercase tracking-wider">Host</span>

@@ -38,7 +38,7 @@ export function Header() {
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-coral-500" />
             </button>
             <button onClick={() => nav('/profile')} aria-label="Profile">
-              <Avatar src={me?.avatar_url} alt={me?.display_name} size={30} fallback={me?.display_name} />
+              <Avatar config={me?.avatar} alt={me?.display_name} size={30} fallback={me?.display_name} />
             </button>
           </div>
         </div>

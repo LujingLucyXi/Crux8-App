@@ -91,8 +91,17 @@ export function ClimbCallCard({
           {/* Name + role + tags */}
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-ink-900 text-base leading-tight">
-              {isMyCall ? 'You' : caller.display_name.split(' ')[0]}
+              {call.title
+                ? call.title
+                : isMyCall
+                ? 'You'
+                : caller.display_name.split(' ')[0]}
             </h3>
+            {call.title && (
+              <span className="text-xs text-ink-500">
+                by {isMyCall ? 'you' : caller.display_name.split(' ')[0]}
+              </span>
+            )}
             <span className="inline-flex items-center rounded-full bg-paper-50 border border-ink-100 text-ink-500 text-[10px] font-semibold px-2 py-0.5 tracking-wider">
               {roleLabel[call.role]}
             </span>

@@ -29,7 +29,7 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent title=" ">
         <div className="flex flex-col items-center -mt-4 mb-5">
-          <Avatar src={user.avatar_url} alt={user.display_name} size={96} fallback={user.display_name} />
+          <Avatar config={user.avatar} alt={user.display_name} size={96} fallback={user.display_name} />
           <h2 className="mt-3 text-xl font-semibold text-ink-900">{user.display_name}</h2>
           {user.pronouns && <p className="text-sm text-ink-500">{user.pronouns}</p>}
 

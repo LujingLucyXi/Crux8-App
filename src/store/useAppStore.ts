@@ -27,6 +27,7 @@ import {
   SEED_CLIMB_CALLS,
 } from '@/seed';
 import { uid } from '@/lib/utils';
+import { DEFAULT_AVATAR, avatarFromSeed } from '@/lib/avatar';
 
 export type Verification = { status: VerificationStatus; photo_url?: string; verified_at?: string };
 
@@ -233,7 +234,9 @@ export const useAppStore = create<Store>()(
           display_name,
           pronouns,
           dob,
-          avatar_url: `https://i.pravatar.cc/128?img=4`,
+          // Seed a look from their name so no two signups look identical;
+          // they refine it in Onboarding step 2.
+          avatar: display_name ? avatarFromSeed(display_name) : DEFAULT_AVATAR,
           home_gym_id: 'gym_vertical_world',
           top_grade: '5.10c',
           preferred_styles: ['top_rope', 'lead', 'outdoor_sport'],

@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 import { EyeClosed } from 'iconoir-react';
 import { Button } from '@/components/ui/Button';
 import { Input, Label } from '@/components/ui/Input';
-import { Avatar } from '@/components/ui/Avatar';
+import { AvatarCustomizer } from '@/components/ui/AvatarCustomizer';
+import { avatarFromSeed, type AvatarConfig } from '@/lib/avatar';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
@@ -36,7 +37,7 @@ export function Onboarding() {
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [dob, setDob] = useState(me?.dob ?? '');
-  const [avatarSeed, setAvatarSeed] = useState<number>(4);
+  const [avatar, setAvatar] = useState<AvatarConfig>(me?.avatar ?? avatarFromSeed(me?.display_name ?? 'anon'));
   const [homeGymId, setHomeGymId] = useState<string>(me?.home_gym_id ?? gyms[0]?.id ?? '');
   const [topGrade, setTopGrade] = useState<string>(me?.top_grade ?? '5.10a-5.10c');
   const [preferredStyles, setPreferredStyles] = useState<Style[]>(me?.preferred_styles ?? ['top_rope', 'lead']);
@@ -59,7 +60,7 @@ export function Onboarding() {
     const heightCm = heightFt || heightIn ? ftInToCm(Number(heightFt || 0), Number(heightIn || 0)) : undefined;
     completeOnboarding({
       dob: dob || undefined,
-      avatar_url: `https://i.pravatar.cc/128?img=${avatarSeed}`,
+      avatar,
       home_gym_id: homeGymId,
       top_grade: topGrade,
       preferred_styles: preferredStyles,
@@ -115,23 +116,12 @@ export function Onboarding() {
 
         {step === 2 && (
           <>
-            <h2 className="text-2xl font-semibold text-ink-900">Pick a profile photo.</h2>
+            <h2 className="text-2xl font-semibold text-ink-900">Build your climber.</h2>
             <p className="mt-2 text-sm text-ink-500">
-              You can upload a real photo later. For now, choose an avatar.
+              No photos, no uploads — just you, rendered in CruxMate house style.
             </p>
-            <div className="mt-6 grid grid-cols-4 gap-3">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((seed) => (
-                <button
-                  key={seed}
-                  onClick={() => setAvatarSeed(seed)}
-                  className={cn(
-                    'aspect-square rounded-full ring-4 transition-all',
-                    avatarSeed === seed ? 'ring-ink-900' : 'ring-transparent',
-                  )}
-                >
-                  <Avatar src={`https://i.pravatar.cc/128?img=${seed}`} size={80} alt={`Avatar ${seed}`} className="w-full h-full" />
-                </button>
-              ))}
+            <div className="mt-6">
+              <AvatarCustomizer value={avatar} onChange={setAvatar} />
             </div>
             <div className="mt-8 flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>

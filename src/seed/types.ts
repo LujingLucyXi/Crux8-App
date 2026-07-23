@@ -11,6 +11,8 @@ export type Category =
   | 'outdoor_boulder'
   | 'event';
 
+import type { AvatarConfig } from '@/lib/avatar';
+
 export type Style = 'top_rope' | 'lead' | 'boulder' | 'outdoor_sport' | 'trad' | 'events';
 
 export type Vibe = 'chill' | 'projecting' | 'training' | 'social';
@@ -118,7 +120,7 @@ export interface NpcUser {
   id: string;
   display_name: string;
   pronouns?: string;
-  avatar_url: string;
+  avatar: AvatarConfig;
   home_gym_id: string;
   top_grade: string;
   preferred_styles: Style[];
@@ -131,7 +133,7 @@ export interface Profile {
   display_name: string;
   pronouns?: string;
   dob?: string;
-  avatar_url: string;
+  avatar: AvatarConfig;
   home_gym_id: string;
   top_grade: string;
   preferred_styles: Style[];
@@ -151,6 +153,7 @@ export interface Profile {
 export interface ClimbCall {
   id: string;
   user_id: string;                    // who's calling ('me' or an NPC)
+  title?: string;                     // optional custom name set by host
   role: 'belayer' | 'climber' | 'both';
   category: 'top_rope' | 'lead';
   grade: string;                      // e.g. '5.10a–5.11c'

@@ -5,6 +5,8 @@ import { ShieldCheck, Trophy, Star, Community, Trekking, Sparks, HandCard, EyeCl
 import { Textarea, Input, Label } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
+import { AvatarCustomizer } from '@/components/ui/AvatarCustomizer';
+import { DEFAULT_AVATAR } from '@/lib/avatar';
 import { SessionCard } from '@/components/cards/SessionCard';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
@@ -59,6 +61,8 @@ export function Profile() {
   const [about, setAbout] = useState(me?.about ?? '');
   const [editingAbout, setEditingAbout] = useState(false);
   const [hwOpen, setHwOpen] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [draftAvatar, setDraftAvatar] = useState(me?.avatar ?? DEFAULT_AVATAR);
   const [weightLbs, setWeightLbs] = useState(me?.weight_kg ? String(kgToLbs(me.weight_kg)) : '');
   const [heightFt, setHeightFt] = useState(me?.height_cm ? String(Math.floor(me.height_cm / 2.54 / 12)) : '');
   const [heightIn, setHeightIn] = useState(
@@ -82,7 +86,19 @@ export function Profile() {
       {/* Header card */}
       <div className="rounded-2xl bg-white border border-ink-100 p-5">
         <div className="flex items-start gap-4">
-          <Avatar src={me.avatar_url} alt={me.display_name} size={80} fallback={me.display_name} />
+          <button
+            onClick={() => {
+              setDraftAvatar(me.avatar);
+              setAvatarOpen(true);
+            }}
+            className="relative shrink-0 group"
+            aria-label="Edit avatar"
+          >
+            <Avatar config={me.avatar} alt={me.display_name} size={80} fallback={me.display_name} />
+            <span className="absolute -bottom-1 -right-1 rounded-full bg-ink-900 text-white text-[9px] font-semibold px-2 py-0.5 border-2 border-white">
+              Edit
+            </span>
+          </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-semibold text-ink-900">{me.display_name}</h1>
             {me.pronouns && <p className="text-sm text-ink-500">{me.pronouns}</p>}
@@ -315,7 +331,7 @@ export function Profile() {
                 onClick={() => nav(`/chat/${id}`)}
                 className="flex flex-col items-center gap-1 shrink-0 w-16"
               >
-                <Avatar src={u.avatar_url} alt={u.display_name} size={52} fallback={u.display_name} />
+                <Avatar config={u.avatar} alt={u.display_name} size={52} fallback={u.display_name} />
                 <p className="text-[10px] font-medium text-ink-700 text-center leading-tight truncate w-full">
                   {u.display_name.split(' ')[0]}
                 </p>
@@ -327,6 +343,28 @@ export function Profile() {
           )}
         </div>
       </section>
+
+      {/* Avatar customizer sheet */}
+      <Sheet open={avatarOpen} onOpenChange={setAvatarOpen}>
+        <SheetContent title="Your climber">
+          <AvatarCustomizer value={draftAvatar} onChange={setDraftAvatar} />
+          <div className="flex gap-2 pt-6">
+            <Button variant="outline" className="flex-1" onClick={() => setAvatarOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={() => {
+                updateProfile({ avatar: draftAvatar });
+                toast('Look updated');
+                setAvatarOpen(false);
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Height + weight edit sheet */}
       <Sheet open={hwOpen} onOpenChange={setHwOpen}>

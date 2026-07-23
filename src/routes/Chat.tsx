@@ -3,6 +3,7 @@ import { ChatBubble, Community } from 'iconoir-react';
 import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { useAppStore } from '@/store/useAppStore';
 import { formatChatTimestamp } from '@/lib/date';
+import type { AvatarConfig } from '@/lib/avatar';
 
 export function Chat() {
   const nav = useNavigate();
@@ -48,7 +49,7 @@ export function Chat() {
               const participants = sc.participant_ids
                 .filter((id) => id !== 'me')
                 .map((id) => users.find((u) => u.id === id))
-                .filter(Boolean) as { id: string; display_name: string; avatar_url: string }[];
+                .filter(Boolean) as { id: string; display_name: string; avatar: AvatarConfig }[];
               return (
                 <li key={sc.id}>
                   <button
@@ -106,7 +107,7 @@ export function Chat() {
                     onClick={() => nav(`/chat/${id}`)}
                     className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white transition-colors text-left"
                   >
-                    <Avatar src={user.avatar_url} alt={user.display_name} size={44} fallback={user.display_name} />
+                    <Avatar config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="font-semibold text-ink-900 truncate">{user.display_name}</p>
