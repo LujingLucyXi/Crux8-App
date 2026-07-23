@@ -9,6 +9,7 @@ import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
 import { ClimbCallDetailSheet } from '@/components/sheets/ClimbCallDetailSheet';
 import { EventDetailSheet } from '@/components/sheets/EventDetailSheet';
 import { AiMatchSheet } from '@/components/sheets/AiMatchSheet';
+import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
 import { computeChallenges, daysLeftInWeek } from '@/lib/challenges';
 import { computeBadgeProgress, nextUpBadges } from '@/lib/badges';
 import { rankMatches } from '@/lib/match';
@@ -44,12 +45,13 @@ export function Home() {
   const myGroupMemberships = useAppStore((s) => s.myGroupMemberships);
   const verifications = useAppStore((s) => s.verifications);
   const badges = useAppStore((s) => s.badges);
-  const ratings = useAppStore((s) => s.ratings);
+  const recaps = useAppStore((s) => s.recaps);
 
   const [detailSession, setDetailSession] = useState<Session | null>(null);
   const [detailCall, setDetailCall] = useState<ClimbCall | null>(null);
   const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
+  const [recapSession, setRecapSession] = useState<Session | null>(null);
 
   const gymName = (id?: string) => gyms.find((g) => g.id === id)?.short_name ?? '';
 
@@ -73,6 +75,17 @@ export function Home() {
 
   const upNext = agenda[0];
   const restOfWeek = agenda.slice(1, 9);
+
+  const needsRecap = useMemo(() => {
+    if (!me) return [];
+    const now = Date.now();
+    return sessions
+      .filter((s) => s.participant_ids.includes(me.id)
+        && new Date(s.ends_at).getTime() <= now
+        && !recaps[s.id])
+      .sort((a, b) => new Date(b.ends_at).getTime() - new Date(a.ends_at).getTime())
+      .slice(0, 4);
+  }, [me, sessions, recaps]);
 
   /* ── Suggested (AI-ranked things I'm NOT already on) ── */
   const suggestedSessions = useMemo(() => {
@@ -117,9 +130,9 @@ export function Home() {
 
   const badgeProgress = useMemo(
     () => (me ? computeBadgeProgress({
-      meId: me.id, sessions, cruxmates, myGroupMemberships, verifications, ratings,
+      meId: me.id, sessions, cruxmates, myGroupMemberships, verifications, recapCount: Object.keys(recaps).length,
     }, badges) : []),
-    [me, sessions, cruxmates, myGroupMemberships, verifications, ratings, badges],
+    [me, sessions, cruxmates, myGroupMemberships, verifications, recaps, badges],
   );
   const nextBadges = nextUpBadges(badgeProgress, 5);
   const earnedCount = badgeProgress.filter((b) => b.earned).length;
@@ -191,6 +204,31 @@ export function Home() {
           />
         )}
       </StackSection>
+
+      {/* ── Recap prompt (post-session touchpoint) ── */}
+      {needsRecap.length > 0 && (
+        <CarouselSection title={`Recap your climbs · ${needsRecap.length}`}>
+          {needsRecap.map((s) => {
+            const partners = s.participant_ids.filter((id) => id !== me.id).length;
+            return (
+              <button
+                key={s.id}
+                onClick={() => setRecapSession(s)}
+                className="w-[220px] shrink-0 text-left rounded-2xl bg-teal-100 border border-teal-600 p-4 hover:brightness-95 transition-all"
+              >
+                <span className="text-lg">📓</span>
+                <h3 className="mt-1.5 font-semibold text-ink-900 text-sm leading-tight">{s.title}</h3>
+                <p className="text-[12px] text-ink-600 mt-0.5">
+                  {gymName(s.gym_id) || s.area} · {partners > 0 ? `${partners} partner${partners === 1 ? '' : 's'}` : 'solo'}
+                </p>
+                <span className="mt-2 inline-block text-xs font-semibold text-teal-600">
+                  Give props →
+                </span>
+              </button>
+            );
+          })}
+        </CarouselSection>
+      )}
 
       {/* ── Rest of agenda ── */}
       {restOfWeek.length > 0 && (
@@ -339,6 +377,11 @@ export function Home() {
       <ClimbCallDetailSheet call={detailCall} open={!!detailCall} onOpenChange={(o) => !o && setDetailCall(null)} />
       <EventDetailSheet event={detailEvent} open={!!detailEvent} onOpenChange={(o) => !o && setDetailEvent(null)} />
       <AiMatchSheet open={aiOpen} onOpenChange={setAiOpen} />
+      <SessionRecapSheet
+        session={recapSession}
+        open={!!recapSession}
+        onOpenChange={(o) => !o && setRecapSession(null)}
+      />
     </div>
   );
 }

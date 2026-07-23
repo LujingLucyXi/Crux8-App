@@ -10,15 +10,15 @@ import { DEFAULT_AVATAR } from '@/lib/avatar';
 import { SessionCard } from '@/components/cards/SessionCard';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
-import { Dialog, DialogContent } from '@/components/ui/Dialog';
+import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
 import { useAppStore, type BadgeId } from '@/store/useAppStore';
-import type { VerificationCategory, Rating } from '@/seed/types';
+import type { VerificationCategory } from '@/seed/types';
 import { cn } from '@/lib/utils';
 import { cmToFtIn, kgToLbs, lbsToKg, ftInToCm } from '@/lib/weight';
 
 const BADGE_META: Record<BadgeId, { label: string; Icon: React.ComponentType<{ width: number; height: number; color: string }> }> = {
   first_session: { label: 'First Session', Icon: HandCard },
-  first_send: { label: 'First Send', Icon: Star },
+  first_recap: { label: 'First Recap', Icon: Star },
   verified_belayer: { label: 'Verified Belayer', Icon: ShieldCheck },
   adventurer: { label: 'Adventurer', Icon: Trekking },
   community: { label: 'Community', Icon: Community },
@@ -28,7 +28,7 @@ const BADGE_META: Record<BadgeId, { label: string; Icon: React.ComponentType<{ w
 
 const BADGE_ORDER: BadgeId[] = [
   'first_session',
-  'first_send',
+  'first_recap',
   'verified_belayer',
   'adventurer',
   'community',
@@ -51,13 +51,12 @@ export function Profile() {
   const cruxmates = useAppStore((s) => s.cruxmates);
   const verifications = useAppStore((s) => s.verifications);
   const badges = useAppStore((s) => s.badges);
-  const ratings = useAppStore((s) => s.ratings);
+  const recaps = useAppStore((s) => s.recaps);
   const updateProfile = useAppStore((s) => s.updateProfile);
-  const submitRating = useAppStore((s) => s.submitRating);
 
   const [certOpen, setCertOpen] = useState(false);
   const [certPreset, setCertPreset] = useState<VerificationCategory | undefined>(undefined);
-  const [rateSessionId, setRateSessionId] = useState<string | null>(null);
+  const [recapSessionId, setRecapSessionId] = useState<string | null>(null);
   const [about, setAbout] = useState(me?.about ?? '');
   const [editingAbout, setEditingAbout] = useState(false);
   const [hwOpen, setHwOpen] = useState(false);
@@ -297,20 +296,18 @@ export function Profile() {
           <div className="flex flex-col gap-3">
             {past.map((s) => {
               const gymForCard = s.gym_id ? gyms.find((g) => g.id === s.gym_id) : undefined;
-              const rated = !!ratings[s.id];
+              const done = !!recaps[s.id];
               return (
                 <div key={s.id}>
                   <SessionCard session={s} users={users} gymName={gymForCard?.short_name} />
-                  {!rated && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2 w-full"
-                      onClick={() => setRateSessionId(s.id)}
-                    >
-                      Rate this session
-                    </Button>
-                  )}
+                  <Button
+                    variant={done ? 'outline' : 'primary'}
+                    size="sm"
+                    className={cn('mt-2 w-full', !done && 'bg-teal-600 hover:bg-teal-500 border-teal-600')}
+                    onClick={() => setRecapSessionId(s.id)}
+                  >
+                    {done ? 'View recap' : 'Log recap · give props'}
+                  </Button>
                 </div>
               );
             })}
@@ -449,77 +446,13 @@ export function Profile() {
         presetCategory={certPreset}
       />
 
-      <RateSessionDialog
-        sessionId={rateSessionId}
-        onClose={() => setRateSessionId(null)}
-        onSubmit={(rating) => {
-          if (rateSessionId) submitRating(rateSessionId, rating);
-          setRateSessionId(null);
-          toast('Rating submitted · thanks!');
-        }}
+      <SessionRecapSheet
+        session={sessions.find((s) => s.id === recapSessionId) ?? null}
+        open={!!recapSessionId}
+        onOpenChange={(o) => !o && setRecapSessionId(null)}
       />
     </div>
   );
 }
 
-function RateSessionDialog({
-  sessionId,
-  onClose,
-  onSubmit,
-}: {
-  sessionId: string | null;
-  onClose: () => void;
-  onSubmit: (rating: Rating) => void;
-}) {
-  const [safety, setSafety] = useState(5);
-  const [punctuality, setPunctuality] = useState(5);
-  const [vibe, setVibe] = useState(5);
-  const [note, setNote] = useState('');
 
-  return (
-    <Dialog open={!!sessionId} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent title="Rate this session" description="Private ratings help match better next time.">
-        <div className="space-y-4 mt-2">
-          <StarRow label="Safety" value={safety} onChange={setSafety} />
-          <StarRow label="Punctuality" value={punctuality} onChange={setPunctuality} />
-          <StarRow label="Vibe" value={vibe} onChange={setVibe} />
-          <div>
-            <Textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value.slice(0, 240))}
-              rows={2}
-              placeholder="Private note to CruxMate (optional)"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button className="flex-1" onClick={() => onSubmit({ safety, punctuality, vibe, note })}>
-              Submit
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function StarRow({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
-  return (
-    <div>
-      <p className="text-sm font-medium text-ink-700 mb-1">{label}</p>
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            onClick={() => onChange(n)}
-            className={cn('text-2xl', n <= value ? 'text-gold-500' : 'text-ink-100')}
-          >
-            ★
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}

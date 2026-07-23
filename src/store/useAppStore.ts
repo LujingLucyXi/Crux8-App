@@ -9,7 +9,9 @@ import type {
   Gym,
   Route,
   ChatMessage,
-  Rating,
+  SessionRecap,
+  PartnerCheck,
+  PartnerFlag,
   ClimbCall,
   ReactionKey,
   VerificationCategory,
@@ -71,7 +73,7 @@ export interface SessionChat {
 
 export type BadgeId =
   | 'first_session'
-  | 'first_send'
+  | 'first_recap'
   | 'verified_belayer'
   | 'adventurer'
   | 'community'
@@ -97,7 +99,7 @@ interface Store {
   verifications: Record<VerificationCategory, Verification>;
   gearChecklists: Record<string, Record<string, boolean>>;
   badges: BadgeId[];
-  ratings: Record<string, Rating>;
+  recaps: Record<string, SessionRecap>;       // sessionId -> recap
   pairRequests: string[];               // callIds we've requested to pair on
 
   // UI state
@@ -150,7 +152,9 @@ interface Store {
 
   updateGearChecklist: (sessionId: string, item: string, checked: boolean) => void;
 
-  submitRating: (sessionId: string, rating: Rating) => void;
+  logSessionRecap: (sessionId: string) => void;
+  togglePartnerProp: (sessionId: string, partnerId: string, key: ReactionKey) => void;
+  setPartnerCheck: (sessionId: string, partnerId: string, check: PartnerCheck, flag?: PartnerFlag) => void;
 
   setFilterTab: (tab: 'indoor' | 'outdoor' | 'events') => void;
   setIndoorFilter: (patch: Partial<FiltersIndoor>) => void;
@@ -192,7 +196,7 @@ export const useAppStore = create<Store>()(
       verifications: initialVerifications,
       gearChecklists: {},
       badges: [],
-      ratings: {},
+      recaps: {},
       pairRequests: [],
       filters: initialFilters,
       seededAt: null,
@@ -274,7 +278,7 @@ export const useAppStore = create<Store>()(
           verifications: initialVerifications,
           gearChecklists: {},
           badges: [],
-          ratings: {},
+          recaps: {},
           filters: initialFilters,
           seededAt: null,
         });
@@ -604,10 +608,59 @@ export const useAppStore = create<Store>()(
         });
       },
 
-      submitRating: (sessionId, rating) => {
+      logSessionRecap: (sessionId) => {
+        const existing = get().recaps[sessionId];
+        if (existing) return;
+        const recap: SessionRecap = {
+          session_id: sessionId,
+          logged_at: new Date().toISOString(),
+          props: {},
+          partner_checks: {},
+          partner_flags: {},
+        };
+        set({ recaps: { ...get().recaps, [sessionId]: recap } });
+        get().checkBadges();
+      },
+
+      togglePartnerProp: (sessionId, partnerId, key) => {
+        const cur = get().recaps[sessionId];
+        const base: SessionRecap = cur ?? {
+          session_id: sessionId, logged_at: new Date().toISOString(),
+          props: {}, partner_checks: {}, partner_flags: {},
+        };
+        const given = base.props[partnerId] ?? [];
+        const next = given.includes(key)
+          ? given.filter((k) => k !== key)
+          : [...given, key];
         set({
-          ratings: { ...get().ratings, [sessionId]: rating },
+          recaps: {
+            ...get().recaps,
+            [sessionId]: { ...base, props: { ...base.props, [partnerId]: next } },
+          },
         });
+        get().checkBadges();
+      },
+
+      setPartnerCheck: (sessionId, partnerId, check, flag) => {
+        const cur = get().recaps[sessionId];
+        const base: SessionRecap = cur ?? {
+          session_id: sessionId, logged_at: new Date().toISOString(),
+          props: {}, partner_checks: {}, partner_flags: {},
+        };
+        const flags = { ...base.partner_flags };
+        if (check === 'flagged' && flag) flags[partnerId] = flag;
+        else delete flags[partnerId];
+        set({
+          recaps: {
+            ...get().recaps,
+            [sessionId]: {
+              ...base,
+              partner_checks: { ...base.partner_checks, [partnerId]: check },
+              partner_flags: flags,
+            },
+          },
+        });
+        get().checkBadges();
       },
 
       setFilterTab: (tab) => set({ filters: { ...get().filters, tab } }),
@@ -635,6 +688,10 @@ export const useAppStore = create<Store>()(
         // first_session
         if (s.sessions.some((sess) => sess.participant_ids.includes(me.id))) {
           newBadges.add('first_session');
+        }
+        // first_recap — logged a past session (props or check)
+        if (Object.keys(s.recaps).length > 0) {
+          newBadges.add('first_recap');
         }
         // verified_belayer
         if (Object.values(s.verifications).some((v) => v.status === 'verified')) {

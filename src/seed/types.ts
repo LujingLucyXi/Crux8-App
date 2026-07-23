@@ -198,11 +198,28 @@ export interface ChatMessage {
   reactions?: Reaction[];
 }
 
-export interface Rating {
-  safety: number;
-  punctuality: number;
-  vibe: number;
+/**
+ * Post-session recap. Replaces the old 1–5 peer star rating, which suffered
+ * from grade inflation (everyone rates 5) and social friction (rating a
+ * friend low is awkward). Instead:
+ *   - `props` are positive-only climbing-emoji kudos shown publicly.
+ *   - `partner_checks` are PRIVATE, exception-based safety signals. Default
+ *     is "all_good" (one tap). A "flag" is never shown to the flagged user;
+ *     only patterns across many sessions route to trust review.
+ */
+export type PartnerCheck = 'all_good' | 'flagged';
+
+export interface PartnerFlag {
+  reason: 'unsafe_belay' | 'no_show' | 'uncomfortable' | 'other';
   note?: string;
+}
+
+export interface SessionRecap {
+  session_id: string;
+  logged_at: string;                          // ISO
+  props: Record<string, ReactionKey[]>;       // partnerUserId -> emoji props I gave
+  partner_checks: Record<string, PartnerCheck>; // partnerUserId -> all_good | flagged
+  partner_flags: Record<string, PartnerFlag>;   // partnerUserId -> private detail (flagged only)
 }
 
 // Helper: date offset from "now" so the seed always feels fresh.

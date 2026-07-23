@@ -1,4 +1,4 @@
-import type { Session, Rating } from '@/seed/types';
+import type { Session } from '@/seed/types';
 import type { BadgeId, Verification } from '@/store/useAppStore';
 import type { VerificationCategory } from '@/seed/types';
 
@@ -18,7 +18,7 @@ export interface BadgeMeta {
 
 export const BADGE_META: Record<BadgeId, BadgeMeta> = {
   first_session: { id: 'first_session', emoji: '🧗', label: 'First Session', hint: 'Join any climb', target: 1 },
-  first_send:    { id: 'first_send',    emoji: '⭐', label: 'First Send',    hint: 'Rate a past session', target: 1 },
+  first_recap:   { id: 'first_recap',   emoji: '📓', label: 'First Recap',   hint: 'Log a past session', target: 1 },
   verified_belayer: { id: 'verified_belayer', emoji: '🛡', label: 'Verified Belayer', hint: 'Verify one belay cert', target: 1 },
   adventurer:    { id: 'adventurer',    emoji: '🌲', label: 'Adventurer',    hint: 'Join an outdoor climb', target: 1 },
   community:     { id: 'community',     emoji: '🎪', label: 'Community',     hint: 'Join a group', target: 1 },
@@ -27,7 +27,7 @@ export const BADGE_META: Record<BadgeId, BadgeMeta> = {
 };
 
 export const BADGE_ORDER: BadgeId[] = [
-  'first_session', 'first_send', 'verified_belayer', 'adventurer',
+  'first_session', 'first_recap', 'verified_belayer', 'adventurer',
   'community', 'cruxmate_x5', 'trust_champion',
 ];
 
@@ -37,7 +37,7 @@ interface Ctx {
   cruxmates: string[];
   myGroupMemberships: string[];
   verifications: Record<VerificationCategory, Verification>;
-  ratings: Record<string, Rating>;
+  recapCount: number;
 }
 
 export interface BadgeProgress extends BadgeMeta {
@@ -47,14 +47,14 @@ export interface BadgeProgress extends BadgeMeta {
 }
 
 export function computeBadgeProgress(ctx: Ctx, earnedIds: BadgeId[]): BadgeProgress[] {
-  const { meId, sessions, cruxmates, myGroupMemberships, verifications, ratings } = ctx;
+  const { meId, sessions, cruxmates, myGroupMemberships, verifications, recapCount } = ctx;
   const mine = sessions.filter((s) => s.participant_ids.includes(meId));
   const verifiedCount = (['top_rope', 'lead', 'trad'] as VerificationCategory[])
     .filter((c) => verifications[c]?.status === 'verified').length;
 
   const current: Record<BadgeId, number> = {
     first_session: Math.min(mine.length, 1),
-    first_send: Math.min(Object.keys(ratings).length, 1),
+    first_recap: Math.min(recapCount, 1),
     verified_belayer: Math.min(verifiedCount, 1),
     adventurer: Math.min(mine.filter((s) => s.location_type === 'outdoor').length, 1),
     community: Math.min(myGroupMemberships.length, 1),
