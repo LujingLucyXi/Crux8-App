@@ -3,6 +3,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { AppShell } from '@/components/layout/AppShell';
 import { Landing } from '@/routes/Landing';
 import { Onboarding } from '@/routes/Onboarding';
+import { Home } from '@/routes/Home';
 import { Find } from '@/routes/Find';
 import { Community } from '@/routes/Community';
 import { GroupDetail } from '@/routes/GroupDetail';
@@ -19,7 +20,7 @@ function RequireAuth() {
 
 function LandingOrHome() {
   const me = useAppStore((s) => s.me);
-  if (me) return <Navigate to="/find" replace />;
+  if (me) return <Navigate to="/home" replace />;
   return <Landing />;
 }
 
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
+          { path: '/home', element: <Home /> },
           { path: '/find', element: <Find /> },
           { path: '/community', element: <Community /> },
           { path: '/community/:groupId', element: <GroupDetail /> },

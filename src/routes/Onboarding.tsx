@@ -68,7 +68,7 @@ export function Onboarding() {
       height_cm: heightCm,
     });
     toast('Welcome to CruxMate!');
-    nav('/find');
+    nav('/home');
   };
 
   const toggleStyle = (s: Style) => {

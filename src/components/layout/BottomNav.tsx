@@ -1,16 +1,21 @@
 import { NavLink } from 'react-router-dom';
-import { Compass, Community, ChatBubbleEmpty, User, Plus } from 'iconoir-react';
+import { Home, Compass, Community, User, Plus } from 'iconoir-react';
 import { cn } from '@/lib/utils';
 
 interface BottomNavProps {
   onFabClick: () => void;
 }
 
+/**
+ * 5 slots: Home · Find · [+] · Community · Profile.
+ * Chat lives in the header (with an unread dot) — standard pattern that
+ * keeps the bottom bar at the 4-destination sweet spot.
+ */
 const items = [
+  { to: '/home', label: 'Home', Icon: Home },
   { to: '/find', label: 'Find', Icon: Compass },
-  { to: '/community', label: 'Community', Icon: Community },
-  null, // spacer for FAB
-  { to: '/chat', label: 'Chat', Icon: ChatBubbleEmpty },
+  null, // FAB slot
+  { to: '/community', label: 'Crews', Icon: Community },
   { to: '/profile', label: 'Profile', Icon: User },
 ] as const;
 
@@ -41,7 +46,7 @@ export function BottomNav({ onFabClick }: BottomNavProps) {
         </div>
         <button
           onClick={onFabClick}
-          aria-label="Post a session or event"
+          aria-label="Post a session, call, or event"
           className="absolute left-1/2 -translate-x-1/2 -top-6 w-14 h-14 rounded-full bg-ink-900 text-white flex items-center justify-center border-4 border-white hover:bg-ink-700 active:scale-95 transition-all"
         >
           <Plus width={26} height={26} strokeWidth={2.5} />

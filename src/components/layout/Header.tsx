@@ -1,4 +1,4 @@
-import { Menu, Bell } from 'iconoir-react';
+import { Menu, ChatBubbleEmpty } from 'iconoir-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
@@ -13,6 +13,13 @@ export function Header() {
   const me = useAppStore((s) => s.me);
   const signOut = useAppStore((s) => s.signOut);
   const resetAll = useAppStore((s) => s.resetAll);
+  const cruxmates = useAppStore((s) => s.cruxmates);
+  const sessionChats = useAppStore((s) => s.sessionChats);
+  // Stand-in for real unread tracking (lands with the backend in v0.8):
+  // count threads that exist and have at least one message.
+  const unreadCount =
+    Object.values(sessionChats).filter((sc) => sc.messages.length > 0).length +
+    (cruxmates.length > 0 ? 1 : 0);
 
   return (
     <>
@@ -25,17 +32,26 @@ export function Header() {
           >
             <Menu width={22} height={22} />
           </button>
-          <div className="flex items-center gap-2">
+          <button
+            onClick={() => nav('/home')}
+            aria-label="CruxMate home"
+            className="flex items-center gap-2 rounded-lg px-1.5 py-1 -mx-1.5 hover:bg-paper-50 transition-colors"
+          >
             <Logo size={26} />
             <span className="font-bold tracking-[0.15em] text-ink-900 text-sm">CRUXMATE</span>
-          </div>
+          </button>
           <div className="flex items-center gap-2">
             <button
-              aria-label="Notifications"
+              onClick={() => nav('/chat')}
+              aria-label={unreadCount > 0 ? `Chats, ${unreadCount} unread` : 'Chats'}
               className="relative p-1.5 rounded-lg text-ink-700 hover:bg-paper-50"
             >
-              <Bell width={22} height={22} />
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-coral-500" />
+              <ChatBubbleEmpty width={22} height={22} />
+              {unreadCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-coral-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
             <button onClick={() => nav('/profile')} aria-label="Profile">
               <Avatar config={me?.avatar} alt={me?.display_name} size={30} fallback={me?.display_name} />
