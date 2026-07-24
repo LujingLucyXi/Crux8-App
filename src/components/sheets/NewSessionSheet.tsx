@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import * as RadioGroup from '@radix-ui/react-radio-group';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
@@ -26,6 +26,17 @@ const CATEGORIES: { value: Category; label: string; loc: LocationType }[] = [
 ];
 
 const VIBES: Vibe[] = ['chill', 'projecting', 'training', 'social'];
+
+const GRADE_RANGES = [
+  'All levels',
+  '5.6–5.8',
+  '5.8–5.10a',
+  '5.10a–5.10d',
+  '5.10d–5.11b',
+  '5.11a–5.11d',
+  '5.11c–5.12b',
+  '5.12c+',
+];
 
 const EVENT_TYPES: EventType[] = [
   'community_night',
@@ -55,9 +66,12 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const [callLookingFor, setCallLookingFor] = useState<ClimbCall['looking_for']>('take_turns');
   const [callCategory, setCallCategory] = useState<ClimbCall['category']>('top_rope');
   const [callTitle, setCallTitle] = useState('');
-  const [callGrade, setCallGrade] = useState('5.10a–5.11a');
+  const [callGrade, setCallGrade] = useState('5.10a–5.10d');
   const [callGymId, setCallGymId] = useState<string>(me?.home_gym_id ?? gyms[0]?.id ?? '');
-  const [callWhen, setCallWhen] = useState<'now' | 'tonight' | 'tomorrow_morning'>('now');
+  const [callWhen, setCallWhen] = useState<'now' | 'tonight' | 'custom'>('now');
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [callDate, setCallDate] = useState(todayStr);
+  const [callTime, setCallTime] = useState('18:00');
   const [callDurationHours, setCallDurationHours] = useState(2);
   const [callCapacity, setCallCapacity] = useState(2);
   const [callNote, setCallNote] = useState('');
@@ -84,6 +98,30 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const [evtDesc, setEvtDesc] = useState('');
   const [evtGroupId, setEvtGroupId] = useState<string>(defaultGroupId ?? '');
 
+  // Belay = roped climbing, so only gyms with top-rope/lead walls qualify
+  // (drops boulder-only gyms like SBP / BlocHaus).
+  const ropeGyms = useMemo(
+    () => gyms.filter((g) => g.disciplines.some((d) => d === 'top_rope' || d === 'lead')),
+    [gyms],
+  );
+  useEffect(() => {
+    if (discipline === 'belay' && !ropeGyms.some((g) => g.id === callGymId)) {
+      setCallGymId(ropeGyms[0]?.id ?? '');
+    }
+  }, [discipline, ropeGyms, callGymId]);
+
+  const resolveStart = (): string => {
+    if (callWhen === 'now') return new Date().toISOString();
+    if (callWhen === 'tonight') {
+      const d = new Date();
+      d.setHours(18, 0, 0, 0);
+      return d.toISOString();
+    }
+    // custom: combine date + time inputs
+    const d = new Date(`${callDate}T${callTime || '18:00'}`);
+    return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+  };
+
   const catInfo = CATEGORIES.find((c) => c.value === category)!;
   const adminGroups = groups.filter((g) => g.admin_ids.includes(me?.id ?? 'me'));
 
@@ -94,9 +132,11 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     setCallLookingFor('take_turns');
     setCallCategory('top_rope');
     setCallTitle('');
-    setCallGrade('5.10a–5.11a');
+    setCallGrade('5.10a–5.10d');
     setCallGymId(me?.home_gym_id ?? gyms[0]?.id ?? '');
     setCallWhen('now');
+    setCallDate(todayStr);
+    setCallTime('18:00');
     setCallDurationHours(2);
     setCallCapacity(2);
     setCallNote('');
@@ -121,19 +161,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   };
 
   const handleSubmitCall = () => {
-    let startsAt: string;
-    if (callWhen === 'now') {
-      startsAt = new Date().toISOString();
-    } else if (callWhen === 'tonight') {
-      const d = new Date();
-      d.setHours(18, 0, 0, 0);
-      startsAt = d.toISOString();
-    } else {
-      const d = new Date();
-      d.setDate(d.getDate() + 1);
-      d.setHours(9, 0, 0, 0);
-      startsAt = d.toISOString();
-    }
+    const startsAt = resolveStart();
     const isOutdoor = mode === 'outdoor';
     postClimbCall({
       title: callTitle.trim() || undefined,
@@ -159,7 +187,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const handleSubmitSession = () => {
     // Boulder session; indoor or outdoor decided by `mode`.
     const isOutdoor = mode === 'outdoor';
-    const startsIso = new Date().toISOString();
+    const startsIso = resolveStart();
     const session = postSession({
       category: isOutdoor ? 'outdoor_boulder' : 'boulder',
       title: sessionTitle.trim() || 'Boulder Session',
@@ -207,7 +235,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     mode === 'event' ? 'Post an event' : discipline === 'belay' ? 'Drop a climb call' : 'Post a boulder session';
 
   // Shared location field — gym dropdown indoors, free-text crag outdoors.
-  const locationField = (gymValue: string, onGym: (v: string) => void) =>
+  const locationField = (gymValue: string, onGym: (v: string) => void, gymList = gyms) =>
     mode === 'indoor' ? (
       <div>
         <Label>Gym</Label>
@@ -216,7 +244,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
           onChange={(e) => onGym(e.target.value)}
           className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900"
         >
-          {gyms.map((g) => (
+          {gymList.map((g) => (
             <option key={g.id} value={g.id}>{g.name}</option>
           ))}
         </select>
@@ -233,27 +261,33 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
       </div>
     );
 
-  const whenField = (value: typeof callWhen, onChange: (v: typeof callWhen) => void) => (
+  const whenField = () => (
     <div>
       <Label>When</Label>
       <div className="grid grid-cols-3 gap-2">
         {([
           { v: 'now', l: 'Now' },
           { v: 'tonight', l: 'Tonight 6pm' },
-          { v: 'tomorrow_morning', l: 'Tomorrow 9am' },
+          { v: 'custom', l: 'Pick date…' },
         ] as const).map((w) => (
           <button
             key={w.v}
-            onClick={() => onChange(w.v)}
+            onClick={() => setCallWhen(w.v)}
             className={cn(
               'rounded-xl border py-2 text-xs',
-              value === w.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+              callWhen === w.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
             )}
           >
             {w.l}
           </button>
         ))}
       </div>
+      {callWhen === 'custom' && (
+        <div className="grid grid-cols-2 gap-3 mt-2">
+          <Input type="date" min={todayStr} value={callDate} onChange={(e) => setCallDate(e.target.value)} />
+          <Input type="time" value={callTime} onChange={(e) => setCallTime(e.target.value)} />
+        </div>
+      )}
     </div>
   );
 
@@ -366,26 +400,43 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
             </div>
             <div>
               <Label>Grade or range</Label>
-              <Input value={callGrade} onChange={(e) => setCallGrade(e.target.value)} placeholder="e.g. 5.10a–5.11a" />
+              <select
+                value={callGrade}
+                onChange={(e) => setCallGrade(e.target.value)}
+                className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900"
+              >
+                {GRADE_RANGES.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
             </div>
             <div>
               <Label>Call name (optional)</Label>
               <Input value={callTitle} onChange={(e) => setCallTitle(e.target.value.slice(0, 48))} placeholder="e.g. Sunset lead sesh" />
             </div>
-            {locationField(callGymId, setCallGymId)}
-            {whenField(callWhen, setCallWhen)}
+            {/* Belay is roped → only rope-capable gyms */}
+            {locationField(callGymId, setCallGymId, ropeGyms)}
+            {whenField()}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Duration</Label>
-                <select value={callDurationHours} onChange={(e) => setCallDurationHours(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900">
-                  {[1, 2, 3, 4, 6, 8].map((h) => (<option key={h} value={h}>+{h}h</option>))}
-                </select>
+                <Label>Duration (hours)</Label>
+                <Input
+                  type="number"
+                  min={0.5}
+                  step={0.5}
+                  value={callDurationHours}
+                  onChange={(e) => setCallDurationHours(Number(e.target.value) || 2)}
+                />
               </div>
               <div>
                 <Label>Party size</Label>
-                <select value={callCapacity} onChange={(e) => setCallCapacity(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900">
-                  {[2, 3, 4, 5, 6].map((n) => (<option key={n} value={n}>{n} people</option>))}
-                </select>
+                <Input
+                  type="number"
+                  min={2}
+                  max={12}
+                  value={callCapacity}
+                  onChange={(e) => setCallCapacity(Number(e.target.value) || 2)}
+                />
               </div>
             </div>
             {descriptionField(callNote, setCallNote)}
@@ -415,7 +466,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               <Input value={subtitle} onChange={(e) => setSubtitle(e.target.value.slice(0, 60))} placeholder="e.g. V3 – V6, or 'All levels welcome'" />
             </div>
             {locationField(gymId, setGymId)}
-            {whenField(callWhen, setCallWhen)}
+            {whenField()}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Duration</Label>
