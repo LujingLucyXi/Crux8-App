@@ -112,13 +112,9 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
 
   const resolveStart = (): string => {
     if (callWhen === 'now') return new Date().toISOString();
-    if (callWhen === 'tonight') {
-      const d = new Date();
-      d.setHours(18, 0, 0, 0);
-      return d.toISOString();
-    }
-    // custom: combine date + time inputs
-    const d = new Date(`${callDate}T${callTime || '18:00'}`);
+    // "tonight" = today at the (editable) chosen time; "custom" = chosen day + time.
+    const day = callWhen === 'tonight' ? todayStr : callDate;
+    const d = new Date(`${day}T${callTime || '18:00'}`);
     return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
   };
 
@@ -267,7 +263,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
       <div className="grid grid-cols-3 gap-2">
         {([
           { v: 'now', l: 'Now' },
-          { v: 'tonight', l: 'Tonight 6pm' },
+          { v: 'tonight', l: 'Tonight' },
           { v: 'custom', l: 'Pick date…' },
         ] as const).map((w) => (
           <button
@@ -282,6 +278,13 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
           </button>
         ))}
       </div>
+      {/* Tonight → editable time (today implied). Custom → day + time. */}
+      {callWhen === 'tonight' && (
+        <div className="mt-2">
+          <Input type="time" value={callTime} onChange={(e) => setCallTime(e.target.value)} />
+          <p className="text-[10px] text-ink-300 mt-1">Today at this time — adjust if you like.</p>
+        </div>
+      )}
       {callWhen === 'custom' && (
         <div className="grid grid-cols-2 gap-3 mt-2">
           <Input type="date" min={todayStr} value={callDate} onChange={(e) => setCallDate(e.target.value)} />
