@@ -34,33 +34,28 @@ import { DEFAULT_AVATAR, avatarFromSeed } from '@/lib/avatar';
 
 export type Verification = { status: VerificationStatus; photo_url?: string; verified_at?: string };
 
-export interface FiltersIndoor {
+/**
+ * Flat Find filter model. IA:
+ *   Level 1  — Climb · Hike · Event · Crew
+ *   Level 2  — Climb only: Indoor · Outdoor
+ *   Styles   — always-visible multi-select (climb styles / hike types / event types)
+ *   Refine   — date · time · location · grade · weight-safe (secondary chips)
+ */
+export interface Filters {
+  l1: 'climb' | 'hike' | 'event' | 'crew';
+  env: 'indoor' | 'outdoor';                 // climb Level 2
+  climb_styles: string[];                    // category values (top_rope, lead, boulder, …)
+  hike_types: string[];                      // 'trail' | 'scramble' | 'snow' | 'backpack'
+  event_types: string[];
+  looking_for?: 'belayer' | 'climber' | 'take_turns'; // rope only
+  weight_safe_only: boolean;
   gym_id?: string;
-  date?: 'today' | 'tomorrow' | 'this_week';
-  date_specific?: string;               // ISO date (YYYY-MM-DD), takes precedence
-  time?: 'morning' | 'afternoon' | 'evening';
-  styles: string[];
-  grade_band?: string;
-  sub_tab: 'belay' | 'boulder';         // NEW: sub-segment within Indoor
-  looking_for?: 'belayer' | 'climber' | 'take_turns'; // Belay sub-tab only
-  weight_safe_only: boolean;            // NEW: filter to weight-safe matches
-}
-
-export interface FiltersOutdoor {
   area?: string;
   date?: 'today' | 'tomorrow' | 'this_week';
+  date_specific?: string;
   time?: 'morning' | 'afternoon' | 'evening';
-  styles: string[];
   grade_band?: string;
-  route_id?: string;
-}
-
-export interface FiltersEvents {
-  types: string[];
-  date?: 'today' | 'tomorrow' | 'this_week';
-  time?: 'morning' | 'afternoon' | 'evening';
-  host?: string;
-  freeOnly: boolean;
+  free_only: boolean;                        // events
 }
 
 export interface SessionChat {
@@ -106,12 +101,7 @@ interface Store {
   gymPresence: Record<string, number>; // gymId -> people here now
 
   // UI state
-  filters: {
-    tab: 'indoor' | 'outdoor' | 'events';
-    indoor: FiltersIndoor;
-    outdoor: FiltersOutdoor;
-    events: FiltersEvents;
-  };
+  filters: Filters;
   seededAt: number | null;
 
   // ---------- actions ----------
@@ -162,10 +152,8 @@ interface Store {
   togglePartnerProp: (sessionId: string, partnerId: string, key: ReactionKey) => void;
   setPartnerCheck: (sessionId: string, partnerId: string, check: PartnerCheck, flag?: PartnerFlag) => void;
 
-  setFilterTab: (tab: 'indoor' | 'outdoor' | 'events') => void;
-  setIndoorFilter: (patch: Partial<FiltersIndoor>) => void;
-  setOutdoorFilter: (patch: Partial<FiltersOutdoor>) => void;
-  setEventsFilter: (patch: Partial<FiltersEvents>) => void;
+  setFilter: (patch: Partial<Filters>) => void;
+  setL1: (l1: Filters['l1']) => void;
   clearFilters: () => void;
 
   checkBadges: () => void;
@@ -177,11 +165,14 @@ const initialVerifications: Record<VerificationCategory, Verification> = {
   trad: { status: 'unverified' },
 };
 
-const initialFilters: Store['filters'] = {
-  tab: 'indoor',
-  indoor: { styles: [], sub_tab: 'belay', weight_safe_only: false },
-  outdoor: { styles: [] },
-  events: { types: [], freeOnly: false },
+const initialFilters: Filters = {
+  l1: 'climb',
+  env: 'indoor',
+  climb_styles: [],
+  hike_types: [],
+  event_types: [],
+  weight_safe_only: false,
+  free_only: false,
 };
 
 export const useAppStore = create<Store>()(
@@ -695,21 +686,45 @@ export const useAppStore = create<Store>()(
         get().checkBadges();
       },
 
-      setFilterTab: (tab) => set({ filters: { ...get().filters, tab } }),
-      setIndoorFilter: (patch) =>
-        set({ filters: { ...get().filters, indoor: { ...get().filters.indoor, ...patch } } }),
-      setOutdoorFilter: (patch) =>
-        set({ filters: { ...get().filters, outdoor: { ...get().filters.outdoor, ...patch } } }),
-      setEventsFilter: (patch) =>
-        set({ filters: { ...get().filters, events: { ...get().filters.events, ...patch } } }),
-      clearFilters: () => set({
-        filters: {
-          ...get().filters,
-          indoor: { styles: [], sub_tab: get().filters.indoor.sub_tab, weight_safe_only: false },
-          outdoor: { styles: [] },
-          events: { types: [], freeOnly: false },
-        },
-      }),
+      setFilter: (patch) => set({ filters: { ...get().filters, ...patch } }),
+      setL1: (l1) =>
+        set({
+          filters: {
+            ...get().filters,
+            l1,
+            // reset context-specific selections on L1 switch
+            climb_styles: [],
+            hike_types: [],
+            event_types: [],
+            looking_for: undefined,
+            weight_safe_only: false,
+            gym_id: undefined,
+            area: undefined,
+            grade_band: undefined,
+            date: undefined,
+            date_specific: undefined,
+            time: undefined,
+            free_only: false,
+          },
+        }),
+      clearFilters: () =>
+        set({
+          filters: {
+            ...get().filters,
+            climb_styles: [],
+            hike_types: [],
+            event_types: [],
+            looking_for: undefined,
+            weight_safe_only: false,
+            gym_id: undefined,
+            area: undefined,
+            grade_band: undefined,
+            date: undefined,
+            date_specific: undefined,
+            time: undefined,
+            free_only: false,
+          },
+        }),
 
       checkBadges: () => {
         const s = get();

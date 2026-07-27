@@ -18,6 +18,8 @@ export type Style = 'top_rope' | 'lead' | 'boulder' | 'outdoor_sport' | 'trad' |
 
 export type Vibe = 'chill' | 'projecting' | 'training' | 'social';
 
+export type HikeType = 'trail' | 'scramble' | 'snow' | 'backpack';
+
 export type LocationType = 'indoor' | 'outdoor' | 'event';
 
 export type VerificationCategory = 'top_rope' | 'lead' | 'trad';
@@ -81,6 +83,7 @@ export interface Session {
   gym_id?: string;           // indoor
   area?: string;             // outdoor
   route_id?: string;         // outdoor optional
+  hike_type?: HikeType;       // only when category === 'hiking'
   host_id: string;
   participant_ids: string[]; // includes host
   capacity: number;

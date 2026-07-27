@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input, Label, Textarea } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { useAppStore } from '@/store/useAppStore';
-import type { Category, EventType, LocationType, Vibe, ClimbCall } from '@/seed/types';
+import type { Category, EventType, LocationType, Vibe, ClimbCall, HikeType } from '@/seed/types';
 import { plusHours } from '@/seed/types';
 import { cn } from '@/lib/utils';
 
@@ -61,6 +61,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const [mode, setMode] = useState<'indoor' | 'outdoor' | 'event'>('indoor');
   const [discipline, setDiscipline] = useState<'belay' | 'boulder' | 'hike'>('belay');
   const [outdoorLoc, setOutdoorLoc] = useState('');
+  const [hikeType, setHikeType] = useState<HikeType>('trail');
 
   // Call state
   const [callLookingFor, setCallLookingFor] = useState<ClimbCall['looking_for']>('take_turns');
@@ -128,6 +129,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     setMode('indoor');
     setDiscipline('belay');
     setOutdoorLoc('');
+    setHikeType('trail');
     setCallLookingFor('take_turns');
     setCallCategory('top_rope');
     setCallTitle('');
@@ -189,6 +191,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     const startsIso = resolveStart();
     const session = postSession({
       category: discipline === 'hike' ? 'hiking' : isOutdoor ? 'outdoor_boulder' : 'boulder',
+      hike_type: discipline === 'hike' ? hikeType : undefined,
       title: sessionTitle.trim() || (discipline === 'hike' ? 'Hike' : 'Boulder Session'),
       subtitle: subtitle || 'All levels welcome',
       starts_at: startsIso,
@@ -472,6 +475,30 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 ? 'A hike — find trail mates. Set how many can join.'
                 : 'A boulder session — a group meetup. Set how many can join.'}
             </p>
+            {discipline === 'hike' && (
+              <div>
+                <Label>Type</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {([
+                    { v: 'trail', l: 'Trail' },
+                    { v: 'scramble', l: 'Scramble' },
+                    { v: 'snow', l: 'Snow' },
+                    { v: 'backpack', l: 'Backpack' },
+                  ] as const).map((h) => (
+                    <button
+                      key={h.v}
+                      onClick={() => setHikeType(h.v)}
+                      className={cn(
+                        'rounded-xl border py-2 text-xs font-medium',
+                        hikeType === h.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                      )}
+                    >
+                      {h.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <Label>{discipline === 'hike' ? 'Hike name (optional)' : 'Session name (optional)'}</Label>
               <Input
