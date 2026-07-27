@@ -50,6 +50,7 @@ const OUTDOOR_STYLES = [
   { value: 'trad', label: 'Trad' },
   { value: 'multi_pitch', label: 'Multi-pitch' },
   { value: 'outdoor_boulder', label: 'Boulder' },
+  { value: 'hiking', label: 'Hiking' },
 ];
 
 const GRADE_BANDS = ['V0-5.7', '5.8-5.9', '5.10a-5.10c', '5.10d-5.11b', '5.11c-5.12b', '5.12c+'];

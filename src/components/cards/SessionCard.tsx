@@ -1,4 +1,4 @@
-import { Calendar, MapPin, ShieldCheck, SquareWave, TriangleFlag, Cube, Trekking, Sparks } from 'iconoir-react';
+import { Calendar, MapPin, ShieldCheck, SquareWave, TriangleFlag, Cube, Trekking, Walking, Sparks } from 'iconoir-react';
 import type { Session, NpcUser } from '@/seed/types';
 import { formatSessionWhen } from '@/lib/date';
 import { AvatarStack } from '@/components/ui/Avatar';
@@ -13,6 +13,7 @@ const categoryColor: Record<Session['category'], { bg: string; text: string }> =
   trad: { bg: 'bg-ink-900', text: 'text-ink-900' },
   multi_pitch: { bg: 'bg-ink-900', text: 'text-ink-900' },
   outdoor_boulder: { bg: 'bg-gold-500', text: 'text-gold-500' },
+  hiking: { bg: 'bg-teal-600', text: 'text-teal-600' },
   event: { bg: 'bg-teal-600', text: 'text-teal-600' },
 };
 
@@ -24,6 +25,7 @@ const categoryIcon: Record<Session['category'], React.ComponentType<{ width: num
   trad: Trekking,
   multi_pitch: Trekking,
   outdoor_boulder: Cube,
+  hiking: Walking,
   event: Sparks,
 };
 

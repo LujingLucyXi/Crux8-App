@@ -13,6 +13,7 @@ import type {
   PartnerCheck,
   PartnerFlag,
   ClimbCall,
+  CheckIn,
   ReactionKey,
   VerificationCategory,
   VerificationStatus,
@@ -101,6 +102,8 @@ interface Store {
   badges: BadgeId[];
   recaps: Record<string, SessionRecap>;       // sessionId -> recap
   pairRequests: string[];               // callIds we've requested to pair on
+  checkin: CheckIn | null;              // my current gym check-in
+  gymPresence: Record<string, number>; // gymId -> people here now
 
   // UI state
   filters: {
@@ -129,6 +132,9 @@ interface Store {
   postClimbCall: (call: Omit<ClimbCall, 'id' | 'user_id' | 'status'>) => ClimbCall;
   requestPair: (callId: string) => void;
   cancelPairRequest: (callId: string) => void;
+
+  checkIn: (gymId: string) => void;
+  checkOut: () => void;
 
   joinGroup: (groupId: string) => void;
   leaveGroup: (groupId: string) => void;
@@ -198,6 +204,8 @@ export const useAppStore = create<Store>()(
       badges: [],
       recaps: {},
       pairRequests: [],
+      checkin: null,
+      gymPresence: {},
       filters: initialFilters,
       seededAt: null,
 
@@ -211,6 +219,7 @@ export const useAppStore = create<Store>()(
           groups: SEED_GROUPS,
           users: SEED_USERS,
           climbCalls: SEED_CLIMB_CALLS,
+          gymPresence: Object.fromEntries(SEED_GYMS.map((g) => [g.id, g.here_now])),
           cruxmates: SEED_CRUXMATES,
           myGroupMemberships: ['grp_seattle_queer_climbers'],
           badges: ['first_session', 'community'],
@@ -279,6 +288,8 @@ export const useAppStore = create<Store>()(
           gearChecklists: {},
           badges: [],
           recaps: {},
+          checkin: null,
+          gymPresence: {},
           filters: initialFilters,
           seededAt: null,
         });
@@ -393,6 +404,27 @@ export const useAppStore = create<Store>()(
         };
         set({ climbCalls: [newCall, ...get().climbCalls] });
         return newCall;
+      },
+
+      checkIn: (gymId) => {
+        const cur = get().checkin;
+        const presence = { ...get().gymPresence };
+        // leave the previous gym first
+        if (cur && cur.gym_id !== gymId) {
+          presence[cur.gym_id] = Math.max(0, (presence[cur.gym_id] ?? 1) - 1);
+        }
+        if (!cur || cur.gym_id !== gymId) {
+          presence[gymId] = (presence[gymId] ?? 0) + 1;
+        }
+        set({ checkin: { gym_id: gymId, at: new Date().toISOString() }, gymPresence: presence });
+      },
+
+      checkOut: () => {
+        const cur = get().checkin;
+        if (!cur) return;
+        const presence = { ...get().gymPresence };
+        presence[cur.gym_id] = Math.max(0, (presence[cur.gym_id] ?? 1) - 1);
+        set({ checkin: null, gymPresence: presence });
       },
 
       requestPair: (callId) => {

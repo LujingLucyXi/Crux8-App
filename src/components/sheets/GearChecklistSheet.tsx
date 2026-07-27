@@ -10,15 +10,22 @@ interface Props {
   session: Session | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * When provided, the sheet acts as a PRE-RSVP gate: it shows the gear a
+   * climber needs to know about before committing, and the primary button
+   * confirms the RSVP. Without it, the sheet is the post-join review.
+   */
+  onConfirm?: () => void;
 }
 
-export function GearChecklistSheet({ session, open, onOpenChange }: Props) {
+export function GearChecklistSheet({ session, open, onOpenChange, onConfirm }: Props) {
   const gear = useMemo(() => (session ? gearFor(session.category) : { required: [], recommended: [] }), [session]);
   const gearChecklists = useAppStore((s) => s.gearChecklists);
   const updateGearChecklist = useAppStore((s) => s.updateGearChecklist);
   const unrsvp = useAppStore((s) => s.unrsvp);
 
   const checklist = session ? gearChecklists[session.id] ?? {} : {};
+  const preRsvp = typeof onConfirm === 'function';
 
   if (!session) return null;
 
@@ -26,7 +33,9 @@ export function GearChecklistSheet({ session, open, onOpenChange }: Props) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent title={`Gear for ${session.title}`}>
         <p className="text-sm text-ink-500 -mt-2 mb-4">
-          Check what you're bringing. Your list saves as you go.
+          {preRsvp
+            ? "Here's what you'll want to bring. Tick what you've got, then join."
+            : 'Check what you\'re bringing. Your list saves as you go.'}
         </p>
 
         <section className="mb-5">
@@ -77,16 +86,35 @@ export function GearChecklistSheet({ session, open, onOpenChange }: Props) {
         )}
 
         <div className="flex flex-col gap-2">
-          <Button onClick={() => onOpenChange(false)}>Save & close</Button>
-          <Button
-            variant="destructive"
-            onClick={() => {
-              unrsvp(session.id);
-              onOpenChange(false);
-            }}
-          >
-            Not going after all
-          </Button>
+          {preRsvp ? (
+            <>
+              <Button
+                className="bg-teal-600 hover:bg-teal-500 border-teal-600"
+                onClick={() => {
+                  onConfirm?.();
+                  onOpenChange(false);
+                }}
+              >
+                Confirm & RSVP
+              </Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Not now
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={() => onOpenChange(false)}>Save & close</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  unrsvp(session.id);
+                  onOpenChange(false);
+                }}
+              >
+                Not going after all
+              </Button>
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>

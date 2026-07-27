@@ -40,6 +40,7 @@ const CATEGORY_TO_STYLE: Record<string, Style> = {
   outdoor_boulder: 'boulder',
   trad: 'trad',
   multi_pitch: 'trad',
+  hiking: 'hiking',
   event: 'events',
 };
 

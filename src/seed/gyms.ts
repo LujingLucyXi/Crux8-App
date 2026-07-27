@@ -14,6 +14,7 @@ export const SEED_GYMS: Gym[] = [
     lat: 47.6459,
     lng: -122.3877,
     disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
+    here_now: 24,
   },
   {
     id: 'gym_sbp_poplar',
@@ -24,6 +25,7 @@ export const SEED_GYMS: Gym[] = [
     lat: 47.5937,
     lng: -122.3141,
     disciplines: ['boulder'],
+    here_now: 31,
   },
   {
     id: 'gym_sbp_fremont',
@@ -34,6 +36,7 @@ export const SEED_GYMS: Gym[] = [
     lat: 47.6511,
     lng: -122.3492,
     disciplines: ['boulder'],
+    here_now: 18,
   },
   {
     id: 'gym_stone_gardens_ballard',
@@ -44,6 +47,7 @@ export const SEED_GYMS: Gym[] = [
     lat: 47.6685,
     lng: -122.3966,
     disciplines: ['top_rope', 'lead', 'boulder'],
+    here_now: 15,
   },
   {
     id: 'gym_stone_gardens_bellevue',
@@ -54,6 +58,7 @@ export const SEED_GYMS: Gym[] = [
     lat: 47.6317,
     lng: -122.1682,
     disciplines: ['top_rope', 'lead', 'boulder'],
+    here_now: 12,
   },
   {
     id: 'gym_blochaus',
@@ -64,6 +69,7 @@ export const SEED_GYMS: Gym[] = [
     lat: 47.6666,
     lng: -122.3833,
     disciplines: ['boulder'],
+    here_now: 22,
   },
   {
     id: 'gym_movement_bellevue',
@@ -74,6 +80,7 @@ export const SEED_GYMS: Gym[] = [
     lat: 47.6291,
     lng: -122.1447,
     disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
+    here_now: 19,
   },
   {
     id: 'gym_edgeworks_tacoma',
@@ -84,6 +91,7 @@ export const SEED_GYMS: Gym[] = [
     lat: 47.2701,
     lng: -122.5088,
     disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
+    here_now: 9,
   },
 ];
 

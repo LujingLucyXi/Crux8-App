@@ -9,11 +9,12 @@ export type Category =
   | 'trad'
   | 'multi_pitch'
   | 'outdoor_boulder'
+  | 'hiking'
   | 'event';
 
 import type { AvatarConfig } from '@/lib/avatar';
 
-export type Style = 'top_rope' | 'lead' | 'boulder' | 'outdoor_sport' | 'trad' | 'events';
+export type Style = 'top_rope' | 'lead' | 'boulder' | 'outdoor_sport' | 'trad' | 'hiking' | 'events';
 
 export type Vibe = 'chill' | 'projecting' | 'training' | 'social';
 
@@ -52,6 +53,12 @@ export interface Gym {
   lat: number;
   lng: number;
   disciplines: Array<'top_rope' | 'lead' | 'boulder' | 'autobelay'>;
+  here_now: number;          // seeded live presence count
+}
+
+export interface CheckIn {
+  gym_id: string;
+  at: string;                // ISO timestamp of check-in
 }
 
 export interface Route {

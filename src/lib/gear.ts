@@ -63,6 +63,11 @@ export function gearFor(category: Category): GearList {
         required: ['Climbing shoes', 'Chalk', 'Crash pad', 'Brush'],
         recommended: ['Additional pads', 'Tape', 'Sunscreen', 'Water'],
       };
+    case 'hiking':
+      return {
+        required: ['Hiking boots / trail shoes', 'Water (2L+)', 'Layers', 'Snacks / lunch'],
+        recommended: ['Rain shell', 'Sun protection', 'Map / GPS', 'First-aid kit', 'Trekking poles', 'Headlamp'],
+      };
     case 'event':
     default:
       return { required: [], recommended: [] };

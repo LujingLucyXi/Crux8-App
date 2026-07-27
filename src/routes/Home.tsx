@@ -9,11 +9,14 @@ import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
 import { ClimbCallDetailSheet } from '@/components/sheets/ClimbCallDetailSheet';
 import { EventDetailSheet } from '@/components/sheets/EventDetailSheet';
 import { AiMatchSheet } from '@/components/sheets/AiMatchSheet';
+import { CheckInSheet } from '@/components/sheets/CheckInSheet';
 import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
 import { computeChallenges, daysLeftInWeek } from '@/lib/challenges';
 import { computeBadgeProgress, nextUpBadges } from '@/lib/badges';
 import { rankMatches } from '@/lib/match';
+import { Position, Check } from 'iconoir-react';
 import { formatSessionWhen } from '@/lib/date';
+import { cn } from '@/lib/utils';
 import { LOOKING_FOR_LABEL } from '@/components/cards/ClimbCallCard';
 import type { Session, ClimbCall, EventItem } from '@/seed/types';
 
@@ -46,11 +49,14 @@ export function Home() {
   const verifications = useAppStore((s) => s.verifications);
   const badges = useAppStore((s) => s.badges);
   const recaps = useAppStore((s) => s.recaps);
+  const checkin = useAppStore((s) => s.checkin);
+  const gymPresence = useAppStore((s) => s.gymPresence);
 
   const [detailSession, setDetailSession] = useState<Session | null>(null);
   const [detailCall, setDetailCall] = useState<ClimbCall | null>(null);
   const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
+  const [checkInOpen, setCheckInOpen] = useState(false);
   const [recapSession, setRecapSession] = useState<Session | null>(null);
 
   const gymName = (id?: string) => gyms.find((g) => g.id === id)?.short_name ?? '';
@@ -160,6 +166,38 @@ export function Home() {
             : `Nothing booked yet · ${earnedCount}/7 badges`}
         </p>
       </header>
+
+      {/* ── On the wall now (check-in) ── */}
+      {(() => {
+        const g = checkin ? gyms.find((x) => x.id === checkin.gym_id) : null;
+        return (
+          <button
+            onClick={() => setCheckInOpen(true)}
+            className={cn(
+              'w-full mt-4 rounded-2xl border p-4 flex items-center gap-3 text-left transition-all',
+              checkin ? 'bg-teal-100 border-teal-600' : 'bg-white border-ink-100 hover:border-ink-300',
+            )}
+          >
+            <div className={cn('w-10 h-10 rounded-full flex items-center justify-center shrink-0', checkin ? 'bg-teal-600' : 'bg-sky-200')}>
+              {checkin ? <Check width={20} height={20} color="white" /> : <Position width={20} height={20} className="text-teal-600" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              {checkin && g ? (
+                <>
+                  <p className="text-sm font-semibold text-ink-900">Checked in · {g.short_name}</p>
+                  <p className="text-xs text-ink-600">{gymPresence[g.id] ?? 1} climbers on the wall now</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-ink-900">Check in at your gym</p>
+                  <p className="text-xs text-ink-500">Let partners see you're on the wall</p>
+                </>
+              )}
+            </div>
+            <span className="text-xs font-semibold text-teal-600 shrink-0">{checkin ? 'Manage' : 'Check in'}</span>
+          </button>
+        );
+      })()}
 
       {/* ── Up next (hero) ── */}
       <StackSection title="Up next" className="mt-5">
@@ -377,6 +415,7 @@ export function Home() {
       <ClimbCallDetailSheet call={detailCall} open={!!detailCall} onOpenChange={(o) => !o && setDetailCall(null)} />
       <EventDetailSheet event={detailEvent} open={!!detailEvent} onOpenChange={(o) => !o && setDetailEvent(null)} />
       <AiMatchSheet open={aiOpen} onOpenChange={setAiOpen} />
+      <CheckInSheet open={checkInOpen} onOpenChange={setCheckInOpen} />
       <SessionRecapSheet
         session={recapSession}
         open={!!recapSession}

@@ -59,7 +59,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   // Taxonomy mirrors Find: INDOOR / OUTDOOR / EVENT, with BELAY / BOULDER
   // under the two climb modes. Belay => climb call, Boulder => session.
   const [mode, setMode] = useState<'indoor' | 'outdoor' | 'event'>('indoor');
-  const [discipline, setDiscipline] = useState<'belay' | 'boulder'>('belay');
+  const [discipline, setDiscipline] = useState<'belay' | 'boulder' | 'hike'>('belay');
   const [outdoorLoc, setOutdoorLoc] = useState('');
 
   // Call state
@@ -104,6 +104,9 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     () => gyms.filter((g) => g.disciplines.some((d) => d === 'top_rope' || d === 'lead')),
     [gyms],
   );
+  useEffect(() => {
+    if (mode === 'indoor' && discipline === 'hike') setDiscipline('belay');
+  }, [mode, discipline]);
   useEffect(() => {
     if (discipline === 'belay' && !ropeGyms.some((g) => g.id === callGymId)) {
       setCallGymId(ropeGyms[0]?.id ?? '');
@@ -185,13 +188,13 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     const isOutdoor = mode === 'outdoor';
     const startsIso = resolveStart();
     const session = postSession({
-      category: isOutdoor ? 'outdoor_boulder' : 'boulder',
-      title: sessionTitle.trim() || 'Boulder Session',
+      category: discipline === 'hike' ? 'hiking' : isOutdoor ? 'outdoor_boulder' : 'boulder',
+      title: sessionTitle.trim() || (discipline === 'hike' ? 'Hike' : 'Boulder Session'),
       subtitle: subtitle || 'All levels welcome',
       starts_at: startsIso,
       ends_at: plusHours(startsIso, durationHours),
       gym_id: isOutdoor ? undefined : gymId,
-      area: isOutdoor ? (outdoorLoc.trim() || 'Outdoor boulders') : undefined,
+      area: isOutdoor ? (outdoorLoc.trim() || (discipline === 'hike' ? 'Trailhead' : 'Outdoor boulders')) : undefined,
       capacity,
       vibe,
       location_type: isOutdoor ? 'outdoor' : 'indoor',
@@ -228,7 +231,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   };
 
   const sheetTitle =
-    mode === 'event' ? 'Post an event' : discipline === 'belay' ? 'Drop a climb call' : 'Post a boulder session';
+    mode === 'event' ? 'Post an event' : discipline === 'belay' ? 'Drop a climb call' : discipline === 'hike' ? 'Post a hike' : 'Post a boulder session';
 
   // Shared location field — gym dropdown indoors, free-text crag outdoors.
   const locationField = (gymValue: string, onGym: (v: string) => void, gymList = gyms) =>
@@ -336,13 +339,20 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
           ))}
         </div>
 
-        {/* Sub: BELAY / BOULDER (climb modes only) */}
+        {/* Sub: BELAY / BOULDER (+ HIKE outdoors) */}
         {mode !== 'event' && (
           <div className="flex gap-2 mb-5">
-            {([
-              { v: 'belay', l: 'Belay' },
-              { v: 'boulder', l: 'Boulder' },
-            ] as const).map((d) => (
+            {(mode === 'outdoor'
+              ? ([
+                  { v: 'belay', l: 'Belay' },
+                  { v: 'boulder', l: 'Boulder' },
+                  { v: 'hike', l: 'Hike' },
+                ] as const)
+              : ([
+                  { v: 'belay', l: 'Belay' },
+                  { v: 'boulder', l: 'Boulder' },
+                ] as const)
+            ).map((d) => (
               <button
                 key={d.v}
                 onClick={() => setDiscipline(d.v)}
@@ -454,19 +464,29 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
           </div>
         )}
 
-        {/* ───────── BOULDER (session) ───────── */}
-        {mode !== 'event' && discipline === 'boulder' && (
+        {/* ───────── BOULDER / HIKE (session) ───────── */}
+        {mode !== 'event' && discipline !== 'belay' && (
           <div className="flex flex-col gap-5">
             <p className="text-xs text-ink-500 -mt-1">
-              A boulder session — a group meetup. Set how many can join.
+              {discipline === 'hike'
+                ? 'A hike — find trail mates. Set how many can join.'
+                : 'A boulder session — a group meetup. Set how many can join.'}
             </p>
             <div>
-              <Label>Session name (optional)</Label>
-              <Input value={sessionTitle} onChange={(e) => setSessionTitle(e.target.value.slice(0, 48))} placeholder='Defaults to "Boulder Session"' />
+              <Label>{discipline === 'hike' ? 'Hike name (optional)' : 'Session name (optional)'}</Label>
+              <Input
+                value={sessionTitle}
+                onChange={(e) => setSessionTitle(e.target.value.slice(0, 48))}
+                placeholder={discipline === 'hike' ? 'e.g. Mailbox Peak sunrise' : 'Defaults to "Boulder Session"'}
+              />
             </div>
             <div>
-              <Label>Grade or level</Label>
-              <Input value={subtitle} onChange={(e) => setSubtitle(e.target.value.slice(0, 60))} placeholder="e.g. V3 – V6, or 'All levels welcome'" />
+              <Label>{discipline === 'hike' ? 'Distance & difficulty' : 'Grade or level'}</Label>
+              <Input
+                value={subtitle}
+                onChange={(e) => setSubtitle(e.target.value.slice(0, 60))}
+                placeholder={discipline === 'hike' ? 'e.g. 6 mi · moderate · 1,800 ft gain' : "e.g. V3 – V6, or 'All levels welcome'"}
+              />
             </div>
             {locationField(gymId, setGymId)}
             {whenField()}
@@ -495,7 +515,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               </RadioGroup.Root>
             </div>
             {descriptionField(note, setNote)}
-            <Button onClick={handleSubmitSession}>Post boulder session</Button>
+            <Button onClick={handleSubmitSession}>{discipline === 'hike' ? 'Post hike' : 'Post boulder session'}</Button>
           </div>
         )}
 

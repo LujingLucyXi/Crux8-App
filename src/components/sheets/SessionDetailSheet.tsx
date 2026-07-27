@@ -62,11 +62,18 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const requiredVerification = catToVerification(session.category);
   const isVerified = requiredVerification ? verifications[requiredVerification].status === 'verified' : true;
 
+  // Gear checklist now gates the RSVP: show what to bring, THEN join on
+  // confirm. We open the gear sheet ON TOP of the (still-mounted) detail
+  // sheet — closing the detail here would null its session in the parent
+  // and unmount the gear sheet before it could appear.
   const doRsvp = () => {
+    setGearOpen(true);
+  };
+
+  const confirmRsvp = () => {
     rsvp(session.id);
-    onOpenChange(false);
-    setTimeout(() => setGearOpen(true), 250);
     toast(`You're in for ${session.title}`, { description: formatSessionWhen(session.starts_at) });
+    onOpenChange(false); // close the detail sheet after joining
   };
 
   const handleRsvp = () => {
@@ -239,7 +246,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
         presetCategory={requiredVerification ?? undefined}
       />
 
-      <GearChecklistSheet session={session} open={gearOpen} onOpenChange={setGearOpen} />
+      <GearChecklistSheet session={session} open={gearOpen} onOpenChange={setGearOpen} onConfirm={confirmRsvp} />
 
       <UserProfileSheet
         userId={profileUserId}
