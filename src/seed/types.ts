@@ -56,6 +56,8 @@ export interface Gym {
   lng: number;
   disciplines: Array<'top_rope' | 'lead' | 'boulder' | 'autobelay'>;
   here_now: number;          // seeded live presence count
+  neighborhood?: string;     // e.g. 'West Seattle'
+  boutique?: boolean;        // small independent / DIY gym
 }
 
 export interface CheckIn {

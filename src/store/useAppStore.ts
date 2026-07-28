@@ -773,16 +773,26 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 2,
+      version: 3,
       /**
-       * v1 → v2: ClimbCall.role ("what the host is") became
-       * ClimbCall.looking_for ("what the host needs"). Without this,
-       * anyone with existing localStorage renders a blank role chip
-       * because seedIfEmpty() short-circuits on a set seededAt.
+       * v1 → v2: ClimbCall.role → looking_for.
+       * v2 → v3: Seattle gym roster refreshed (Bouldering Project rebrand,
+       *   new boutique gyms Castle / Half Moon, Momentum SODO, BP U District).
+       *   Since seedIfEmpty() short-circuits on a set seededAt, refresh the
+       *   persisted `gyms` list and backfill presence for the new venues.
+       *   All existing gym_ids are preserved, so sessions/calls still resolve.
        */
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 3 && s.seededAt) {
+          s.gyms = SEED_GYMS;
+          const presence = (s.gymPresence as Record<string, number>) ?? {};
+          for (const g of SEED_GYMS) {
+            if (presence[g.id] === undefined) presence[g.id] = g.here_now;
+          }
+          s.gymPresence = presence;
+        }
         if (version < 2) {
           const flip: Record<string, 'belayer' | 'climber' | 'take_turns'> = {
             climber: 'belayer',   // they climb → they need a belayer

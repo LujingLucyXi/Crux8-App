@@ -1,8 +1,16 @@
 import type { Gym } from './types';
 
 /**
- * 8 real Seattle-area climbing gyms. Coordinates are approximate — verify
- * before shipping to production if you're going to render them on a map.
+ * Real Seattle-area climbing gyms (researched July 2026). Coordinates are
+ * approximate — verify before rendering on a map.
+ *
+ * Landscape notes:
+ *  - Seattle Bouldering Project rebranded to "Bouldering Project" and now
+ *    runs three metro locations (Poplar, Fremont/Upper Walls, U District).
+ *  - Boutique / independent spots (Castle in West Seattle, Half Moon in
+ *    Greenwood) are flagged `boutique`.
+ *  - Momentum opened a multi-discipline gym in SODO (rope + boulder).
+ *  - Stone Gardens is operated by Edgeworks.
  */
 export const SEED_GYMS: Gym[] = [
   {
@@ -11,32 +19,98 @@ export const SEED_GYMS: Gym[] = [
     short_name: 'Vertical World',
     address: '2123 W Elmore St',
     city: 'Seattle, WA',
+    neighborhood: 'Interbay',
     lat: 47.6459,
     lng: -122.3877,
     disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
     here_now: 24,
   },
   {
+    id: 'gym_momentum_sodo',
+    name: 'Momentum Indoor Climbing — SODO',
+    short_name: 'Momentum SODO',
+    address: '2759 1st Ave S',
+    city: 'Seattle, WA',
+    neighborhood: 'SODO',
+    lat: 47.5776,
+    lng: -122.3343,
+    disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
+    here_now: 27,
+  },
+  {
     id: 'gym_sbp_poplar',
-    name: 'Seattle Bouldering Project — Poplar',
-    short_name: 'SBP Poplar',
+    name: 'Bouldering Project — Poplar',
+    short_name: 'BP Poplar',
     address: '900 Poplar Pl S',
     city: 'Seattle, WA',
+    neighborhood: 'Central District',
     lat: 47.5937,
     lng: -122.3141,
     disciplines: ['boulder'],
-    here_now: 31,
+    here_now: 33,
   },
   {
     id: 'gym_sbp_fremont',
-    name: 'Seattle Bouldering Project — Fremont',
-    short_name: 'SBP Fremont',
-    address: '211 N 36th St',
+    name: 'Bouldering Project — Fremont / Upper Walls',
+    short_name: 'BP Fremont',
+    address: '3535 Interlake Ave N',
     city: 'Seattle, WA',
-    lat: 47.6511,
-    lng: -122.3492,
+    neighborhood: 'Fremont',
+    lat: 47.6506,
+    lng: -122.3427,
     disciplines: ['boulder'],
-    here_now: 18,
+    here_now: 21,
+  },
+  {
+    id: 'gym_bp_udistrict',
+    name: 'Bouldering Project — U District',
+    short_name: 'BP U District',
+    address: '4502 University Way NE',
+    city: 'Seattle, WA',
+    neighborhood: 'University District',
+    lat: 47.6616,
+    lng: -122.3130,
+    disciplines: ['boulder'],
+    here_now: 26,
+  },
+  {
+    id: 'gym_castle',
+    name: 'Castle Climbing Club',
+    short_name: 'Castle',
+    address: '6327 W Marginal Wy SW',
+    city: 'Seattle, WA',
+    neighborhood: 'West Seattle',
+    lat: 47.5451,
+    lng: -122.3481,
+    disciplines: ['boulder'],
+    here_now: 8,
+    boutique: true,
+  },
+  {
+    id: 'gym_half_moon',
+    name: 'Half Moon Bouldering',
+    short_name: 'Half Moon',
+    address: '124 N 85th St',
+    city: 'Seattle, WA',
+    neighborhood: 'Greenwood',
+    lat: 47.6906,
+    lng: -122.3556,
+    disciplines: ['boulder'],
+    here_now: 11,
+    boutique: true,
+  },
+  {
+    id: 'gym_blochaus',
+    name: 'BlocHaus',
+    short_name: 'BlocHaus',
+    address: '5301 Leary Ave NW',
+    city: 'Seattle, WA',
+    neighborhood: 'Ballard',
+    lat: 47.6666,
+    lng: -122.3833,
+    disciplines: ['boulder'],
+    here_now: 22,
+    boutique: true,
   },
   {
     id: 'gym_stone_gardens_ballard',
@@ -44,6 +118,7 @@ export const SEED_GYMS: Gym[] = [
     short_name: 'Stone Gardens Ballard',
     address: '2839 NW Market St',
     city: 'Seattle, WA',
+    neighborhood: 'Ballard',
     lat: 47.6685,
     lng: -122.3966,
     disciplines: ['top_rope', 'lead', 'boulder'],
@@ -55,21 +130,11 @@ export const SEED_GYMS: Gym[] = [
     short_name: 'Stone Gardens Bellevue',
     address: '13300 Bel-Red Rd',
     city: 'Bellevue, WA',
+    neighborhood: 'Bel-Red',
     lat: 47.6317,
     lng: -122.1682,
     disciplines: ['top_rope', 'lead', 'boulder'],
     here_now: 12,
-  },
-  {
-    id: 'gym_blochaus',
-    name: 'BlocHaus',
-    short_name: 'BlocHaus',
-    address: '5301 Leary Ave NW',
-    city: 'Seattle, WA',
-    lat: 47.6666,
-    lng: -122.3833,
-    disciplines: ['boulder'],
-    here_now: 22,
   },
   {
     id: 'gym_movement_bellevue',
@@ -77,6 +142,7 @@ export const SEED_GYMS: Gym[] = [
     short_name: 'Movement Bellevue',
     address: '14135 NE 20th St',
     city: 'Bellevue, WA',
+    neighborhood: 'Bellevue',
     lat: 47.6291,
     lng: -122.1447,
     disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
@@ -88,6 +154,7 @@ export const SEED_GYMS: Gym[] = [
     short_name: 'Edgeworks',
     address: '6102 N 9th St',
     city: 'Tacoma, WA',
+    neighborhood: 'Tacoma',
     lat: 47.2701,
     lng: -122.5088,
     disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],

@@ -105,10 +105,20 @@ export function CheckInSheet({ open, onOpenChange }: Props) {
                   <button
                     key={g.id}
                     onClick={() => doCheckIn(g.id, g.short_name)}
-                    className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-paper-50 text-left"
+                    className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl hover:bg-paper-50 text-left"
                   >
-                    <span className="text-sm text-ink-900">{g.name}</span>
-                    <span className="text-xs text-ink-500">{gymPresence[g.id] ?? g.here_now} here</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm text-ink-900 truncate">{g.name}</span>
+                        {g.boutique && (
+                          <span className="shrink-0 rounded-full bg-coral-100 text-coral-500 text-[9px] font-semibold px-1.5 py-0.5">
+                            BOUTIQUE
+                          </span>
+                        )}
+                      </div>
+                      {g.neighborhood && <span className="text-[11px] text-ink-500">{g.neighborhood}</span>}
+                    </div>
+                    <span className="text-xs text-ink-500 shrink-0">{gymPresence[g.id] ?? g.here_now} here</span>
                   </button>
                 ))}
               </div>
