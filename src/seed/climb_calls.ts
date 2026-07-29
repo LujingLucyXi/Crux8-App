@@ -16,7 +16,7 @@ export const SEED_CLIMB_CALLS: ClimbCall[] = [
     category: 'top_rope',
     grade: '5.10–5.11a',
     location_type: 'indoor',
-    gym_id: 'gym_sbp_poplar',
+    gym_id: 'gym_momentum_sodo', // rope gym (BP Poplar is bouldering-only)
     starts_at: daysFromNow(0, 18, 0),
     ends_at: daysFromNow(0, 20, 0),
     note: 'Projecting 5.11a — soft catches please',
@@ -112,3 +112,19 @@ export const SEED_CLIMB_CALLS: ClimbCall[] = [
     participant_ids: ['usr_sam'],
   },
 ];
+
+// Dev guard: a belay call is roped, so its indoor gym must offer rope
+// climbing. Catches seeding a rope call at a bouldering-only gym.
+if (import.meta.env?.DEV) {
+  import('./gyms').then(({ GYM_BY_ID }) => {
+    for (const c of SEED_CLIMB_CALLS) {
+      if (c.location_type !== 'indoor' || !c.gym_id) continue;
+      const gym = GYM_BY_ID[c.gym_id];
+      const roped = gym?.disciplines.some((d) => d === 'top_rope' || d === 'lead');
+      if (!roped) {
+        // eslint-disable-next-line no-console
+        console.error(`[seed] Belay call ${c.id} is at bouldering-only gym ${c.gym_id}`);
+      }
+    }
+  });
+}

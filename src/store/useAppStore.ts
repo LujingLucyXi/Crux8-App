@@ -773,25 +773,38 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 3,
+      version: 4,
       /**
        * v1 → v2: ClimbCall.role → looking_for.
-       * v2 → v3: Seattle gym roster refreshed (Bouldering Project rebrand,
+       * v2 → v4: Seattle gym roster refreshed (Bouldering Project rebrand,
        *   new boutique gyms Castle / Half Moon, Momentum SODO, BP U District).
-       *   Since seedIfEmpty() short-circuits on a set seededAt, refresh the
-       *   persisted `gyms` list and backfill presence for the new venues.
-       *   All existing gym_ids are preserved, so sessions/calls still resolve.
+       *   Refresh persisted `gyms` + backfill presence, and repoint any
+       *   persisted belay call that's sitting at a bouldering-only gym onto a
+       *   rope gym (Bouldering Project has no ropes). All gym_ids preserved.
        */
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
-        if (version < 3 && s.seededAt) {
+        if (version < 4 && s.seededAt) {
           s.gyms = SEED_GYMS;
           const presence = (s.gymPresence as Record<string, number>) ?? {};
           for (const g of SEED_GYMS) {
             if (presence[g.id] === undefined) presence[g.id] = g.here_now;
           }
           s.gymPresence = presence;
+
+          // Repoint rope calls stranded at bouldering-only gyms.
+          const ropeGymIds = SEED_GYMS.filter((g) => g.disciplines.some((d) => d === 'top_rope' || d === 'lead'));
+          const gymById = Object.fromEntries(SEED_GYMS.map((g) => [g.id, g]));
+          const fallbackRopeGym = ropeGymIds[0]?.id ?? 'gym_vertical_world';
+          const calls = Array.isArray(s.climbCalls) ? s.climbCalls : [];
+          s.climbCalls = calls.map((c) => {
+            const call = c as Record<string, unknown>;
+            if (call.location_type !== 'indoor' || !call.gym_id) return call;
+            const gym = gymById[call.gym_id as string];
+            const roped = gym?.disciplines.some((d) => d === 'top_rope' || d === 'lead');
+            return roped ? call : { ...call, gym_id: fallbackRopeGym };
+          });
         }
         if (version < 2) {
           const flip: Record<string, 'belayer' | 'climber' | 'take_turns'> = {
