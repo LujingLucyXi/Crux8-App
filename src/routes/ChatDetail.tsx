@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ReactionPicker } from '@/components/chat/ReactionPicker';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, dmKey } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 
 export function ChatDetail() {
@@ -16,6 +16,7 @@ export function ChatDetail() {
   const chats = useAppStore((s) => s.chats);
   const sendMessage = useAppStore((s) => s.sendMessage);
   const toggleReactionDm = useAppStore((s) => s.toggleReactionDm);
+  const markThreadRead = useAppStore((s) => s.markThreadRead);
   const me = useAppStore((s) => s.me);
   const [text, setText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -26,6 +27,11 @@ export function ChatDetail() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length]);
+
+  // Opening the thread (and any new message while it's open) marks it read.
+  useEffect(() => {
+    if (userId) markThreadRead(dmKey(userId));
+  }, [userId, messages.length, markThreadRead]);
 
   if (!user) {
     return (

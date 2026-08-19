@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import * as RadioGroup from '@radix-ui/react-radio-group';
+import { ShieldCheck, Group, Check } from 'iconoir-react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -20,145 +20,101 @@ const CATEGORY_LABEL: Record<VerificationCategory, string> = {
   trad: 'Trad Lead',
 };
 
+/**
+ * Belay self-attestation. No cert upload — the climber declares the skill, and
+ * real trust is earned when partners confirm it after sessions (peer check).
+ */
+const CATEGORIES: VerificationCategory[] = ['top_rope', 'lead', 'trad'];
+
 export function CertVerificationSheet({ open, onOpenChange, presetCategory }: Props) {
   const submitVerification = useAppStore((s) => s.submitVerification);
-  const [category, setCategory] = useState<VerificationCategory>(presetCategory ?? 'top_rope');
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [attested, setAttested] = useState(false);
-  const [photoName, setPhotoName] = useState<string | null>(null);
+  const [selected, setSelected] = useState<VerificationCategory[]>(presetCategory ? [presetCategory] : []);
+  const [checked, setChecked] = useState(false);
 
   const reset = () => {
-    setStep(1);
-    setAttested(false);
-    setPhotoName(null);
+    setSelected(presetCategory ? [presetCategory] : []);
+    setChecked(false);
   };
 
+  const toggle = (cat: VerificationCategory) =>
+    setSelected((prev) => (prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]));
+
   const handleSubmit = () => {
-    submitVerification(category, photoName ?? undefined);
-    toast('Verification submitted', {
-      description: `${CATEGORY_LABEL[category]} — reviewing (auto-approves in 5s in demo).`,
-    });
+    selected.forEach((cat) => submitVerification(cat));
+    toast(
+      selected.length === 1
+        ? `${CATEGORY_LABEL[selected[0]]} · self-reported`
+        : `${selected.length} belay skills · self-reported`,
+      { description: 'Partners can confirm these after you climb together.' },
+    );
     onOpenChange(false);
     reset();
-    setTimeout(() => {
-      toast(`${CATEGORY_LABEL[category]} verified ✓`, {
-        description: 'You can now RSVP to matching rope sessions.',
-      });
-    }, 5100);
   };
 
   return (
-    <Sheet
-      open={open}
-      onOpenChange={(o) => {
-        onOpenChange(o);
-        if (!o) reset();
-      }}
-    >
-      <SheetContent title="Verify your belay cert">
-        <p className="text-sm text-ink-500 -mt-2 mb-5">Step {step} of 3</p>
+    <Sheet open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
+      <SheetContent title="Self-report your belay skill">
+        <p className="text-sm text-ink-500 -mt-2 mb-4">
+          No cert upload. You declare what you can do, and your partners confirm it after real sessions — so trust is
+          earned on the wall, not on paper.
+        </p>
 
-        {step === 1 && (
-          <>
-            <RadioGroup.Root
-              value={category}
-              onValueChange={(v) => setCategory(v as VerificationCategory)}
-              className="flex flex-col gap-2"
-            >
-              {(['top_rope', 'lead', 'trad'] as VerificationCategory[]).map((cat) => (
-                <RadioGroup.Item
-                  key={cat}
-                  value={cat}
+        <p className="text-xs font-bold uppercase tracking-wider text-ink-500 mb-2">
+          Which skills? <span className="normal-case font-medium text-ink-400">Select all that apply</span>
+        </p>
+        <div className="flex flex-col gap-2">
+          {CATEGORIES.map((cat) => {
+            const on = selected.includes(cat);
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => toggle(cat)}
+                aria-pressed={on}
+                className={cn(
+                  'flex items-center gap-3 p-4 rounded-xl border text-left transition-colors',
+                  on ? 'border-brand-600 bg-brand-100' : 'border-ink-100 hover:border-ink-300',
+                )}
+              >
+                <span
                   className={cn(
-                    'flex items-center gap-3 p-4 rounded-xl border text-left',
-                    'data-[state=checked]:border-ink-900 data-[state=checked]:bg-paper-50',
-                    'border-ink-100',
+                    'w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0',
+                    on ? 'bg-brand-600 border-brand-600' : 'border-ink-300',
                   )}
                 >
-                  <div className="w-4 h-4 rounded-full border-2 border-ink-300 data-[state=checked]:border-ink-900 relative">
-                    <div className="absolute inset-1 rounded-full bg-ink-900 hidden [[data-state=checked]_&]:block" />
-                  </div>
-                  <span className="text-sm text-ink-900 font-medium">{CATEGORY_LABEL[cat]}</span>
-                </RadioGroup.Item>
-              ))}
-            </RadioGroup.Root>
-            <div className="mt-6 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button className="flex-1" onClick={() => setStep(2)}>
-                Next
-              </Button>
-            </div>
-          </>
-        )}
+                  {on && <Check width={13} height={13} color="white" />}
+                </span>
+                <span className="text-sm text-ink-900 font-semibold">{CATEGORY_LABEL[cat]}</span>
+              </button>
+            );
+          })}
+        </div>
 
-        {step === 2 && (
-          <>
-            <div className="border-2 border-dashed border-ink-100 rounded-2xl p-6 text-center">
-              <p className="text-sm text-ink-500 mb-3">
-                {photoName ? `Selected: ${photoName}` : 'Upload a photo of your cert (mocked in v0.5)'}
-              </p>
-              <input
-                type="file"
-                accept="image/*"
-                id="cert-file"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) setPhotoName(f.name);
-                }}
-              />
-              <label
-                htmlFor="cert-file"
-                className="inline-flex items-center gap-2 rounded-xl border border-ink-900 bg-white text-ink-900 text-sm font-medium px-4 py-2 cursor-pointer hover:bg-paper-50"
-              >
-                Choose file
-              </label>
-            </div>
-            <label className="mt-5 flex items-start gap-3 cursor-pointer">
-              <Checkbox checked={attested} onCheckedChange={(v) => setAttested(!!v)} />
-              <span className="text-sm text-ink-700 leading-snug">
-                I confirm this certification is mine and current within the last 24 months.
-              </span>
-            </label>
-            <div className="mt-6 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
-                Back
-              </Button>
-              <Button className="flex-1" onClick={() => setStep(3)} disabled={!photoName || !attested}>
-                Next
-              </Button>
-            </div>
-          </>
-        )}
+        <label className="mt-4 flex items-start gap-3 cursor-pointer rounded-xl border border-ink-100 p-3.5">
+          <Checkbox checked={checked} onCheckedChange={(v) => setChecked(!!v)} />
+          <span className="text-sm text-ink-700 leading-snug">
+            I've passed a belay check for the skill(s) above at a gym (or have equivalent experience), and I'm
+            comfortable belaying a partner safely.
+          </span>
+        </label>
 
-        {step === 3 && (
-          <>
-            <div className="rounded-2xl bg-paper-50 border border-ink-100 p-4">
-              <p className="text-xs uppercase tracking-wider text-ink-500 mb-2">Review</p>
-              <dl className="grid grid-cols-3 gap-2 text-sm">
-                <dt className="text-ink-500">Category</dt>
-                <dd className="col-span-2 text-ink-900 font-medium">{CATEGORY_LABEL[category]}</dd>
-                <dt className="text-ink-500">File</dt>
-                <dd className="col-span-2 text-ink-900 truncate">{photoName}</dd>
-                <dt className="text-ink-500">Attested</dt>
-                <dd className="col-span-2 text-ink-900">Yes</dd>
-              </dl>
-            </div>
-            <p className="mt-3 text-xs text-ink-500">
-              In production, a coach reviews your cert within 24 hours. In this demo, verification auto-approves 5 seconds after submission.
-            </p>
-            <div className="mt-6 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
-                Back
-              </Button>
-              <Button className="flex-1" onClick={handleSubmit}>
-                Submit
-              </Button>
-            </div>
-          </>
-        )}
+        <div className="mt-4 rounded-xl bg-paper-50 border border-ink-100 p-3.5 flex gap-3">
+          <Group width={18} height={18} className="text-brand-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-ink-600 leading-snug">
+            After you climb, partners are asked to confirm your belay skill. A few confirmations turn “self-reported”
+            into <span className="font-semibold text-ink-900">peer-confirmed</span>. Always do an in-person buddy check
+            before the first climb.
+          </p>
+        </div>
+
+        <div className="mt-6 flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button className="flex-1" disabled={!checked || selected.length === 0} onClick={handleSubmit}>
+            <ShieldCheck width={16} height={16} /> Self-report{selected.length > 1 ? ` (${selected.length})` : ''}
+          </Button>
+        </div>
       </SheetContent>
     </Sheet>
   );

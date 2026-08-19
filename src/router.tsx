@@ -8,10 +8,12 @@ import { Find } from '@/routes/Find';
 import { Sessions } from '@/routes/Sessions';
 import { Community } from '@/routes/Community';
 import { GroupDetail } from '@/routes/GroupDetail';
+import { GroupManage } from '@/routes/GroupManage';
 import { Chat } from '@/routes/Chat';
 import { ChatDetail } from '@/routes/ChatDetail';
 import { SessionChatDetail } from '@/routes/SessionChatDetail';
 import { Profile } from '@/routes/Profile';
+import { Lab } from '@/routes/Lab';
 
 function RequireAuth() {
   const me = useAppStore((s) => s.me);
@@ -28,6 +30,7 @@ function LandingOrHome() {
 export const router = createBrowserRouter([
   { path: '/', element: <LandingOrHome /> },
   { path: '/onboarding', element: <Onboarding /> },
+  { path: '/lab', element: <Lab /> },
   {
     element: <RequireAuth />,
     children: [
@@ -39,6 +42,7 @@ export const router = createBrowserRouter([
           { path: '/sessions', element: <Sessions /> },
           { path: '/community', element: <Community /> },
           { path: '/community/:groupId', element: <GroupDetail /> },
+          { path: '/community/:groupId/manage', element: <GroupManage /> },
           { path: '/chat', element: <Chat /> },
           { path: '/chat/session/:sessionChatId', element: <SessionChatDetail /> },
           { path: '/chat/:userId', element: <ChatDetail /> },

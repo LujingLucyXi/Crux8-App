@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { ReactionPicker } from '@/components/chat/ReactionPicker';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, scKey } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import type { AvatarConfig } from '@/lib/avatar';
 
@@ -18,6 +18,7 @@ export function SessionChatDetail() {
   const me = useAppStore((s) => s.me);
   const sendSessionMessage = useAppStore((s) => s.sendSessionMessage);
   const toggleReactionSession = useAppStore((s) => s.toggleReactionSession);
+  const markThreadRead = useAppStore((s) => s.markThreadRead);
 
   const [text, setText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -28,6 +29,11 @@ export function SessionChatDetail() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length]);
+
+  // Opening the thread (and any new message while it's open) marks it read.
+  useEffect(() => {
+    if (sessionChatId) markThreadRead(scKey(sessionChatId));
+  }, [sessionChatId, messages.length, markThreadRead]);
 
   if (!chat) {
     return (

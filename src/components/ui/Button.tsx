@@ -2,13 +2,16 @@ import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cn } from '@/lib/utils';
 
-type Variant = 'primary' | 'outline' | 'ghost' | 'destructive';
+type Variant = 'primary' | 'punch' | 'outline' | 'ghost' | 'destructive';
 type Size = 'sm' | 'md' | 'lg' | 'icon';
 
 const variantCls: Record<Variant, string> = {
-  primary: 'bg-ink-900 text-white hover:bg-ink-700 active:bg-ink-900',
-  outline: 'bg-white border border-ink-100 text-ink-900 hover:bg-paper-50',
-  ghost: 'bg-transparent text-ink-700 hover:bg-paper-50',
+  // Enamel-pin violet — the everyday primary CTA (gold rim + gloss).
+  primary: 'enamel text-white font-semibold bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] hover:brightness-105',
+  // Enamel lime — the top-conversion action.
+  punch: 'enamel text-ink-900 font-extrabold bg-[linear-gradient(160deg,#C6F135,#8FB81E)] hover:brightness-[1.03]',
+  outline: 'bg-white border border-ink-100 text-ink-900 hover:border-brand-400 hover:text-brand-600',
+  ghost: 'bg-transparent text-ink-700 hover:bg-brand-100',
   destructive: 'bg-white border border-coral-500 text-coral-500 hover:bg-coral-100',
 };
 
@@ -32,7 +35,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-ink-900/30',
+          'inline-flex items-center justify-center gap-2 rounded-xl font-medium select-none touch-manipulation transition active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ink-900/30',
           variantCls[variant],
           sizeCls[size],
           className,

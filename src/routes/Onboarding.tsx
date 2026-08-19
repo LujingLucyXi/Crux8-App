@@ -21,6 +21,14 @@ const GRADE_BANDS = [
   { value: '5.12c+', label: 'V9+ / 5.12c+' },
 ];
 
+const STEP_META = [
+  { n: 1, label: 'Basics' },
+  { n: 2, label: 'Your avatar' },
+  { n: 3, label: 'Climbing' },
+  { n: 4, label: 'Body (private)' },
+  { n: 5, label: 'Verification' },
+] as const;
+
 const STYLES: { value: Style; label: string }[] = [
   { value: 'top_rope', label: 'Top Rope' },
   { value: 'lead', label: 'Lead' },
@@ -69,7 +77,7 @@ export function Onboarding() {
       weight_kg: weightKg,
       height_cm: heightCm,
     });
-    toast('Welcome to CruxMate!');
+    toast('Welcome to Crux8!');
     nav('/home');
   };
 
@@ -82,17 +90,27 @@ export function Onboarding() {
   return (
     <div className="min-h-screen bg-paper-50">
       <div className="mx-auto max-w-[560px] px-6 py-10">
-        {/* Progress dots */}
-        <div className="flex justify-center gap-2 mb-8">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <div
-              key={n}
-              className={cn(
-                'w-2 h-2 rounded-full transition-colors',
-                n <= step ? 'bg-ink-900' : 'bg-ink-100',
-              )}
-            />
-          ))}
+        {/* Labeled progress: segmented bar + "Step X of 5 · <label>" */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-500">
+              Step {step} of 5
+            </span>
+            <span className="text-xs font-medium text-ink-700">
+              {STEP_META[step - 1].label}
+            </span>
+          </div>
+          <div className="flex gap-1.5">
+            {STEP_META.map(({ n }) => (
+              <div
+                key={n}
+                className={cn(
+                  'h-1.5 flex-1 rounded-full transition-colors',
+                  n <= step ? 'bg-brand-gradient' : 'bg-ink-100',
+                )}
+              />
+            ))}
+          </div>
         </div>
 
         {step === 1 && (
@@ -120,7 +138,7 @@ export function Onboarding() {
           <>
             <h2 className="text-2xl font-semibold text-ink-900">Build your climber.</h2>
             <p className="mt-2 text-sm text-ink-500">
-              No photos, no uploads — just you, rendered in CruxMate house style.
+              No photos, no uploads — just you, rendered in Crux8 house style.
             </p>
             <div className="mt-6">
               <AvatarCustomizer
@@ -227,6 +245,7 @@ export function Onboarding() {
                 <Label>Weight (lbs)</Label>
                 <Input
                   type="number"
+                  inputMode="numeric"
                   min={60}
                   max={400}
                   value={weightLbs}
@@ -239,6 +258,7 @@ export function Onboarding() {
                 <div className="grid grid-cols-2 gap-3">
                   <Input
                     type="number"
+                    inputMode="numeric"
                     min={3}
                     max={8}
                     value={heightFt}
@@ -247,6 +267,7 @@ export function Onboarding() {
                   />
                   <Input
                     type="number"
+                    inputMode="numeric"
                     min={0}
                     max={11}
                     value={heightIn}
@@ -281,17 +302,17 @@ export function Onboarding() {
 
         {step === 5 && (
           <>
-            <h2 className="text-2xl font-semibold text-ink-900">Belay verification.</h2>
+            <h2 className="text-2xl font-semibold text-ink-900">Belay skills.</h2>
             <p className="mt-2 text-sm text-ink-500">
-              Verified belayers can RSVP to rope sessions marked "verified only." You can skip and do it later.
+              Tell us what you can belay. No cert upload — your partners confirm it after real sessions. You can skip and do it later.
             </p>
             <div className="mt-6 rounded-2xl bg-white border border-ink-100 p-5">
               <p className="text-sm text-ink-700">
-                Upload a photo of your Top Rope, Lead, or Trad certification. We approve within 24 hours (auto-approve after 5 seconds in this demo).
+                Self-report Top Rope, Lead, or Trad. A few partner confirmations turn “self-reported” into “peer-confirmed.” Always do an in-person buddy check first.
               </p>
             </div>
             <div className="mt-8 flex flex-col gap-2">
-              <Button onClick={() => setCertOpen(true)}>Start verification</Button>
+              <Button onClick={() => setCertOpen(true)}>Self-report belay skills</Button>
               <Button variant="outline" onClick={finish}>
                 Skip for now
               </Button>

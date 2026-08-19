@@ -21,7 +21,7 @@ export function UpNextCard({ kind, title, subtitle, when, where, countLabel, onC
   return (
     <button
       onClick={onClick}
-      className="w-full text-left rounded-2xl bg-ink-900 text-white p-5 relative overflow-hidden"
+      className="w-full text-left rounded-3xl bg-brand-gradient text-white p-5 relative overflow-hidden shadow-brand"
     >
       {/* subtle topo texture */}
       <svg className="absolute inset-0 w-full h-full opacity-[0.07]" viewBox="0 0 200 100" preserveAspectRatio="none">

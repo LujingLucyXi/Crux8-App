@@ -31,9 +31,9 @@ export function Landing() {
     <div className="min-h-screen bg-paper-50">
       <div className="mx-auto max-w-[560px] px-6 py-12 flex flex-col items-center text-center">
         <Logo size={80} />
-        <h1 className="mt-8 text-4xl font-bold text-ink-900 tracking-tight">CRUXMATE</h1>
-        <p className="mt-3 text-xs font-semibold tracking-[0.3em] text-ink-500">
-          CLIMB TOGETHER. GO FURTHER.
+        <h1 className="mt-8 text-4xl font-bold text-ink-900 tracking-tight">CRUX8</h1>
+        <p className="mt-3 text-xs font-semibold tracking-[0.24em] text-ink-500">
+          FIND YOUR PEOPLE. CLIMB STRONGER.
         </p>
         <p className="mt-4 text-base text-ink-600 max-w-sm">
           Find your next climb. Together.

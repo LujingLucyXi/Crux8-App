@@ -24,7 +24,7 @@ export type LocationType = 'indoor' | 'outdoor' | 'event';
 
 export type VerificationCategory = 'top_rope' | 'lead' | 'trad';
 
-export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
+export type VerificationStatus = 'unverified' | 'pending' | 'self_attested' | 'verified' | 'rejected';
 
 export type EventType =
   | 'community_night'
@@ -116,16 +116,30 @@ export interface EventItem {
   gear_note?: string;
 }
 
+/** A pending request to join a request-only group, with survey answers. */
+export interface GroupJoinRequest {
+  user_id: string;
+  answers: string[];          // parallel to Group.survey_questions
+  requested_at: string;       // ISO
+}
+
 export interface Group {
   id: string;
   name: string;
   tagline: string;
   category: GroupCategory;
   member_count: number;
-  cover_url: string;
+  cover_url: string;          // background banner
   description: string;
   admin_ids: string[];
   recent_activity: string;
+  // ── extended (group management) ──
+  avatar_url?: string;                 // square group logo / profile pic
+  owner_id?: string;                   // who created the group (super-admin)
+  member_ids?: string[];               // known members (NPCs + 'me')
+  join_policy?: 'open' | 'request';    // open = instant; request = admin approval
+  survey_questions?: string[];         // questions shown on a join request
+  pending?: GroupJoinRequest[];        // awaiting admin review
 }
 
 export interface NpcUser {
@@ -228,12 +242,16 @@ export interface PartnerFlag {
   note?: string;
 }
 
+/** Peer confirmation of a partner's belay credential, captured in the recap. */
+export type BelayConfirm = 'has_cert' | 'no_cert' | 'unsure';
+
 export interface SessionRecap {
   session_id: string;
   logged_at: string;                          // ISO
   props: Record<string, ReactionKey[]>;       // partnerUserId -> emoji props I gave
   partner_checks: Record<string, PartnerCheck>; // partnerUserId -> all_good | flagged
   partner_flags: Record<string, PartnerFlag>;   // partnerUserId -> private detail (flagged only)
+  belay_confirms: Record<string, BelayConfirm>; // partnerUserId -> peer belay-cert confirmation
 }
 
 // Helper: date offset from "now" so the seed always feels fresh.

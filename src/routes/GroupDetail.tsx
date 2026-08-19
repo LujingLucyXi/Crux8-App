@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { NavArrowLeft, Plus } from 'iconoir-react';
+import { NavArrowLeft, Plus, Settings, ChatBubble } from 'iconoir-react';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { SessionCard } from '@/components/cards/SessionCard';
@@ -8,6 +8,7 @@ import { EventCard } from '@/components/cards/EventCard';
 import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
 import { EventDetailSheet } from '@/components/sheets/EventDetailSheet';
 import { NewSessionSheet } from '@/components/sheets/NewSessionSheet';
+import { JoinGroupSheet } from '@/components/sheets/JoinGroupSheet';
 import { useAppStore } from '@/store/useAppStore';
 import type { Session, EventItem } from '@/seed/types';
 import type { AvatarConfig } from '@/lib/avatar';
@@ -23,11 +24,13 @@ export function GroupDetail() {
   const memberships = useAppStore((s) => s.myGroupMemberships);
   const joinGroup = useAppStore((s) => s.joinGroup);
   const leaveGroup = useAppStore((s) => s.leaveGroup);
+  const openGroupChat = useAppStore((s) => s.openGroupChat);
   const me = useAppStore((s) => s.me);
 
   const [detailSession, setDetailSession] = useState<Session | null>(null);
   const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
   const [postOpen, setPostOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
 
   const group = groups.find((g) => g.id === groupId);
   if (!group) {
@@ -42,6 +45,13 @@ export function GroupDetail() {
   }
 
   const joined = memberships.includes(group.id);
+  const requested = (group.pending ?? []).some((r) => r.user_id === 'me');
+  const requestPolicy = (group.join_policy ?? 'open') === 'request';
+  const handleJoinClick = () => {
+    if (joined) return leaveGroup(group.id);
+    if (requestPolicy) return setJoinOpen(true);
+    joinGroup(group.id);
+  };
   const admins = group.admin_ids
     .map((id) => (id === 'me' ? { id: 'me', display_name: me?.display_name ?? 'You', avatar: me?.avatar, photo_url: me?.photo_url } : users.find((u) => u.id === id)))
     .filter(Boolean) as Array<{ id: string; display_name: string; avatar?: AvatarConfig; photo_url?: string }>;
@@ -64,24 +74,46 @@ export function GroupDetail() {
 
       <div className="px-4 -mt-6 relative">
         <div className="rounded-2xl bg-white border border-ink-100 p-5">
+          {group.avatar_url && (
+            <img
+              src={group.avatar_url}
+              alt=""
+              className="h-16 w-16 rounded-2xl object-cover border-2 border-white shadow-sm -mt-11 mb-2"
+            />
+          )}
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h1 className="text-xl font-semibold text-ink-900">{group.name}</h1>
               <p className="text-sm text-ink-500 mt-1">{group.tagline}</p>
               <p className="text-xs text-ink-500 mt-2">
                 {group.member_count.toLocaleString()} members · <span className="capitalize">{group.category}</span>
+                {requestPolicy && <span> · request to join</span>}
               </p>
             </div>
             <Button
-              variant={joined ? 'outline' : 'primary'}
+              variant={joined || requested ? 'outline' : 'primary'}
               size="sm"
-              onClick={() => (joined ? leaveGroup(group.id) : joinGroup(group.id))}
+              disabled={requested}
+              onClick={handleJoinClick}
             >
-              {joined ? 'Joined' : 'Join'}
+              {joined ? 'Joined' : requested ? 'Requested' : requestPolicy ? 'Request' : 'Join'}
             </Button>
           </div>
 
           <p className="mt-4 text-sm text-ink-700 leading-relaxed">{group.description}</p>
+
+          {joined && (
+            <Button
+              variant="outline"
+              className="w-full mt-4"
+              onClick={() => {
+                openGroupChat(group.id);
+                nav(`/chat/session/${group.id}`);
+              }}
+            >
+              <ChatBubble width={16} height={16} /> Group chat
+            </Button>
+          )}
 
           <div className="mt-5">
             <p className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">Admins</p>
@@ -97,9 +129,19 @@ export function GroupDetail() {
           </div>
 
           {isAdmin && (
-            <Button variant="outline" className="w-full mt-4" onClick={() => setPostOpen(true)}>
-              <Plus width={16} height={16} /> Post to group
-            </Button>
+            <div className="mt-4 flex flex-col gap-2">
+              <Button variant="outline" className="w-full" onClick={() => setPostOpen(true)}>
+                <Plus width={16} height={16} /> Post to group
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => nav(`/community/${group.id}/manage`)}>
+                <Settings width={16} height={16} /> Manage crew
+                {(group.pending?.length ?? 0) > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-teal-600 text-white text-[11px] font-semibold">
+                    {group.pending!.length}
+                  </span>
+                )}
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -149,6 +191,7 @@ export function GroupDetail() {
         onOpenChange={(o) => !o && setDetailEvent(null)}
       />
       <NewSessionSheet open={postOpen} onOpenChange={setPostOpen} defaultGroupId={group.id} />
+      <JoinGroupSheet group={group} open={joinOpen} onOpenChange={setJoinOpen} />
     </div>
   );
 }

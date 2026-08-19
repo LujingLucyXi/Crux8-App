@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ShieldCheck, Trophy, Star, Community, Trekking, Sparks, HandCard, EyeClosed } from 'iconoir-react';
+import { ShieldCheck, EyeClosed } from 'iconoir-react';
 import { Textarea, Input, Label } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
@@ -11,19 +11,22 @@ import { SessionCard } from '@/components/cards/SessionCard';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
+import { LogSendSheet } from '@/components/sheets/LogSendSheet';
 import { useAppStore, type BadgeId } from '@/store/useAppStore';
 import type { VerificationCategory } from '@/seed/types';
 import { cn } from '@/lib/utils';
 import { cmToFtIn, kgToLbs, lbsToKg, ftInToCm } from '@/lib/weight';
+import { levelFromXp, sendXp } from '@/lib/rewards';
+import { format } from 'date-fns';
 
-const BADGE_META: Record<BadgeId, { label: string; Icon: React.ComponentType<{ width: number; height: number; color: string }> }> = {
-  first_session: { label: 'First Session', Icon: HandCard },
-  first_recap: { label: 'First Recap', Icon: Star },
-  verified_belayer: { label: 'Verified Belayer', Icon: ShieldCheck },
-  adventurer: { label: 'Adventurer', Icon: Trekking },
-  community: { label: 'Community', Icon: Community },
-  cruxmate_x5: { label: 'CruxMate x5', Icon: Sparks },
-  trust_champion: { label: 'Trust Champion', Icon: Trophy },
+const BADGE_META: Record<BadgeId, { label: string; emoji: string; grad: string }> = {
+  first_session: { label: 'First Session', emoji: '🧗', grad: 'linear-gradient(135deg,#7C3AED,#EC4899)' },
+  first_recap: { label: 'First Recap', emoji: '📓', grad: 'linear-gradient(135deg,#38BDF8,#7C3AED)' },
+  verified_belayer: { label: 'Verified Belayer', emoji: '🛡️', grad: 'linear-gradient(135deg,#0EA5A5,#38BDF8)' },
+  adventurer: { label: 'Adventurer', emoji: '🏔️', grad: 'linear-gradient(135deg,#F4B942,#FF5A5F)' },
+  community: { label: 'Community', emoji: '🤝', grad: 'linear-gradient(135deg,#EC4899,#F4B942)' },
+  cruxmate_x5: { label: 'CruxMate ×5', emoji: '⚡', grad: 'linear-gradient(135deg,#C6F135,#0EA5A5)' },
+  trust_champion: { label: 'Trust Champion', emoji: '🏆', grad: 'linear-gradient(135deg,#FFB020,#EC4899)' },
 };
 
 const BADGE_ORDER: BadgeId[] = [
@@ -52,8 +55,11 @@ export function Profile() {
   const verifications = useAppStore((s) => s.verifications);
   const badges = useAppStore((s) => s.badges);
   const recaps = useAppStore((s) => s.recaps);
+  const xp = useAppStore((s) => s.xp);
+  const sends = useAppStore((s) => s.sends);
   const updateProfile = useAppStore((s) => s.updateProfile);
 
+  const [logSendOpen, setLogSendOpen] = useState(false);
   const [certOpen, setCertOpen] = useState(false);
   const [certPreset, setCertPreset] = useState<VerificationCategory | undefined>(undefined);
   const [recapSessionId, setRecapSessionId] = useState<string | null>(null);
@@ -72,6 +78,10 @@ export function Profile() {
   if (!me) return null;
 
   const gym = gyms.find((g) => g.id === me.home_gym_id);
+  const level = levelFromXp(xp);
+  const topSend = sends.length
+    ? [...sends].sort((a, b) => sendXp(b.grade) - sendXp(a.grade))[0].grade
+    : null;
   const now = Date.now();
   const upcoming = sessions.filter((s) => s.participant_ids.includes(me.id) && new Date(s.ends_at).getTime() > now);
   const past = sessions.filter((s) => s.participant_ids.includes(me.id) && new Date(s.ends_at).getTime() <= now);
@@ -88,7 +98,7 @@ export function Profile() {
         <div className="flex items-start gap-4">
           <button
             onClick={() => {
-              setDraftAvatar(me.avatar);
+              setDraftAvatar(me.avatar ?? DEFAULT_AVATAR);
               setDraftPhoto(me.photo_url);
               setAvatarOpen(true);
             }}
@@ -119,23 +129,26 @@ export function Profile() {
         <div className="mt-5 flex flex-wrap gap-1.5">
           {(['top_rope', 'lead', 'trad'] as VerificationCategory[]).map((cat) => {
             const v = verifications[cat];
-            const isVerified = v.status === 'verified';
-            const isPending = v.status === 'pending';
+            const isVerified = v.status === 'verified';           // peer-confirmed
+            const isSelf = v.status === 'self_attested';           // self-reported
             return (
               <button
                 key={cat}
-                onClick={() => !isVerified && openCert(cat)}
+                onClick={() => openCert(cat)}
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-full text-xs font-semibold px-3 py-1.5 transition-colors',
                   isVerified
                     ? 'bg-teal-600 text-white'
-                    : isPending
-                    ? 'bg-gold-100 text-gold-500'
+                    : isSelf
+                    ? 'bg-brand-100 text-brand-600 border border-brand-400'
                     : 'border border-ink-300 text-ink-300 hover:border-ink-500 hover:text-ink-700',
                 )}
               >
-                {isVerified ? <ShieldCheck width={12} height={12} /> : isPending ? '⏳' : '○'}
-                <span>{CATEGORY_LABEL[cat]} Belay</span>
+                {isVerified ? <ShieldCheck width={12} height={12} /> : isSelf ? '•' : '○'}
+                <span>
+                  {CATEGORY_LABEL[cat]} Belay
+                  {isVerified ? ' · peer-confirmed' : isSelf ? ' · self-reported' : ''}
+                </span>
               </button>
             );
           })}
@@ -146,6 +159,54 @@ export function Profile() {
             Edit profile
           </Button>
         </div>
+      </div>
+
+      {/* ── Level / XP power-up ── */}
+      <div className="mt-4 rounded-3xl bg-brand-gradient text-white p-5 shadow-brand">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 ring-1 ring-white/40 flex items-center justify-center text-3xl shrink-0">
+              {level.emoji}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-white/80">Level {level.level}</p>
+              <p className="text-lg font-extrabold leading-tight truncate">{level.title}</p>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-2xl font-black leading-none">{xp}</p>
+            <p className="text-[11px] font-semibold text-white/80">XP</p>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div className="h-2.5 rounded-full bg-white/20 overflow-hidden">
+            <div className="h-full rounded-full bg-lime-400 transition-all" style={{ width: `${level.pct}%` }} />
+          </div>
+          <p className="mt-1.5 text-[11px] font-medium text-white/85">
+            {level.nextAt ? `${level.nextAt - xp} XP to level ${level.level + 1}` : 'Max level — legend status 👑'}
+          </p>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {[
+            { n: sends.length, label: 'Sends' },
+            { n: topSend ?? '—', label: 'Top send' },
+            { n: badges.length, label: 'Badges' },
+          ].map((s) => (
+            <div key={s.label} className="rounded-2xl bg-white/15 ring-1 ring-white/20 py-2.5 text-center">
+              <p className="text-lg font-black leading-none">{s.n}</p>
+              <p className="text-[10px] font-semibold text-white/80 mt-1 uppercase tracking-wider">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={() => setLogSendOpen(true)}
+          className="mt-4 w-full rounded-2xl bg-lime-400 text-ink-900 font-extrabold py-3 shadow-punch active:translate-y-[3px] active:shadow-none transition"
+        >
+          🔥 Log a send
+        </button>
       </div>
 
       {/* Hidden fields — height + weight (for weight-safe matching) */}
@@ -242,20 +303,20 @@ export function Profile() {
           {BADGE_ORDER.map((id) => {
             const earned = badges.includes(id);
             const meta = BADGE_META[id];
-            const { Icon } = meta;
             return (
               <div key={id} className="flex flex-col items-center gap-1 shrink-0 w-20 text-center">
                 <div
                   className={cn(
-                    'w-14 h-14 rounded-full flex items-center justify-center border',
-                    earned ? 'bg-gold-500 border-gold-500' : 'bg-paper-50 border-ink-100',
+                    'w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition',
+                    earned ? 'shadow-brand' : 'bg-paper-50 border border-ink-100 grayscale opacity-45',
                   )}
+                  style={earned ? { backgroundImage: meta.grad } : undefined}
                 >
-                  <Icon width={22} height={22} color={earned ? 'white' : '#8FA0AA'} />
+                  {meta.emoji}
                 </div>
                 <p
                   className={cn(
-                    'text-[10px] font-medium leading-tight',
+                    'text-[10px] font-semibold leading-tight',
                     earned ? 'text-ink-900' : 'text-ink-300',
                   )}
                 >
@@ -265,6 +326,41 @@ export function Profile() {
             );
           })}
         </div>
+      </section>
+
+      {/* Send log */}
+      <section className="mt-6">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500">
+            Send log · {sends.length}
+          </h2>
+          <button onClick={() => setLogSendOpen(true)} className="text-xs font-bold text-brand-600">
+            + Log a send
+          </button>
+        </div>
+        {sends.length === 0 ? (
+          <div className="rounded-2xl bg-white border border-dashed border-ink-100 p-6 text-center">
+            <span className="text-2xl">🔥</span>
+            <p className="mt-2 text-sm text-ink-500">No sends logged yet. Every send counts — record your first.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {sends.slice(0, 8).map((s) => (
+              <div key={s.id} className="flex items-center gap-3 rounded-2xl bg-white border border-ink-100 px-3.5 py-2.5">
+                <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center text-lg shrink-0">
+                  {s.discipline === 'boulder' ? '🪨' : '🧗'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-extrabold text-ink-900 leading-tight">
+                    {s.grade} <span className="text-ink-300 font-semibold capitalize">· {s.style}</span>
+                  </p>
+                  {s.note && <p className="text-[12px] text-ink-500 truncate">{s.note}</p>}
+                </div>
+                <span className="text-[11px] text-ink-300 shrink-0">{format(new Date(s.at), 'MMM d')}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Upcoming */}
@@ -451,6 +547,8 @@ export function Profile() {
         open={!!recapSessionId}
         onOpenChange={(o) => !o && setRecapSessionId(null)}
       />
+
+      <LogSendSheet open={logSendOpen} onOpenChange={setLogSendOpen} />
     </div>
   );
 }

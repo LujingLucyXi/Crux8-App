@@ -57,8 +57,8 @@ export function FilterRow() {
   const gym = filters.gym_id ? gyms.find((g) => g.id === filters.gym_id) : undefined;
   const chip = (active: boolean) =>
     cn(
-      'shrink-0 inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-      active ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100 hover:border-ink-300',
+      'shrink-0 inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+      active ? 'enamel bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] text-white border-transparent' : 'bg-white text-ink-700 border-ink-100 hover:border-brand-400',
     );
 
   const dateLabel = () => {

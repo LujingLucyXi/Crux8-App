@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { ChatBubble, Community } from 'iconoir-react';
 import { Avatar, AvatarStack } from '@/components/ui/Avatar';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, dmKey, scKey } from '@/store/useAppStore';
 import { formatChatTimestamp } from '@/lib/date';
+import { cn } from '@/lib/utils';
 import type { AvatarConfig } from '@/lib/avatar';
 
 export function Chat() {
@@ -11,7 +12,14 @@ export function Chat() {
   const users = useAppStore((s) => s.users);
   const chats = useAppStore((s) => s.chats);
   const sessionChats = useAppStore((s) => s.sessionChats);
+  const chatReads = useAppStore((s) => s.chatReads);
   const me = useAppStore((s) => s.me);
+
+  const isThreadUnread = (key: string, last: { from: string; sent_at: string } | undefined) => {
+    if (!last || last.from === 'me' || last.from === 'system') return false;
+    const readAt = chatReads[key];
+    return !readAt || last.sent_at > readAt;
+  };
 
   const sessionChatList = Object.values(sessionChats)
     .filter((sc) => sc.messages.length > 0)
@@ -46,6 +54,7 @@ export function Chat() {
           <ul className="flex flex-col gap-1">
             {sessionChatList.map((sc) => {
               const last = sc.messages[sc.messages.length - 1];
+              const unread = isThreadUnread(scKey(sc.id), last);
               const participants = sc.participant_ids
                 .filter((id) => id !== 'me')
                 .map((id) => users.find((u) => u.id === id))
@@ -56,20 +65,25 @@ export function Chat() {
                     onClick={() => nav(`/chat/session/${sc.id}`)}
                     className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white transition-colors text-left"
                   >
-                    <div className="w-11 h-11 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
-                      <Community width={20} height={20} className="text-teal-600" />
+                    <div className="relative shrink-0">
+                      <div className="w-11 h-11 rounded-full bg-teal-100 flex items-center justify-center">
+                        <Community width={20} height={20} className="text-teal-600" />
+                      </div>
+                      {unread && (
+                        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-coral-500 ring-2 ring-paper-50" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="font-semibold text-ink-900 truncate">{sc.title}</p>
                         {last && (
-                          <span className="text-[11px] text-ink-500 shrink-0">
+                          <span className={cn('text-[11px] shrink-0', unread ? 'text-coral-500 font-semibold' : 'text-ink-500')}>
                             {formatChatTimestamp(last.sent_at)}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <p className="text-sm text-ink-500 truncate flex-1">
+                        <p className={cn('text-sm truncate flex-1', unread ? 'text-ink-900 font-medium' : 'text-ink-500')}>
                           {last
                             ? last.from === 'me'
                               ? `You: ${last.text}`
@@ -101,23 +115,29 @@ export function Chat() {
               if (!user) return null;
               const msgs = chats[id] ?? [];
               const last = msgs[msgs.length - 1];
+              const unread = isThreadUnread(dmKey(id), last);
               return (
                 <li key={id}>
                   <button
                     onClick={() => nav(`/chat/${id}`)}
                     className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white transition-colors text-left"
                   >
-                    <Avatar config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} />
+                    <div className="relative shrink-0">
+                      <Avatar config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} />
+                      {unread && (
+                        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-coral-500 ring-2 ring-paper-50" />
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="font-semibold text-ink-900 truncate">{user.display_name}</p>
                         {last && (
-                          <span className="text-[11px] text-ink-500 shrink-0">
+                          <span className={cn('text-[11px] shrink-0', unread ? 'text-coral-500 font-semibold' : 'text-ink-500')}>
                             {formatChatTimestamp(last.sent_at)}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-ink-500 truncate">
+                      <p className={cn('text-sm truncate', unread ? 'text-ink-900 font-medium' : 'text-ink-500')}>
                         {last ? (last.from === 'me' ? 'You: ' : '') + last.text : 'Say hi!'}
                       </p>
                     </div>

@@ -5,16 +5,18 @@ import { AvatarStack } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 
-const categoryColor: Record<Session['category'], { bg: string; text: string }> = {
-  top_rope: { bg: 'bg-ink-900', text: 'text-ink-900' },
-  lead: { bg: 'bg-coral-500', text: 'text-coral-500' },
-  boulder: { bg: 'bg-teal-600', text: 'text-teal-600' },
-  outdoor_sport: { bg: 'bg-gold-500', text: 'text-gold-500' },
-  trad: { bg: 'bg-ink-900', text: 'text-ink-900' },
-  multi_pitch: { bg: 'bg-ink-900', text: 'text-ink-900' },
-  outdoor_boulder: { bg: 'bg-gold-500', text: 'text-gold-500' },
-  hiking: { bg: 'bg-teal-600', text: 'text-teal-600' },
-  event: { bg: 'bg-teal-600', text: 'text-teal-600' },
+// Each category paints the whole card: a saturated icon tile on a matching
+// pastel surface, so the Find list reads as colorful blocks, not white rows.
+const categoryColor: Record<Session['category'], { bg: string; surface: string; text: string }> = {
+  top_rope: { bg: 'bg-brand-600', surface: 'bg-brand-100', text: 'text-brand-600' },
+  lead: { bg: 'bg-coral-500', surface: 'bg-coral-100', text: 'text-coral-500' },
+  boulder: { bg: 'bg-teal-600', surface: 'bg-teal-100', text: 'text-teal-600' },
+  outdoor_sport: { bg: 'bg-gold-500', surface: 'bg-gold-100', text: 'text-gold-500' },
+  trad: { bg: 'bg-ink-900', surface: 'bg-ink-100', text: 'text-ink-900' },
+  multi_pitch: { bg: 'bg-ink-900', surface: 'bg-ink-100', text: 'text-ink-900' },
+  outdoor_boulder: { bg: 'bg-gold-500', surface: 'bg-gold-100', text: 'text-gold-500' },
+  hiking: { bg: 'bg-teal-600', surface: 'bg-teal-100', text: 'text-teal-600' },
+  event: { bg: 'bg-pink-500', surface: 'bg-pink-100', text: 'text-pink-500' },
 };
 
 const categoryIcon: Record<Session['category'], React.ComponentType<{ width: number; height: number; color: string }>> = {
@@ -56,7 +58,10 @@ export function SessionCard({ session, users, gymName, onClick, matchScore, grou
   return (
     <button
       onClick={onClick}
-      className="w-full text-left rounded-2xl bg-white border border-ink-100 p-4 flex gap-3 items-start hover:border-ink-300 transition-colors"
+      className={cn(
+        'w-full text-left rounded-2xl p-4 flex gap-3 items-start border border-transparent hover:brightness-[0.98] active:scale-[0.99] transition',
+        color.surface,
+      )}
     >
       <div className={cn('w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center', color.bg)}>
         <Icon width={26} height={26} color="white" />

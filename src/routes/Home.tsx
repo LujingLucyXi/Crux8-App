@@ -11,6 +11,8 @@ import { EventDetailSheet } from '@/components/sheets/EventDetailSheet';
 import { AiMatchSheet } from '@/components/sheets/AiMatchSheet';
 import { CheckInSheet } from '@/components/sheets/CheckInSheet';
 import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
+import { LogSendSheet } from '@/components/sheets/LogSendSheet';
+import { levelFromXp } from '@/lib/rewards';
 import { computeChallenges, daysLeftInWeek } from '@/lib/challenges';
 import { computeBadgeProgress, nextUpBadges } from '@/lib/badges';
 import { rankMatches } from '@/lib/match';
@@ -51,12 +53,15 @@ export function Home() {
   const recaps = useAppStore((s) => s.recaps);
   const checkin = useAppStore((s) => s.checkin);
   const gymPresence = useAppStore((s) => s.gymPresence);
+  const xp = useAppStore((s) => s.xp);
+  const level = levelFromXp(xp);
 
   const [detailSession, setDetailSession] = useState<Session | null>(null);
   const [detailCall, setDetailCall] = useState<ClimbCall | null>(null);
   const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
+  const [logSendOpen, setLogSendOpen] = useState(false);
   const [recapSession, setRecapSession] = useState<Session | null>(null);
 
   const gymName = (id?: string) => gyms.find((g) => g.id === id)?.short_name ?? '';
@@ -157,14 +162,27 @@ export function Home() {
     <div className="pb-4">
       {/* ── Greeting ── */}
       <header className="pt-1">
-        <h1 className="text-2xl font-semibold text-ink-900">
-          {greeting()}, {me.display_name.split(' ')[0]}.
-        </h1>
-        <p className="text-sm text-ink-500 mt-0.5">
-          {agenda.length > 0
-            ? `${agenda.length} thing${agenda.length === 1 ? '' : 's'} on your calendar · ${earnedCount}/7 badges`
-            : `Nothing booked yet · ${earnedCount}/7 badges`}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold text-ink-900">
+              {greeting()}, {me.display_name.split(' ')[0]}.
+            </h1>
+            <p className="text-sm text-ink-500 mt-0.5">
+              {agenda.length > 0
+                ? `${agenda.length} thing${agenda.length === 1 ? '' : 's'} on your calendar · ${earnedCount}/7 badges`
+                : `Nothing booked yet · ${earnedCount}/7 badges`}
+            </p>
+          </div>
+          <span className="enamel shrink-0 inline-flex items-center gap-1.5 rounded-full bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] text-white text-xs font-bold px-3 py-1.5">
+            {level.emoji} Lv {level.level}
+          </span>
+        </div>
+        <button
+          onClick={() => setLogSendOpen(true)}
+          className="mt-3 w-full rounded-2xl bg-lime-400 text-ink-900 font-extrabold py-3 shadow-punch active:translate-y-[3px] active:shadow-none transition"
+        >
+          🔥 Log a send
+        </button>
       </header>
 
       {/* ── On the wall now (check-in) ── */}
@@ -174,12 +192,14 @@ export function Home() {
           <button
             onClick={() => setCheckInOpen(true)}
             className={cn(
-              'w-full mt-4 rounded-2xl border p-4 flex items-center gap-3 text-left transition-all',
-              checkin ? 'bg-teal-100 border-teal-600' : 'bg-white border-ink-100 hover:border-ink-300',
+              'w-full mt-4 rounded-3xl border p-4 flex items-center gap-3 text-left transition-all active:scale-[0.99]',
+              checkin
+                ? 'bg-teal-100 border-teal-600'
+                : 'border-transparent text-white shadow-brand bg-gradient-to-r from-teal-600 to-brand-600 hover:brightness-105',
             )}
           >
-            <div className={cn('w-10 h-10 rounded-full flex items-center justify-center shrink-0', checkin ? 'bg-teal-600' : 'bg-sky-200')}>
-              {checkin ? <Check width={20} height={20} color="white" /> : <Position width={20} height={20} className="text-teal-600" />}
+            <div className={cn('w-10 h-10 rounded-full flex items-center justify-center shrink-0', checkin ? 'bg-teal-600' : 'bg-white/20 ring-1 ring-white/40')}>
+              {checkin ? <Check width={20} height={20} color="white" /> : <Position width={20} height={20} color="white" />}
             </div>
             <div className="min-w-0 flex-1">
               {checkin && g ? (
@@ -189,12 +209,12 @@ export function Home() {
                 </>
               ) : (
                 <>
-                  <p className="text-sm font-semibold text-ink-900">Check in at your gym</p>
-                  <p className="text-xs text-ink-500">Let partners see you're on the wall</p>
+                  <p className="text-sm font-bold text-white">Check in at your gym</p>
+                  <p className="text-xs text-white/85">Let partners see you're on the wall</p>
                 </>
               )}
             </div>
-            <span className="text-xs font-semibold text-teal-600 shrink-0">{checkin ? 'Manage' : 'Check in'}</span>
+            <span className={cn('text-xs font-bold shrink-0', checkin ? 'text-teal-600' : 'text-white')}>{checkin ? 'Manage' : 'Check in →'}</span>
           </button>
         );
       })()}
@@ -416,6 +436,7 @@ export function Home() {
       <EventDetailSheet event={detailEvent} open={!!detailEvent} onOpenChange={(o) => !o && setDetailEvent(null)} />
       <AiMatchSheet open={aiOpen} onOpenChange={setAiOpen} />
       <CheckInSheet open={checkInOpen} onOpenChange={setCheckInOpen} />
+      <LogSendSheet open={logSendOpen} onOpenChange={setLogSendOpen} />
       <SessionRecapSheet
         session={recapSession}
         open={!!recapSession}

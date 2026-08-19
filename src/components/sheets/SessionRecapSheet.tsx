@@ -38,6 +38,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
   const logSessionRecap = useAppStore((s) => s.logSessionRecap);
   const togglePartnerProp = useAppStore((s) => s.togglePartnerProp);
   const setPartnerCheck = useAppStore((s) => s.setPartnerCheck);
+  const setBelayConfirm = useAppStore((s) => s.setBelayConfirm);
 
   const [flagFor, setFlagFor] = useState<string | null>(null);
   const [flagReason, setFlagReason] = useState<PartnerFlag['reason']>('unsafe_belay');
@@ -100,6 +101,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
               {partners.map((p) => {
                 const givenProps = recap?.props[p.id] ?? [];
                 const check = recap?.partner_checks[p.id];
+                const belay = recap?.belay_confirms?.[p.id];
                 return (
                   <div key={p.id} className="rounded-2xl border border-ink-100 p-3.5">
                     <div className="flex items-center gap-3">
@@ -135,6 +137,38 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
                           </button>
                         );
                       })}
+                    </div>
+
+                    {/* Peer belay-cert confirmation — turns self-reported into peer-confirmed */}
+                    <div className="mt-3 rounded-xl bg-paper-50 border border-ink-100 p-3">
+                      <p className="text-[11px] font-semibold text-ink-700 mb-2">
+                        Does {p.display_name.split(' ')[0]} have a belay cert / belay safely?
+                      </p>
+                      <div className="flex gap-1.5">
+                        {([
+                          { v: 'has_cert', label: '✓ Yes' },
+                          { v: 'unsure', label: 'Not sure' },
+                          { v: 'no_cert', label: 'No' },
+                        ] as const).map((o) => {
+                          const active = belay === o.v;
+                          return (
+                            <button
+                              key={o.v}
+                              onClick={() => setBelayConfirm(session.id, p.id, o.v)}
+                              className={cn(
+                                'flex-1 rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors',
+                                active
+                                  ? o.v === 'no_cert'
+                                    ? 'bg-coral-500 text-white border-coral-500'
+                                    : 'bg-teal-600 text-white border-teal-600'
+                                  : 'bg-white text-ink-600 border-ink-100 hover:border-ink-300',
+                              )}
+                            >
+                              {o.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     {/* Safety check — all-good default + private flag */}

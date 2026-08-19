@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { PunkAvatar } from './PunkAvatar';
+import { CartoonAvatar } from './CartoonAvatar';
 import { avatarFromSeed, type AvatarConfig } from '@/lib/avatar';
 
 interface AvatarProps {
@@ -37,7 +37,7 @@ export function Avatar({ photoUrl, config, seed, alt, size = 32, fallback, class
       />
     );
   }
-  return <PunkAvatar config={resolved} size={size} className={className} />;
+  return <CartoonAvatar config={resolved} size={size} className={className} />;
 }
 
 interface AvatarStackProps {

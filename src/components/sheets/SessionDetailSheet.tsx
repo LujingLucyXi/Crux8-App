@@ -60,7 +60,9 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
     .filter(Boolean) as Array<{ id: string; display_name: string; avatar?: AvatarConfig; photo_url?: string; isMe?: boolean }>;
 
   const requiredVerification = catToVerification(session.category);
-  const isVerified = requiredVerification ? verifications[requiredVerification].status === 'verified' : true;
+  const isVerified = requiredVerification
+    ? (['self_attested', 'verified'] as const).includes(verifications[requiredVerification].status as 'verified')
+    : true;
 
   // Gear checklist now gates the RSVP: show what to bring, THEN join on
   // confirm. We open the gear sheet ON TOP of the (still-mounted) detail

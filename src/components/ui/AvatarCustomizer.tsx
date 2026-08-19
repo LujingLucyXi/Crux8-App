@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { PunkAvatar } from './PunkAvatar';
+import { CartoonAvatar } from './CartoonAvatar';
 import { Button } from './Button';
 import { fileToAvatarDataUrl, dataUrlBytes } from '@/lib/image';
 import {
@@ -11,7 +11,7 @@ import {
   EYES_OPTS, EYES_LABEL,
   ACCESSORIES, ACCESSORY_LABEL,
   BACKDROPS, BACKDROP_HEX,
-  avatarFromSeed,
+  avatarFromSeed, DEFAULT_AVATAR,
 } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +27,9 @@ interface Props {
  * Punk-rock avatar builder. Live preview + 6 trait rows.
  * Used in Onboarding step 2 and the Profile edit sheet.
  */
-export function AvatarCustomizer({ value, onChange, photoUrl, onPhotoChange }: Props) {
+export function AvatarCustomizer({ value: rawValue, onChange, photoUrl, onPhotoChange }: Props) {
+  // Defensive: never render against an undefined config (old profiles lacked one).
+  const value = rawValue ?? DEFAULT_AVATAR;
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const supportsPhoto = typeof onPhotoChange === 'function';
@@ -67,7 +69,7 @@ export function AvatarCustomizer({ value, onChange, photoUrl, onPhotoChange }: P
             className="w-32 h-32 rounded-full object-cover ring-4 ring-white bg-ink-100"
           />
         ) : (
-          <PunkAvatar config={value} size={128} className="ring-4 ring-white" />
+          <CartoonAvatar config={value} size={128} className="ring-4 ring-white rounded-full" />
         )}
 
         {supportsPhoto && (

@@ -12,8 +12,10 @@ import type { Group } from './types';
  * Swap for curated climbing photography before shipping to production.
  */
 const cover = (seed: string) => `https://picsum.photos/seed/cruxmate-${seed}/800/400`;
+// Square group logo / profile picture (distinct from the banner).
+const logo = (seed: string) => `https://picsum.photos/seed/cruxmate-logo-${seed}/200/200`;
 
-export const SEED_GROUPS: Group[] = [
+const RAW_GROUPS: Group[] = [
   {
     id: 'grp_pnw_climbers',
     name: 'PNW Climbers',
@@ -37,6 +39,26 @@ export const SEED_GROUPS: Group[] = [
       'A welcoming space for LGBTQIA+ climbers in Seattle. Monthly meetups at rotating gyms plus weekly sessions posted by members.',
     admin_ids: ['me', 'usr_priya'],
     recent_activity: 'Queer Climb Night this Friday',
+    owner_id: 'me',
+    join_policy: 'request',
+    survey_questions: [
+      'What pronouns do you use?',
+      'What gym do you usually climb at?',
+      'What are you hoping to get out of the group?',
+    ],
+    member_ids: ['me', 'usr_priya', 'usr_ash', 'usr_lilly', 'usr_riley', 'usr_sam'],
+    pending: [
+      {
+        user_id: 'usr_jordan',
+        answers: ['they/them', 'Seattle Bouldering Project', 'Meet chill people to boulder with after work.'],
+        requested_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+      },
+      {
+        user_id: 'usr_kai',
+        answers: ['he/him', 'Vertical World', 'Looking for belay partners and monthly meetups.'],
+        requested_at: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
+      },
+    ],
   },
   {
     id: 'grp_women_plus_who_send',
@@ -159,5 +181,20 @@ export const SEED_GROUPS: Group[] = [
     recent_activity: '3 sessions today at Movement Bellevue',
   },
 ];
+
+/**
+ * Backfill management defaults so every group has a logo, an owner, a member
+ * roster, and a join policy without hand-writing them 12×. Groups that already
+ * declare a field (e.g. Seattle Queer Climbers) keep their richer data.
+ */
+export const SEED_GROUPS: Group[] = RAW_GROUPS.map((g) => ({
+  ...g,
+  avatar_url: g.avatar_url ?? logo(g.id.replace('grp_', '')),
+  owner_id: g.owner_id ?? g.admin_ids[0],
+  join_policy: g.join_policy ?? 'open',
+  member_ids:
+    g.member_ids ??
+    Array.from(new Set([...g.admin_ids, 'usr_riley', 'usr_sam', 'usr_ash'])).slice(0, 6),
+}));
 
 export const GROUP_BY_ID = Object.fromEntries(SEED_GROUPS.map((g) => [g.id, g] as const));

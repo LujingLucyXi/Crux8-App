@@ -21,7 +21,7 @@ const items = [
 
 export function BottomNav({ onFabClick }: BottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-ink-100">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-ink-100 pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto max-w-[560px] relative">
         <div className="grid grid-cols-5 h-16">
           {items.map((item, i) =>
@@ -31,8 +31,8 @@ export function BottomNav({ onFabClick }: BottomNavProps) {
                 to={item.to}
                 className={({ isActive }) =>
                   cn(
-                    'flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors',
-                    isActive ? 'text-ink-900' : 'text-ink-500',
+                    'flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors',
+                    isActive ? 'text-brand-600' : 'text-ink-500',
                   )
                 }
               >
@@ -47,7 +47,7 @@ export function BottomNav({ onFabClick }: BottomNavProps) {
         <button
           onClick={onFabClick}
           aria-label="Post a session, call, or event"
-          className="absolute left-1/2 -translate-x-1/2 -top-6 w-14 h-14 rounded-full bg-ink-900 text-white flex items-center justify-center border-4 border-white hover:bg-ink-700 active:scale-95 transition-all"
+          className="absolute left-1/2 -translate-x-1/2 -top-6 w-14 h-14 rounded-full bg-brand-gradient text-white flex items-center justify-center border-4 border-white shadow-brand hover:brightness-105 active:scale-95 transition-all"
         >
           <Plus width={26} height={26} strokeWidth={2.5} />
         </button>

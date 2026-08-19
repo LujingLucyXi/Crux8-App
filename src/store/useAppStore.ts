@@ -12,6 +12,7 @@ import type {
   SessionRecap,
   PartnerCheck,
   PartnerFlag,
+  BelayConfirm,
   ClimbCall,
   CheckIn,
   ReactionKey,
@@ -31,8 +32,19 @@ import {
 } from '@/seed';
 import { uid } from '@/lib/utils';
 import { DEFAULT_AVATAR, avatarFromSeed } from '@/lib/avatar';
+import {
+  XP,
+  levelFromXp,
+  totalSendXp,
+  type SendLog,
+  BRAND_COLORS,
+  SEND_COLORS,
+  LEVELUP_COLORS,
+  CHECKIN_COLORS,
+} from '@/lib/rewards';
+import { celebrate } from '@/store/useCelebration';
 
-export type Verification = { status: VerificationStatus; photo_url?: string; verified_at?: string };
+export type Verification = { status: VerificationStatus; photo_url?: string; verified_at?: string; attested_at?: string };
 
 /**
  * Flat Find filter model. IA:
@@ -60,7 +72,7 @@ export interface Filters {
 
 export interface SessionChat {
   id: string;                                     // === source session/event/call id
-  source: 'session' | 'event' | 'call';
+  source: 'session' | 'event' | 'call' | 'group';
   title: string;                                  // for chat list rendering
   subtitle?: string;                              // gym or venue
   participant_ids: string[];
@@ -92,6 +104,7 @@ interface Store {
   cruxmates: string[];
   chats: Record<string, ChatMessage[]>;                 // 1:1 DMs, keyed by userId
   sessionChats: Record<string, SessionChat>;            // group chats, keyed by session/event/call id
+  chatReads: Record<string, string>;                    // thread key -> ISO of last time I read it
   verifications: Record<VerificationCategory, Verification>;
   gearChecklists: Record<string, Record<string, boolean>>;
   badges: BadgeId[];
@@ -99,6 +112,11 @@ interface Store {
   pairRequests: string[];               // callIds we've requested to pair on
   checkin: CheckIn | null;              // my current gym check-in
   gymPresence: Record<string, number>; // gymId -> people here now
+
+  // rewards / progression
+  xp: number;
+  sends: SendLog[];
+  lastCheckinDay: string | null;        // yyyy-mm-dd of last XP-earning check-in
 
   // UI state
   filters: Filters;
@@ -126,37 +144,83 @@ interface Store {
   checkIn: (gymId: string) => void;
   checkOut: () => void;
 
+  addXp: (amount: number) => void;
+  logSend: (input: { grade: string; discipline: SendLog['discipline']; style: SendLog['style']; note?: string }) => void;
+
   joinGroup: (groupId: string) => void;
   leaveGroup: (groupId: string) => void;
+  requestToJoinGroup: (groupId: string, answers: string[]) => void;
+  approveJoinRequest: (groupId: string, userId: string) => void;
+  declineJoinRequest: (groupId: string, userId: string) => void;
+  addGroupAdmin: (groupId: string, userId: string) => void;
+  removeGroupAdmin: (groupId: string, userId: string) => void;
+  removeGroupMember: (groupId: string, userId: string) => void;
+  updateGroup: (groupId: string, patch: Partial<Group>) => void;
+  openGroupChat: (groupId: string) => void;
 
   addCruxMate: (userId: string) => void;
   removeCruxMate: (userId: string) => void;
 
   sendMessage: (userId: string, text: string) => void;
   sendSessionMessage: (sessionChatId: string, text: string) => void;
+  markThreadRead: (key: string) => void;
   toggleReactionDm: (userId: string, msgId: string, key: ReactionKey) => void;
   toggleReactionSession: (sessionChatId: string, msgId: string, key: ReactionKey) => void;
   ensureSessionChat: (
     id: string,
-    source: 'session' | 'event' | 'call',
+    source: 'session' | 'event' | 'call' | 'group',
     title: string,
     subtitle: string | undefined,
     participantIds: string[],
   ) => void;
 
-  submitVerification: (category: VerificationCategory, photo_url?: string) => void;
+  submitVerification: (category: VerificationCategory) => void;
 
   updateGearChecklist: (sessionId: string, item: string, checked: boolean) => void;
 
   logSessionRecap: (sessionId: string) => void;
   togglePartnerProp: (sessionId: string, partnerId: string, key: ReactionKey) => void;
   setPartnerCheck: (sessionId: string, partnerId: string, check: PartnerCheck, flag?: PartnerFlag) => void;
+  setBelayConfirm: (sessionId: string, partnerId: string, value: BelayConfirm) => void;
 
   setFilter: (patch: Partial<Filters>) => void;
   setL1: (l1: Filters['l1']) => void;
   clearFilters: () => void;
 
   checkBadges: () => void;
+}
+
+// Thread-key helpers: namespace DM and session-chat reads in one map.
+export const dmKey = (userId: string) => `dm:${userId}`;
+export const scKey = (sessionChatId: string) => `sc:${sessionChatId}`;
+
+/**
+ * A thread is "unread" when its most recent message came from someone other
+ * than me AND was sent after the last time I opened that thread. My own
+ * messages never count, and threads I've opened since the last message clear.
+ */
+export function countUnreadThreads(s: {
+  cruxmates: string[];
+  chats: Record<string, ChatMessage[]>;
+  sessionChats: Record<string, SessionChat>;
+  chatReads: Record<string, string>;
+}): number {
+  const isUnread = (key: string, last: ChatMessage | undefined): boolean => {
+    if (!last || last.from === 'me' || last.from === 'system') return false;
+    const readAt = s.chatReads[key];
+    return !readAt || last.sent_at > readAt;
+  };
+
+  let count = 0;
+  for (const userId of s.cruxmates) {
+    const msgs = s.chats[userId] ?? [];
+    if (isUnread(dmKey(userId), msgs[msgs.length - 1])) count++;
+  }
+  for (const sc of Object.values(s.sessionChats)) {
+    if (sc.messages.length === 0) continue;
+    if (isUnread(scKey(sc.id), sc.messages[sc.messages.length - 1])) count++;
+  }
+  return count;
 }
 
 const initialVerifications: Record<VerificationCategory, Verification> = {
@@ -190,6 +254,7 @@ export const useAppStore = create<Store>()(
       cruxmates: [],
       chats: {},
       sessionChats: {},
+      chatReads: {},
       verifications: initialVerifications,
       gearChecklists: {},
       badges: [],
@@ -197,6 +262,9 @@ export const useAppStore = create<Store>()(
       pairRequests: [],
       checkin: null,
       gymPresence: {},
+      xp: 0,
+      sends: [],
+      lastCheckinDay: null,
       filters: initialFilters,
       seededAt: null,
 
@@ -281,6 +349,9 @@ export const useAppStore = create<Store>()(
           recaps: {},
           checkin: null,
           gymPresence: {},
+          xp: 0,
+          sends: [],
+          lastCheckinDay: null,
           filters: initialFilters,
           seededAt: null,
         });
@@ -289,6 +360,7 @@ export const useAppStore = create<Store>()(
       rsvp: (sessionId) => {
         const me = get().me;
         if (!me) return;
+        const already = get().sessions.find((s) => s.id === sessionId)?.participant_ids.includes(me.id);
         set({
           sessions: get().sessions.map((s) =>
             s.id === sessionId && !s.participant_ids.includes(me.id)
@@ -296,6 +368,7 @@ export const useAppStore = create<Store>()(
               : s
           ),
         });
+        if (!already) get().addXp(XP.rsvp);
         // Auto-create session chat for logistics
         const s = get().sessions.find((x) => x.id === sessionId);
         if (s) {
@@ -408,6 +481,19 @@ export const useAppStore = create<Store>()(
           presence[gymId] = (presence[gymId] ?? 0) + 1;
         }
         set({ checkin: { gym_id: gymId, at: new Date().toISOString() }, gymPresence: presence });
+
+        // Reward the first check-in of each day; always celebrate the moment.
+        const today = new Date().toISOString().slice(0, 10);
+        celebrate({
+          emoji: '📍',
+          title: "You're on the wall",
+          subtitle: `${presence[gymId] ?? 1} climbers here now can see you`,
+          colors: CHECKIN_COLORS,
+        });
+        if (get().lastCheckinDay !== today) {
+          set({ lastCheckinDay: today });
+          get().addXp(XP.checkIn);
+        }
       },
 
       checkOut: () => {
@@ -416,6 +502,36 @@ export const useAppStore = create<Store>()(
         const presence = { ...get().gymPresence };
         presence[cur.gym_id] = Math.max(0, (presence[cur.gym_id] ?? 1) - 1);
         set({ checkin: null, gymPresence: presence });
+      },
+
+      addXp: (amount) => {
+        if (!amount) return;
+        const before = levelFromXp(get().xp);
+        const xp = get().xp + amount;
+        set({ xp });
+        const after = levelFromXp(xp);
+        if (after.level > before.level) {
+          celebrate({
+            emoji: after.emoji,
+            title: `Level ${after.level}!`,
+            subtitle: `You're now a ${after.title}`,
+            colors: LEVELUP_COLORS,
+          });
+        }
+      },
+
+      logSend: ({ grade, discipline, style, note }) => {
+        const send: SendLog = { id: uid('send'), grade, discipline, style, note, at: new Date().toISOString() };
+        set({ sends: [send, ...get().sends] });
+        const styleLabel = style === 'send' ? '' : `${style} · `;
+        celebrate({
+          emoji: '🔥',
+          title: 'SENT IT!',
+          subtitle: `${styleLabel}${grade} logged · +${totalSendXp(grade, style)} XP`,
+          colors: SEND_COLORS,
+        });
+        get().addXp(totalSendXp(grade, style));
+        get().checkBadges();
       },
 
       requestPair: (callId) => {
@@ -464,7 +580,13 @@ export const useAppStore = create<Store>()(
         set({
           myGroupMemberships: [...get().myGroupMemberships, groupId],
           groups: get().groups.map((g) =>
-            g.id === groupId ? { ...g, member_count: g.member_count + 1 } : g
+            g.id === groupId
+              ? {
+                  ...g,
+                  member_count: g.member_count + 1,
+                  member_ids: [...(g.member_ids ?? []), 'me'],
+                }
+              : g
           ),
         });
         get().checkBadges();
@@ -474,9 +596,116 @@ export const useAppStore = create<Store>()(
         set({
           myGroupMemberships: get().myGroupMemberships.filter((id) => id !== groupId),
           groups: get().groups.map((g) =>
-            g.id === groupId ? { ...g, member_count: Math.max(0, g.member_count - 1) } : g
+            g.id === groupId
+              ? {
+                  ...g,
+                  member_count: Math.max(0, g.member_count - 1),
+                  member_ids: (g.member_ids ?? []).filter((id) => id !== 'me'),
+                }
+              : g
           ),
         });
+      },
+
+      requestToJoinGroup: (groupId, answers) => {
+        const g = get().groups.find((x) => x.id === groupId);
+        if (!g) return;
+        // Open groups join instantly; request-only groups queue for admin review.
+        if ((g.join_policy ?? 'open') === 'open') {
+          get().joinGroup(groupId);
+          return;
+        }
+        if (g.pending?.some((r) => r.user_id === 'me')) return;
+        set({
+          groups: get().groups.map((x) =>
+            x.id === groupId
+              ? {
+                  ...x,
+                  pending: [
+                    ...(x.pending ?? []),
+                    { user_id: 'me', answers, requested_at: new Date().toISOString() },
+                  ],
+                }
+              : x
+          ),
+        });
+      },
+
+      approveJoinRequest: (groupId, userId) => {
+        set({
+          groups: get().groups.map((g) =>
+            g.id === groupId
+              ? {
+                  ...g,
+                  pending: (g.pending ?? []).filter((r) => r.user_id !== userId),
+                  member_ids: [...(g.member_ids ?? []), userId],
+                  member_count: g.member_count + 1,
+                }
+              : g
+          ),
+          myGroupMemberships:
+            userId === 'me' && !get().myGroupMemberships.includes(groupId)
+              ? [...get().myGroupMemberships, groupId]
+              : get().myGroupMemberships,
+        });
+      },
+
+      declineJoinRequest: (groupId, userId) => {
+        set({
+          groups: get().groups.map((g) =>
+            g.id === groupId
+              ? { ...g, pending: (g.pending ?? []).filter((r) => r.user_id !== userId) }
+              : g
+          ),
+        });
+      },
+
+      addGroupAdmin: (groupId, userId) => {
+        set({
+          groups: get().groups.map((g) =>
+            g.id === groupId && !g.admin_ids.includes(userId)
+              ? { ...g, admin_ids: [...g.admin_ids, userId] }
+              : g
+          ),
+        });
+      },
+
+      removeGroupAdmin: (groupId, userId) => {
+        set({
+          groups: get().groups.map((g) =>
+            g.id === groupId && g.owner_id !== userId
+              ? { ...g, admin_ids: g.admin_ids.filter((id) => id !== userId) }
+              : g
+          ),
+        });
+      },
+
+      removeGroupMember: (groupId, userId) => {
+        set({
+          groups: get().groups.map((g) =>
+            g.id === groupId
+              ? {
+                  ...g,
+                  member_ids: (g.member_ids ?? []).filter((id) => id !== userId),
+                  admin_ids: g.admin_ids.filter((id) => id !== userId),
+                  member_count: Math.max(0, g.member_count - 1),
+                }
+              : g
+          ),
+        });
+      },
+
+      updateGroup: (groupId, patch) => {
+        set({
+          groups: get().groups.map((g) => (g.id === groupId ? { ...g, ...patch } : g)),
+        });
+      },
+
+      openGroupChat: (groupId) => {
+        const g = get().groups.find((x) => x.id === groupId);
+        if (!g) return;
+        const members = Array.from(new Set([...(g.member_ids ?? []), ...g.admin_ids]));
+        get().ensureSessionChat(groupId, 'group', g.name, `${g.member_count.toLocaleString()} members`, members);
       },
 
       addCruxMate: (userId) => {
@@ -495,6 +724,7 @@ export const useAppStore = create<Store>()(
         const existing = get().chats[userId] ?? [];
         set({
           chats: { ...get().chats, [userId]: [...existing, msg] },
+          chatReads: { ...get().chatReads, [dmKey(userId)]: msg.sent_at },
         });
       },
 
@@ -508,7 +738,12 @@ export const useAppStore = create<Store>()(
             ...get().sessionChats,
             [sessionChatId]: { ...existing, messages: [...existing.messages, msg] },
           },
+          chatReads: { ...get().chatReads, [scKey(sessionChatId)]: now },
         });
+      },
+
+      markThreadRead: (key: string) => {
+        set({ chatReads: { ...get().chatReads, [key]: new Date().toISOString() } });
       },
 
       toggleReactionDm: (userId: string, msgId: string, key: ReactionKey) => {
@@ -556,7 +791,7 @@ export const useAppStore = create<Store>()(
 
       ensureSessionChat: (
         id: string,
-        source: 'session' | 'event' | 'call',
+        source: 'session' | 'event' | 'call' | 'group',
         title: string,
         subtitle: string | undefined,
         participantIds: string[],
@@ -599,26 +834,30 @@ export const useAppStore = create<Store>()(
         });
       },
 
-      submitVerification: (category, photo_url) => {
+      // Self-attestation: the climber declares the skill. Real trust comes from
+      // partners confirming it after sessions (see setBelayConfirm), not a photo.
+      submitVerification: (category) => {
         set({
           verifications: {
             ...get().verifications,
-            [category]: { status: 'pending', photo_url },
+            [category]: { status: 'self_attested', attested_at: new Date().toISOString() },
           },
         });
-        // Auto-approve after 5s (v0.5). TODO(trust): replace with admin flow in v1.
-        setTimeout(() => {
-          const cur = get().verifications[category];
-          if (cur.status === 'pending') {
-            set({
-              verifications: {
-                ...get().verifications,
-                [category]: { status: 'verified', photo_url, verified_at: new Date().toISOString() },
-              },
-            });
-            get().checkBadges();
-          }
-        }, 5000);
+        get().checkBadges();
+      },
+
+      setBelayConfirm: (sessionId, partnerId, value) => {
+        const cur = get().recaps[sessionId];
+        const base: SessionRecap = cur ?? {
+          session_id: sessionId, logged_at: new Date().toISOString(),
+          props: {}, partner_checks: {}, partner_flags: {}, belay_confirms: {},
+        };
+        set({
+          recaps: {
+            ...get().recaps,
+            [sessionId]: { ...base, belay_confirms: { ...base.belay_confirms, [partnerId]: value } },
+          },
+        });
       },
 
       updateGearChecklist: (sessionId, item, checked) => {
@@ -640,8 +879,16 @@ export const useAppStore = create<Store>()(
           props: {},
           partner_checks: {},
           partner_flags: {},
+          belay_confirms: {},
         };
         set({ recaps: { ...get().recaps, [sessionId]: recap } });
+        celebrate({
+          emoji: '📓',
+          title: 'Session logged!',
+          subtitle: `Recap saved · +${XP.recap} XP`,
+          colors: BRAND_COLORS,
+        });
+        get().addXp(XP.recap);
         get().checkBadges();
       },
 
@@ -649,7 +896,7 @@ export const useAppStore = create<Store>()(
         const cur = get().recaps[sessionId];
         const base: SessionRecap = cur ?? {
           session_id: sessionId, logged_at: new Date().toISOString(),
-          props: {}, partner_checks: {}, partner_flags: {},
+          props: {}, partner_checks: {}, partner_flags: {}, belay_confirms: {},
         };
         const given = base.props[partnerId] ?? [];
         const next = given.includes(key)
@@ -668,7 +915,7 @@ export const useAppStore = create<Store>()(
         const cur = get().recaps[sessionId];
         const base: SessionRecap = cur ?? {
           session_id: sessionId, logged_at: new Date().toISOString(),
-          props: {}, partner_checks: {}, partner_flags: {},
+          props: {}, partner_checks: {}, partner_flags: {}, belay_confirms: {},
         };
         const flags = { ...base.partner_flags };
         if (check === 'flagged' && flag) flags[partnerId] = flag;
@@ -773,7 +1020,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 4,
+      version: 9,
       /**
        * v1 → v2: ClimbCall.role → looking_for.
        * v2 → v4: Seattle gym roster refreshed (Bouldering Project rebrand,
@@ -781,10 +1028,60 @@ export const useAppStore = create<Store>()(
        *   Refresh persisted `gyms` + backfill presence, and repoint any
        *   persisted belay call that's sitting at a bouldering-only gym onto a
        *   rope gym (Bouldering Project has no ropes). All gym_ids preserved.
+       * v4 → v5: Real per-thread read tracking. Seed `chatReads` as "already
+       *   read up to now" so pre-existing seeded chats don't all light up the
+       *   badge on upgrade — only genuinely new incoming messages will.
        */
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 9 && s.seededAt) {
+          // Group management: refresh seeded groups so new fields (avatar,
+          // banner, member roster, join policy, survey, pending requests) appear.
+          // Preserve the user's own memberships by re-adding 'me' to member_ids
+          // for any group they'd already joined.
+          const joined = new Set(Array.isArray(s.myGroupMemberships) ? (s.myGroupMemberships as string[]) : []);
+          s.groups = SEED_GROUPS.map((g) =>
+            joined.has(g.id) && !(g.member_ids ?? []).includes('me')
+              ? { ...g, member_ids: [...(g.member_ids ?? []), 'me'], member_count: g.member_count + 1 }
+              : g
+          );
+        }
+        if (version < 8) {
+          // Belay verification moved from cert-upload → self-attest + peer check.
+          // Backfill recap.belay_confirms and clear any stale "pending" reviews.
+          const recaps = (s.recaps as Record<string, Record<string, unknown>>) ?? {};
+          for (const r of Object.values(recaps)) {
+            if (!r.belay_confirms) r.belay_confirms = {};
+          }
+          const vers = (s.verifications as Record<string, { status?: string }>) ?? {};
+          for (const v of Object.values(vers)) {
+            if (v.status === 'pending') v.status = 'self_attested';
+          }
+        }
+        if (version < 7) {
+          // Backfill me.avatar for profiles that predate the avatar config
+          // (old schema only had `avatar_url`), so the customizer never sees undefined.
+          const me = s.me as Record<string, unknown> | null;
+          if (me && !me.avatar) {
+            me.avatar = avatarFromSeed(typeof me.display_name === 'string' ? me.display_name : 'anon');
+          }
+        }
+        if (version < 6) {
+          if (typeof s.xp !== 'number') s.xp = 0;
+          if (!Array.isArray(s.sends)) s.sends = [];
+          if (s.lastCheckinDay === undefined) s.lastCheckinDay = null;
+        }
+        if (version < 5) {
+          const now = new Date().toISOString();
+          const reads = (s.chatReads as Record<string, string>) ?? {};
+          for (const userId of Array.isArray(s.cruxmates) ? s.cruxmates : []) {
+            reads[dmKey(userId as string)] = now;
+          }
+          const scs = (s.sessionChats as Record<string, { id: string }>) ?? {};
+          for (const id of Object.keys(scs)) reads[scKey(id)] = now;
+          s.chatReads = reads;
+        }
         if (version < 4 && s.seededAt) {
           s.gyms = SEED_GYMS;
           const presence = (s.gymPresence as Record<string, number>) ?? {};

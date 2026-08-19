@@ -19,7 +19,7 @@ export function SheetContent({
       <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/40 animate-fade-in" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed bottom-0 left-0 right-0 z-50 max-h-[92vh] overflow-y-auto rounded-t-2xl bg-white border-t border-ink-100 p-5 animate-slide-up',
+          'fixed bottom-0 left-0 right-0 z-50 max-h-[92vh] overflow-y-auto rounded-t-2xl bg-white border-t border-ink-100 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] animate-slide-up',
           'mx-auto max-w-[560px]',
           className,
         )}

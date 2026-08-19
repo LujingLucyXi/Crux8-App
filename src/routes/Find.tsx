@@ -215,8 +215,8 @@ export function Find() {
             key={value}
             onClick={() => setL1(value)}
             className={cn(
-              'flex-1 rounded-full border py-2.5 text-xs font-semibold transition-colors',
-              l1 === value ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-500 border-ink-100',
+              'flex-1 rounded-full border py-2.5 text-xs font-bold transition-all',
+              l1 === value ? 'bg-brand-gradient text-white border-transparent shadow-brand' : 'bg-white text-ink-500 border-ink-100',
             )}
           >
             {label}
@@ -236,8 +236,8 @@ export function Find() {
                   key={e}
                   onClick={() => setFilter({ env: e, climb_styles: [] })}
                   className={cn(
-                    'flex-1 rounded-full border py-2 text-xs font-medium capitalize transition-colors',
-                    env === e ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-ink-500 border-ink-100',
+                    'flex-1 rounded-full border py-2 text-xs font-semibold capitalize transition-colors',
+                    env === e ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-ink-500 border-ink-100',
                   )}
                 >
                   {e}
@@ -246,9 +246,20 @@ export function Find() {
             </div>
           )}
 
-          {/* ── Styles: always-visible multi-select ── */}
+          {/* ── Styles: always-visible multi-select, "All" selected by default ── */}
           {styleSet.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
+              <button
+                onClick={() => setFilter({ [styleKey]: [] } as never)}
+                className={cn(
+                  'rounded-full border px-3 py-1.5 text-xs font-bold transition-colors',
+                  activeStyles.length === 0
+                    ? 'enamel bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] text-white border-transparent'
+                    : 'bg-white text-ink-700 border-ink-100 hover:border-ink-300',
+                )}
+              >
+                All
+              </button>
               {styleSet.map((s) => {
                 const on = activeStyles.includes(s.v);
                 return (
@@ -256,8 +267,8 @@ export function Find() {
                     key={s.v}
                     onClick={() => toggle(styleKey, s.v)}
                     className={cn(
-                      'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                      on ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100 hover:border-ink-300',
+                      'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                      on ? 'enamel bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] text-white border-transparent' : 'bg-white text-ink-700 border-ink-100 hover:border-ink-300',
                     )}
                   >
                     {s.l}
@@ -270,18 +281,18 @@ export function Find() {
           {/* ── Secondary refinements ── */}
           <FilterRow />
 
-          {/* ── AI banner (climb + hike) ── */}
-          {(l1 === 'climb' || l1 === 'hike') && (
+          {/* ── Smart Match Finder (Climb only) ── */}
+          {l1 === 'climb' && (
             <button
               onClick={() => setAiMatchOpen(true)}
-              className="w-full mb-4 rounded-2xl bg-sky-200 border border-ink-100 p-4 flex items-center gap-3 text-left hover:brightness-95 transition-all"
+              className="w-full mb-4 rounded-2xl bg-gradient-to-r from-brand-100 to-pink-100 border border-brand-100 p-4 flex items-center gap-3 text-left hover:brightness-[0.98] active:scale-[0.99] transition-all"
             >
-              <div className="w-10 h-10 shrink-0 rounded-full bg-white flex items-center justify-center">
-                <SparksIcon width={20} height={20} className="text-teal-600" />
+              <div className="w-10 h-10 shrink-0 rounded-full bg-brand-gradient flex items-center justify-center shadow-brand">
+                <SparksIcon width={20} height={20} className="text-white" />
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-ink-900 text-sm">AI Auto Match</p>
-                <p className="text-xs text-ink-600 mt-0.5">Get matched with the best partners for your {l1 === 'hike' ? 'hike' : 'climb'}.</p>
+                <p className="font-bold text-ink-900 text-sm">Smart Match Finder</p>
+                <p className="text-xs text-ink-600 mt-0.5">Find your best-fit belay partners by grade, style & gym.</p>
               </div>
             </button>
           )}

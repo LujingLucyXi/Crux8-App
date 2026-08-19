@@ -50,7 +50,10 @@ export function computeBadgeProgress(ctx: Ctx, earnedIds: BadgeId[]): BadgeProgr
   const { meId, sessions, cruxmates, myGroupMemberships, verifications, recapCount } = ctx;
   const mine = sessions.filter((s) => s.participant_ids.includes(meId));
   const verifiedCount = (['top_rope', 'lead', 'trad'] as VerificationCategory[])
-    .filter((c) => verifications[c]?.status === 'verified').length;
+    .filter((c) => {
+      const st = verifications[c]?.status;
+      return st === 'self_attested' || st === 'verified';
+    }).length;
 
   const current: Record<BadgeId, number> = {
     first_session: Math.min(mine.length, 1),

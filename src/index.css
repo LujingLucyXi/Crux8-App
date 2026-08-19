@@ -15,8 +15,8 @@
 
   body {
     font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
-    background: #f2f4f7;
-    color: #0f2d3a;
+    background: #f5f3ff;
+    color: #1b1533;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -24,6 +24,13 @@
 
   * {
     box-sizing: border-box;
+  }
+
+  /* Kill the grey tap-flash on mobile. */
+  button,
+  a,
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -34,5 +41,25 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+}
+
+@layer components {
+  /* Enamel-pin surface: gold rim + thin cloisonné line + drop shadow + a top
+     gloss sheen. Apply with a background fill (class or inline) for the enamel. */
+  .enamel {
+    position: relative;
+    box-shadow:
+      0 0 0 2px #c99a38,
+      inset 0 0 0 1px rgba(0, 0, 0, 0.12),
+      0 6px 14px -6px rgba(120, 80, 10, 0.5);
+  }
+  .enamel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 46%);
+    pointer-events: none;
   }
 }

@@ -23,7 +23,7 @@ export function AiMatchSheet({ open, onOpenChange }: Props) {
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent title="Best matches for you">
+        <SheetContent title="Smart Match Finder">
           <p className="text-sm text-ink-500 -mt-2 mb-4">
             Ranked by your top grade, preferred styles, home gym, timing, and vibe.
           </p>
