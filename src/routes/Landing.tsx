@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trekking, ShieldCheck, Community, Rhombus } from 'iconoir-react';
+import { TriangleFlag, ShieldCheck, Community, Rhombus } from 'iconoir-react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Input, Label } from '@/components/ui/Input';
@@ -8,7 +8,7 @@ import { Logo } from '@/components/layout/Logo';
 import { useAppStore } from '@/store/useAppStore';
 
 const PILLARS = [
-  { Icon: Trekking, name: 'Adventure', desc: 'New lines. New places. New stories.' },
+  { Icon: TriangleFlag, name: 'Adventure', desc: 'New lines. New places. New stories.' },
   { Icon: ShieldCheck, name: 'Trust', desc: 'Verified climbers. Real people. Climb with confidence.' },
   { Icon: Community, name: 'Together', desc: 'We climb better when we climb together.' },
   { Icon: Rhombus, name: 'Safety', desc: 'Look out for each other. Climb smart.' },
@@ -33,10 +33,10 @@ export function Landing() {
         <Logo size={80} />
         <h1 className="mt-8 text-4xl font-bold text-ink-900 tracking-tight">CRUX8</h1>
         <p className="mt-3 text-xs font-semibold tracking-[0.24em] text-ink-500">
-          FIND YOUR PEOPLE. CLIMB STRONGER.
+          TIE IN. SEND TOGETHER.
         </p>
-        <p className="mt-4 text-base text-ink-600 max-w-sm">
-          Find your next climb. Together.
+        <p className="mt-4 text-lg font-medium text-ink-700 max-w-sm">
+          Find your people. Climb stronger.
         </p>
 
         <div className="mt-10 grid grid-cols-2 gap-3 w-full max-w-md">
