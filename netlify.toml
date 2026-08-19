@@ -1,0 +1,17 @@
+# Netlify continuous-deploy config for CRUX8.
+# Connect this repo in the Netlify dashboard and every push to `main`
+# auto-builds and deploys with these settings.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA fallback: client-side routes (/find, /profile, …) serve index.html
+# so deep links + refreshes don't 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
