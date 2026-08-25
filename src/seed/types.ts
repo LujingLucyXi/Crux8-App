@@ -16,6 +16,9 @@ import type { AvatarConfig } from '@/lib/avatar';
 
 export type Style = 'top_rope' | 'lead' | 'boulder' | 'outdoor_sport' | 'trad' | 'hiking' | 'events';
 
+/** Top-level activities a user is into (mirrors the Find L1 nav). */
+export type Activity = 'climb' | 'hike' | 'events';
+
 export type Vibe = 'chill' | 'projecting' | 'training' | 'social';
 
 export type HikeType = 'trail' | 'scramble' | 'snow' | 'backpack';
@@ -151,6 +154,8 @@ export interface NpcUser {
   top_grade: string;
   preferred_styles: Style[];
   verifications: Partial<Record<VerificationCategory, VerificationStatus>>;
+  signature?: string;        // short one-liner shown next to the name
+  tags?: string[];           // fun flair chips (label incl. emoji)
 }
 
 // The mocked signed-in user profile (client-side only in v0.5).
@@ -166,6 +171,11 @@ export interface Profile {
   top_grade: string;
   preferred_styles: Style[];
   about?: string;
+  // ── profile identity (set during onboarding) ──
+  signature?: string;        // short one-liner shown next to the name
+  tags?: string[];           // fun climbing/hiking flair chips (label incl. emoji)
+  location?: string;         // city / area, e.g. 'Seattle, WA'
+  activities?: Activity[];   // preferred top-level activities
   // Weight + height are hidden from other users. Used only to compute
   // the `weight-safe` chip on 1:1 climb calls.
   weight_kg?: number;

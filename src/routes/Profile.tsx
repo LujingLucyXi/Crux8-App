@@ -113,6 +113,17 @@ export function Profile() {
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-semibold text-ink-900">{me.display_name}</h1>
             {me.pronouns && <p className="text-sm text-ink-500">{me.pronouns}</p>}
+            {me.signature && <p className="mt-0.5 text-sm text-ink-700 italic">“{me.signature}”</p>}
+            {me.location && <p className="text-xs text-ink-500">📍 {me.location}</p>}
+            {me.tags && me.tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {me.tags.map((t) => (
+                  <span key={t} className="rounded-full bg-brand-100 text-brand-600 text-[10px] font-semibold px-2 py-0.5">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
             <div className="mt-2 flex flex-wrap gap-1.5">
               {gym && (
                 <span className="rounded-full border border-teal-600 text-teal-600 text-[11px] font-medium px-2.5 py-0.5">
