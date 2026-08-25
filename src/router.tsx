@@ -33,22 +33,30 @@ export const router = createBrowserRouter([
   { path: '/onboarding', element: <Onboarding />, errorElement: <RouteError /> },
   { path: '/lab', element: <Lab />, errorElement: <RouteError /> },
   {
+    // Outer boundary: catches crashes in RequireAuth / AppShell itself → full-screen.
     element: <RequireAuth />,
     errorElement: <RouteError />,
     children: [
       {
         element: <AppShell />,
         children: [
-          { path: '/home', element: <Home /> },
-          { path: '/find', element: <Find /> },
-          { path: '/sessions', element: <Sessions /> },
-          { path: '/community', element: <Community /> },
-          { path: '/community/:groupId', element: <GroupDetail /> },
-          { path: '/community/:groupId/manage', element: <GroupManage /> },
-          { path: '/chat', element: <Chat /> },
-          { path: '/chat/session/:sessionChatId', element: <SessionChatDetail /> },
-          { path: '/chat/:userId', element: <ChatDetail /> },
-          { path: '/profile', element: <Profile /> },
+          {
+            // Inner boundary: a page crash renders here, inside AppShell's <Outlet>,
+            // so the header + bottom nav stay put and only the content area recovers.
+            errorElement: <RouteError />,
+            children: [
+              { path: '/home', element: <Home /> },
+              { path: '/find', element: <Find /> },
+              { path: '/sessions', element: <Sessions /> },
+              { path: '/community', element: <Community /> },
+              { path: '/community/:groupId', element: <GroupDetail /> },
+              { path: '/community/:groupId/manage', element: <GroupManage /> },
+              { path: '/chat', element: <Chat /> },
+              { path: '/chat/session/:sessionChatId', element: <SessionChatDetail /> },
+              { path: '/chat/:userId', element: <ChatDetail /> },
+              { path: '/profile', element: <Profile /> },
+            ],
+          },
         ],
       },
     ],

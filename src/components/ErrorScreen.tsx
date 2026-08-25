@@ -27,7 +27,7 @@ function reset() {
 export function ErrorScreen({ error }: { error?: unknown }) {
   const message = error instanceof Error ? error.message : typeof error === 'string' ? error : undefined;
   return (
-    <div style={{ minHeight: '100dvh' }} className="bg-paper-50 flex flex-col items-center justify-center px-6 text-center">
+    <div className="min-h-[75vh] flex flex-col items-center justify-center px-6 py-10 text-center">
       <Logo size={64} />
       <h1 className="mt-6 text-xl font-semibold text-ink-900">Something went sideways.</h1>
       <p className="mt-2 text-sm text-ink-500 max-w-xs">
