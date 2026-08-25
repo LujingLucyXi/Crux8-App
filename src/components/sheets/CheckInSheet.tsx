@@ -78,7 +78,7 @@ export function CheckInSheet({ open, onOpenChange }: Props) {
               <p className="text-sm font-semibold text-ink-900">
                 {scanning ? 'Scanning…' : 'Scan the gym QR'}
               </p>
-              <p className="text-xs text-ink-500">Front desk & boulders have a CruxMate code</p>
+              <p className="text-xs text-ink-500">Front desk & boulders have a Crux8 code</p>
             </button>
 
             {/* Geofence nudge */}
@@ -92,7 +92,7 @@ export function CheckInSheet({ open, onOpenChange }: Props) {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-ink-900">Looks like you're at {nearGym.short_name}</p>
-                  <p className="text-xs text-ink-600">Tap to check in · {gymPresence[nearGym.id] ?? nearGym.here_now} here now</p>
+                  <p className="text-xs text-ink-600">Tap to check in · {gymPresence[nearGym.id] ?? nearGym.here_now} climbers here now</p>
                 </div>
               </button>
             )}
