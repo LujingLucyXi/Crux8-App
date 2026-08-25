@@ -1,5 +1,6 @@
 import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
+import { RouteError } from '@/components/ErrorScreen';
 import { AppShell } from '@/components/layout/AppShell';
 import { Landing } from '@/routes/Landing';
 import { Onboarding } from '@/routes/Onboarding';
@@ -28,11 +29,12 @@ function LandingOrHome() {
 }
 
 export const router = createBrowserRouter([
-  { path: '/', element: <LandingOrHome /> },
-  { path: '/onboarding', element: <Onboarding /> },
-  { path: '/lab', element: <Lab /> },
+  { path: '/', element: <LandingOrHome />, errorElement: <RouteError /> },
+  { path: '/onboarding', element: <Onboarding />, errorElement: <RouteError /> },
+  { path: '/lab', element: <Lab />, errorElement: <RouteError /> },
   {
     element: <RequireAuth />,
+    errorElement: <RouteError />,
     children: [
       {
         element: <AppShell />,
