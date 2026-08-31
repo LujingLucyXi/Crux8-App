@@ -176,6 +176,8 @@ export interface Profile {
   tags?: string[];           // fun climbing/hiking flair chips (label incl. emoji)
   location?: string;         // city / area, e.g. 'Seattle, WA'
   activities?: Activity[];   // preferred top-level activities
+  onboarded?: boolean;       // false right after signup; true once onboarding completes.
+                             // undefined = pre-existing user (treated as onboarded).
   // Weight + height are hidden from other users. Used only to compute
   // the `weight-safe` chip on 1:1 climb calls.
   weight_kg?: number;

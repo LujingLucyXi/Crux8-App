@@ -313,6 +313,7 @@ export const useAppStore = create<Store>()(
           top_grade: '5.10c',
           preferred_styles: ['top_rope', 'lead', 'outdoor_sport'],
           about: '',
+          onboarded: false, // routes the new user into the onboarding flow
         };
         set({ me });
       },
@@ -320,7 +321,7 @@ export const useAppStore = create<Store>()(
       completeOnboarding: (patch) => {
         const cur = get().me;
         if (!cur) return;
-        set({ me: { ...cur, ...patch } });
+        set({ me: { ...cur, ...patch, onboarded: true } });
       },
 
       updateProfile: (patch) => {

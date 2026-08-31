@@ -24,7 +24,9 @@ function RequireAuth() {
 
 function LandingOrHome() {
   const me = useAppStore((s) => s.me);
-  if (me) return <Navigate to="/home" replace />;
+  // A brand-new signup has onboarded === false → send them through onboarding.
+  // Returning users (onboarded true or undefined) go straight to Home.
+  if (me) return <Navigate to={me.onboarded === false ? '/onboarding' : '/home'} replace />;
   return <Landing />;
 }
 
