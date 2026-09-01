@@ -78,7 +78,11 @@ export function Onboarding() {
   const [tags, setTags] = useState<string[]>(me?.tags ?? []);
   const [activities, setActivities] = useState<Activity[]>(me?.activities ?? ['climb']);
   const [homeGymId, setHomeGymId] = useState<string>(me?.home_gym_id ?? gyms[0]?.id ?? '');
-  const [topGrade, setTopGrade] = useState<string>(me?.top_grade ?? '5.10a-5.10c');
+  // Fall back to a real band when the stored grade isn't one of the band values
+  // (e.g. signUp seeds '5.10c', which matches no band → nothing would highlight).
+  const [topGrade, setTopGrade] = useState<string>(
+    GRADE_BANDS.some((g) => g.value === me?.top_grade) ? (me!.top_grade as string) : '5.10a-5.10c',
+  );
   const [preferredStyles, setPreferredStyles] = useState<Style[]>(me?.preferred_styles ?? ['top_rope', 'lead']);
   const [certOpen, setCertOpen] = useState(false);
   const [weightLbs, setWeightLbs] = useState<string>(me?.weight_kg ? String(kgToLbs(me.weight_kg)) : '');

@@ -1,19 +1,35 @@
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { CartoonAvatar } from './CartoonAvatar';
+import { CartoonAvatar, hairBucket, type HairBucket } from './CartoonAvatar';
 import { Button } from './Button';
 import { fileToAvatarDataUrl, dataUrlBytes } from '@/lib/image';
 import {
-  type AvatarConfig,
+  type AvatarConfig, type HairStyle, type Accessory,
   SKIN_TONES, SKIN_HEX,
-  HAIR_STYLES, HAIR_STYLE_LABEL,
   HAIR_COLORS, HAIR_HEX, HAIR_COLOR_LABEL,
   EYES_OPTS, EYES_LABEL,
-  ACCESSORIES, ACCESSORY_LABEL,
   BACKDROPS, BACKDROP_HEX,
   avatarFromSeed, DEFAULT_AVATAR,
 } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
+
+// The cartoon renderer draws only these 6 hair silhouettes and 4 accessories —
+// so we present exactly those, one representative value per bucket. This keeps
+// every control visibly changing the avatar (no inert options).
+const HAIR_OPTIONS: { value: HairStyle; label: string; bucket: HairBucket }[] = [
+  { value: 'mohawk', label: 'Spikes', bucket: 'spikes' },
+  { value: 'buzz', label: 'Buzz', bucket: 'buzz' },
+  { value: 'bob', label: 'Bob', bucket: 'bob' },
+  { value: 'topknot', label: 'Bun', bucket: 'bun' },
+  { value: 'long', label: 'Long', bucket: 'long' },
+  { value: 'bald', label: 'Bald', bucket: 'bald' },
+];
+const ACCESSORY_OPTIONS: { value: Accessory; label: string }[] = [
+  { value: 'none', label: 'None' },
+  { value: 'nosering', label: 'Nose ring' },
+  { value: 'bandana', label: 'Bandana' },
+  { value: 'beanie', label: 'Beanie' },
+];
 
 interface Props {
   value: AvatarConfig;
@@ -122,11 +138,11 @@ export function AvatarCustomizer({ value: rawValue, onChange, photoUrl, onPhotoC
           ))}
         </Row>
 
-        {/* Hair style */}
+        {/* Hair style — grouped by the 6 silhouettes the cartoon actually draws */}
         <Row label="Hair">
-          {HAIR_STYLES.map((h) => (
-            <Pill key={h} active={value.hair === h} onClick={() => set('hair', h)}>
-              {HAIR_STYLE_LABEL[h]}
+          {HAIR_OPTIONS.map((h) => (
+            <Pill key={h.value} active={hairBucket(value.hair) === h.bucket} onClick={() => set('hair', h.value)}>
+              {h.label}
             </Pill>
           ))}
         </Row>
@@ -153,11 +169,11 @@ export function AvatarCustomizer({ value: rawValue, onChange, photoUrl, onPhotoC
           ))}
         </Row>
 
-        {/* Accessory */}
+        {/* Accessory — only the ones the cartoon renders */}
         <Row label="Accessory">
-          {ACCESSORIES.map((a) => (
-            <Pill key={a} active={value.accessory === a} onClick={() => set('accessory', a)}>
-              {ACCESSORY_LABEL[a]}
+          {ACCESSORY_OPTIONS.map((a) => (
+            <Pill key={a.value} active={value.accessory === a.value} onClick={() => set('accessory', a.value)}>
+              {a.label}
             </Pill>
           ))}
         </Row>

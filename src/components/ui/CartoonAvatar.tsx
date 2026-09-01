@@ -9,7 +9,8 @@ import { cn } from '@/lib/utils';
 const OUTLINE = '#2A2140';
 const SW = 3.5;
 
-function hairBucket(hair: string): 'spikes' | 'bob' | 'bun' | 'buzz' | 'long' | 'bald' {
+export type HairBucket = 'spikes' | 'bob' | 'bun' | 'buzz' | 'long' | 'bald';
+export function hairBucket(hair: string): HairBucket {
   if (['bald', 'buzz'].includes(hair)) return hair as 'bald' | 'buzz';
   if (['mohawk', 'liberty', 'spikes', 'shaved', 'undercut'].includes(hair)) return 'spikes';
   if (['topknot', 'bun', 'spacebuns', 'ponytail'].includes(hair)) return 'bun';
