@@ -514,7 +514,7 @@ export const useAppStore = create<Store>()(
         if (after.level > before.level) {
           celebrate({
             emoji: after.emoji,
-            title: `Level ${after.level}!`,
+            title: `Tier ${after.level}!`,
             subtitle: `You're now a ${after.title}`,
             colors: LEVELUP_COLORS,
           });

@@ -180,7 +180,7 @@ export function Profile() {
               {level.emoji}
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-white/80">Level {level.level}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-white/80">Tier {level.level}</p>
               <p className="text-lg font-extrabold leading-tight truncate">{level.title}</p>
             </div>
           </div>
@@ -195,7 +195,7 @@ export function Profile() {
             <div className="h-full rounded-full bg-lime-400 transition-all" style={{ width: `${level.pct}%` }} />
           </div>
           <p className="mt-1.5 text-[11px] font-medium text-white/85">
-            {level.nextAt ? `${level.nextAt - xp} XP to level ${level.level + 1}` : 'Max level — legend status 👑'}
+            {level.nextAt ? `${level.nextAt - xp} XP to Tier ${level.level + 1}` : 'Max tier — legend status 👑'}
           </p>
         </div>
 

@@ -174,7 +174,7 @@ export function Home() {
             </p>
           </div>
           <span className="enamel shrink-0 inline-flex items-center gap-1.5 rounded-full bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] text-white text-xs font-bold px-3 py-1.5">
-            {level.emoji} Lv {level.level}
+            {level.emoji} Tier {level.level}
           </span>
         </div>
         <button
