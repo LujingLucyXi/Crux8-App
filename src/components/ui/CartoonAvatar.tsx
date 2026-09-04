@@ -106,8 +106,9 @@ export function CartoonAvatar({
           </g>
         );
       case 'long':
+        // Drapes past the jaw (y≈74) so it actually reads as long hair.
         return (
-          <path d="M24 66 Q22 30 50 26 Q78 30 76 66 Q70 58 66 60 L66 44 Q58 36 50 36 Q42 36 34 44 L34 60 Q30 58 24 66 Z"
+          <path d="M22 84 Q18 30 50 25 Q82 30 78 84 Q74 72 66 74 L66 44 Q58 36 50 36 Q42 36 34 44 L34 74 Q26 72 22 84 Z"
             fill={hairCol} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />
         );
       default:
@@ -126,6 +127,14 @@ export function CartoonAvatar({
         return <path d="M30 42 Q50 34 70 42 L70 48 Q50 42 30 48 Z" fill="#FF6B6B" stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />;
       case 'beanie':
         return <path d="M28 42 Q30 24 50 24 Q70 24 72 42 Z" fill="#7C3AED" stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />;
+      case 'shades':
+        // Drawn after the eyes, so it sits over them like real sunglasses.
+        return (
+          <g>
+            <rect x="33" y="47" width="34" height="9" rx="4.5" fill={OUTLINE} />
+            <rect x="35.5" y="49" width="10" height="3.5" rx="2" fill="#FFFFFF" opacity="0.35" />
+          </g>
+        );
       default:
         return null;
     }

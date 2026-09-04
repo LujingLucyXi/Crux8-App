@@ -29,6 +29,7 @@ const ACCESSORY_OPTIONS: { value: Accessory; label: string }[] = [
   { value: 'nosering', label: 'Nose ring' },
   { value: 'bandana', label: 'Bandana' },
   { value: 'beanie', label: 'Beanie' },
+  { value: 'shades', label: 'Shades' },
 ];
 
 interface Props {

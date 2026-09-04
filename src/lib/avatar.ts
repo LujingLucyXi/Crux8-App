@@ -40,7 +40,7 @@ export type HairColor =
   | 'cyan'
   | 'bubblegum';   // pink
 export type Eyes = 'sharp' | 'tired' | 'wink' | 'shades' | 'stoked' | 'deadpan';
-export type Accessory = 'none' | 'nosering' | 'gauges' | 'hoops' | 'bandana' | 'beanie' | 'chalkdust';
+export type Accessory = 'none' | 'nosering' | 'gauges' | 'hoops' | 'bandana' | 'beanie' | 'chalkdust' | 'shades';
 export type Backdrop = 'ink' | 'teal' | 'gold' | 'coral' | 'sky' | 'slate';
 
 export interface AvatarConfig {
@@ -90,8 +90,9 @@ export const HAIR_STYLES: HairStyle[] = [
 export const HAIR_COLORS: HairColor[] = [
   'jet', 'bleach', 'toxic', 'ultraviolet', 'hazard', 'cherry', 'cyan', 'bubblegum',
 ];
-export const EYES_OPTS: Eyes[] = ['sharp', 'tired', 'wink', 'shades', 'stoked', 'deadpan'];
-export const ACCESSORIES: Accessory[] = ['none', 'nosering', 'gauges', 'hoops', 'bandana', 'beanie', 'chalkdust'];
+// 'shades' is intentionally NOT here — it moved to accessories (below).
+export const EYES_OPTS: Eyes[] = ['sharp', 'tired', 'wink', 'stoked', 'deadpan'];
+export const ACCESSORIES: Accessory[] = ['none', 'nosering', 'gauges', 'hoops', 'bandana', 'beanie', 'chalkdust', 'shades'];
 export const BACKDROPS: Backdrop[] = ['ink', 'teal', 'gold', 'coral', 'sky', 'slate'];
 
 export const HAIR_STYLE_LABEL: Record<HairStyle, string> = {
@@ -132,6 +133,7 @@ export const ACCESSORY_LABEL: Record<Accessory, string> = {
   bandana: 'Bandana',
   beanie: 'Beanie',
   chalkdust: 'Chalk dust',
+  shades: 'Shades',
 };
 
 export const HAIR_COLOR_LABEL: Record<HairColor, string> = {
