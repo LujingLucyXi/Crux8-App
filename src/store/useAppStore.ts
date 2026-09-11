@@ -101,6 +101,8 @@ interface Store {
 
   // relations
   myGroupMemberships: string[];
+  ticketPurchases: string[];            // eventIds of ticketed passes I've bought
+  ticketRedemptions: Record<string, Record<string, string>>; // eventId -> gymId -> redeemed_at ISO
   cruxmates: string[];
   chats: Record<string, ChatMessage[]>;                 // 1:1 DMs, keyed by userId
   sessionChats: Record<string, SessionChat>;            // group chats, keyed by session/event/call id
@@ -134,6 +136,8 @@ interface Store {
   unrsvp: (sessionId: string) => void;
   rsvpEvent: (eventId: string, waitlist?: boolean) => void;
   unrsvpEvent: (eventId: string) => void;
+  buyTicket: (eventId: string) => void;
+  stampPass: (eventId: string, gymId: string) => void;
 
   postSession: (session: Omit<Session, 'id' | 'host_id' | 'participant_ids'>) => Session;
   postEvent: (event: Omit<EventItem, 'id' | 'attendee_ids' | 'waitlist_ids'>) => EventItem;
@@ -251,6 +255,8 @@ export const useAppStore = create<Store>()(
       users: [],
       climbCalls: [],
       myGroupMemberships: [],
+      ticketPurchases: [],
+      ticketRedemptions: {},
       cruxmates: [],
       chats: {},
       sessionChats: {},
@@ -342,6 +348,8 @@ export const useAppStore = create<Store>()(
           groups: [],
           users: [],
           myGroupMemberships: [],
+          ticketPurchases: [],
+          ticketRedemptions: {},
           cruxmates: [],
           chats: {},
           verifications: initialVerifications,
@@ -430,6 +438,34 @@ export const useAppStore = create<Store>()(
                 }
               : e
           ),
+        });
+      },
+
+      buyTicket: (eventId) => {
+        const me = get().me;
+        if (!me) return;
+        // Mock checkout: record the purchase and add the buyer to the event's
+        // attendee list so the pass shows up on their calendar.
+        set({
+          ticketPurchases: [...new Set([...get().ticketPurchases, eventId])],
+          events: get().events.map((e) =>
+            e.id === eventId
+              ? { ...e, attendee_ids: [...new Set([...e.attendee_ids, me.id])] }
+              : e
+          ),
+        });
+      },
+
+      stampPass: (eventId, gymId) => {
+        // User-initiated redemption at the gym front desk: stamps this gym on
+        // the passport once. Idempotent — re-stamping keeps the first date.
+        const forEvent = get().ticketRedemptions[eventId] ?? {};
+        if (forEvent[gymId]) return;
+        set({
+          ticketRedemptions: {
+            ...get().ticketRedemptions,
+            [eventId]: { ...forEvent, [gymId]: new Date().toISOString() },
+          },
         });
       },
 
@@ -1021,7 +1057,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 11,
+      version: 13,
       /**
        * v1 → v2: ClimbCall.role → looking_for.
        * v2 → v4: Seattle gym roster refreshed (Bouldering Project rebrand,
@@ -1036,6 +1072,27 @@ export const useAppStore = create<Store>()(
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 13 && s.seededAt) {
+          // Refresh ticketed passes from seed (e.g. price change) while
+          // preserving the user's attendee list.
+          const seedTickets = Object.fromEntries(
+            SEED_EVENTS.filter((e) => e.ticket).map((e) => [e.id, e]),
+          );
+          s.events = (Array.isArray(s.events) ? (s.events as EventItem[]) : []).map((e) =>
+            seedTickets[e.id] ? { ...seedTickets[e.id], attendee_ids: e.attendee_ids } : e,
+          );
+        }
+        if (version < 12) {
+          // Ticketed passes: ensure the new field exists, and append any
+          // newly-seeded events (e.g. the "Around the World" gym crawl).
+          if (!Array.isArray(s.ticketPurchases)) s.ticketPurchases = [];
+          if (s.seededAt) {
+            const existing = Array.isArray(s.events) ? (s.events as EventItem[]) : [];
+            const haveIds = new Set(existing.map((e) => e.id));
+            const missing = SEED_EVENTS.filter((e) => !haveIds.has(e.id));
+            s.events = [...existing, ...missing];
+          }
+        }
         if (version < 11 && s.seededAt) {
           // Multi-day hiking/mountaineering trips: append any newly-seeded
           // sessions (e.g. the expedition trips) the persisted store lacks.

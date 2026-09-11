@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, OpenInWindow } from 'iconoir-react';
@@ -5,6 +6,7 @@ import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { formatSessionWhen } from '@/lib/date';
+import { GymCrawlCheckoutSheet } from './GymCrawlCheckoutSheet';
 import type { EventItem } from '@/seed/types';
 
 interface Props {
@@ -19,8 +21,11 @@ export function EventDetailSheet({ event, open, onOpenChange }: Props) {
   const rsvpEvent = useAppStore((s) => s.rsvpEvent);
   const unrsvpEvent = useAppStore((s) => s.unrsvpEvent);
   const me = useAppStore((s) => s.me);
+  const hasTicket = useAppStore((s) => (event ? s.ticketPurchases.includes(event.id) : false));
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   if (!event || !me) return null;
+  const isTicketed = Boolean(event.ticket);
   const host = event.host_group_id ? groups.find((g) => g.id === event.host_group_id) : undefined;
   const isAttending = event.attendee_ids.includes(me.id);
   const isFull = event.capacity !== null && event.attendee_ids.length >= event.capacity;
@@ -40,6 +45,7 @@ export function EventDetailSheet({ event, open, onOpenChange }: Props) {
   };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent title={event.title}>
         <p className="text-sm text-ink-500 -mt-2 mb-4">{event.tagline}</p>
@@ -87,9 +93,18 @@ export function EventDetailSheet({ event, open, onOpenChange }: Props) {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Button variant={isAttending ? 'outline' : 'primary'} onClick={handleRsvp}>
-            {isAttending ? 'Cancel RSVP' : isFull ? 'Join waitlist' : 'RSVP'}
-          </Button>
+          {isTicketed ? (
+            <Button
+              variant={hasTicket ? 'outline' : 'primary'}
+              onClick={() => setCheckoutOpen(true)}
+            >
+              {hasTicket ? 'View my pass ✓' : `Get pass · $${event.cost_cents / 100}`}
+            </Button>
+          ) : (
+            <Button variant={isAttending ? 'outline' : 'primary'} onClick={handleRsvp}>
+              {isAttending ? 'Cancel RSVP' : isFull ? 'Join waitlist' : 'RSVP'}
+            </Button>
+          )}
           {host && (
             <button
               onClick={() => {
@@ -104,5 +119,7 @@ export function EventDetailSheet({ event, open, onOpenChange }: Props) {
         </div>
       </SheetContent>
     </Sheet>
+    <GymCrawlCheckoutSheet event={event} open={checkoutOpen} onOpenChange={setCheckoutOpen} />
+    </>
   );
 }

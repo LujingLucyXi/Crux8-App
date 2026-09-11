@@ -121,6 +121,17 @@ export interface EventItem {
   featured?: boolean;
   /** Short promo label shown on the featured card (e.g. "Launch", "New"). */
   promo_label?: string;
+  /** Paid multi-gym pass (e.g. "Around the World" gym crawl). */
+  ticket?: TicketInfo;
+}
+
+/** A paid, multi-gym pass sold through Crux8's mock checkout. */
+export interface TicketInfo {
+  price_cents: number;         // total charged to the buyer (e.g. 6000)
+  gym_ids: string[];           // partner gyms the pass covers
+  per_gym_payout_cents: number; // revenue share to each gym per ticket (e.g. 1500)
+  platform_cents: number;      // Crux8's cut per ticket (e.g. 1500)
+  sales_url: string;           // shareable (mock) sales link
 }
 
 /** A pending request to join a request-only group, with survey answers. */

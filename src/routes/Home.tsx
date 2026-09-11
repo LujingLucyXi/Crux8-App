@@ -54,6 +54,7 @@ export function Home() {
   const checkin = useAppStore((s) => s.checkin);
   const gymPresence = useAppStore((s) => s.gymPresence);
   const xp = useAppStore((s) => s.xp);
+  const ticketPurchases = useAppStore((s) => s.ticketPurchases);
   const level = levelFromXp(xp);
 
   const [detailSession, setDetailSession] = useState<Session | null>(null);
@@ -125,17 +126,25 @@ export function Home() {
   const suggestedEvents = useMemo(() => {
     if (!me) return [];
     return events
-      .filter((e) => !e.attendee_ids.includes(me.id) && new Date(e.starts_at).getTime() > Date.now())
+      .filter((e) => !e.ticket && !e.attendee_ids.includes(me.id) && new Date(e.starts_at).getTime() > Date.now())
       .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
       .slice(0, 6);
   }, [me, events]);
 
-  /* ── Featured / promoted events (Crux8 spotlight) ── */
+  /* ── Featured / promoted events (Crux8 spotlight — excludes ticketed passes) ── */
   const featuredEvents = useMemo(
     () => events
-      .filter((e) => e.featured && new Date(e.ends_at).getTime() > Date.now())
+      .filter((e) => e.featured && !e.ticket && new Date(e.ends_at).getTime() > Date.now())
       .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
       .slice(0, 8),
+    [events],
+  );
+
+  /* ── Passes & tickets (paid multi-gym passes — their own product surface) ── */
+  const passes = useMemo(
+    () => events
+      .filter((e) => e.ticket && new Date(e.ends_at).getTime() > Date.now())
+      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()),
     [events],
   );
 
@@ -228,6 +237,53 @@ export function Home() {
         );
       })()}
 
+      {/* ── Passes & tickets (distinct ticket-styled surface, not events) ── */}
+      {passes.length > 0 && (
+        <StackSection title="🎟️ Passes & tickets" className="mt-5">
+          <div className="flex flex-col gap-3">
+            {passes.map((e) => {
+              const owned = ticketPurchases.includes(e.id);
+              const gymCount = e.ticket?.gym_ids.length ?? 0;
+              return (
+                <button
+                  key={e.id}
+                  onClick={() => setDetailEvent(e)}
+                  className="relative w-full flex items-stretch rounded-2xl overflow-hidden border-2 border-dashed border-gold-500 bg-[linear-gradient(105deg,#FBEBC5_0%,#FFFFFF_55%)] text-left active:scale-[0.99] transition-transform"
+                >
+                  {/* body */}
+                  <div className="flex-1 p-4 min-w-0">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-ink-900 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5">
+                      Crux8 Pass
+                    </span>
+                    <h3 className="mt-2 font-extrabold text-ink-900 text-base leading-tight truncate">{e.title}</h3>
+                    <p className="text-[12px] text-ink-600 mt-0.5 truncate">{e.tagline}</p>
+                    <p className="text-[11px] font-semibold text-ink-500 mt-1.5">
+                      {gymCount} gyms · valid 30 days
+                    </p>
+                  </div>
+                  {/* perforated stub */}
+                  <div className="relative flex flex-col items-center justify-center w-24 shrink-0 border-l-2 border-dashed border-gold-500 px-2 py-4">
+                    <span className="absolute -left-2 -top-2 w-4 h-4 rounded-full bg-paper-50" />
+                    <span className="absolute -left-2 -bottom-2 w-4 h-4 rounded-full bg-paper-50" />
+                    {owned ? (
+                      <>
+                        <span className="text-lg">🎫</span>
+                        <span className="text-[11px] font-bold text-teal-600 text-center leading-tight mt-0.5">View passport</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-xl font-extrabold text-ink-900">${e.cost_cents / 100}</span>
+                        <span className="text-[10px] font-bold text-ink-500 uppercase tracking-wide mt-0.5">Get pass</span>
+                      </>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </StackSection>
+      )}
+
       {/* ── Featured on Crux8 (promoted events) ── */}
       {featuredEvents.length > 0 && (
         <CarouselSection
@@ -260,7 +316,9 @@ export function Home() {
                       {going} going{e.capacity ? ` · ${Math.max(0, e.capacity - going)} spots` : ''}
                     </span>
                     <span className="text-[11px] font-bold text-teal-600">
-                      {isAttending ? 'You\'re in ✓' : e.cost_cents === 0 ? 'Free · RSVP →' : `$${e.cost_cents / 100} →`}
+                      {e.ticket
+                        ? `Get pass · $${e.cost_cents / 100} →`
+                        : isAttending ? 'You\'re in ✓' : e.cost_cents === 0 ? 'Free · RSVP →' : `$${e.cost_cents / 100} →`}
                     </span>
                   </div>
                 </div>

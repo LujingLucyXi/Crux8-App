@@ -78,10 +78,16 @@ export default {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
+        'stamp-in': {
+          '0%': { opacity: '0', transform: 'scale(1.5)' },
+          '55%': { opacity: '1' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
       },
       animation: {
         'slide-up': 'slide-up 240ms ease-out',
         'fade-in': 'fade-in 180ms ease-out',
+        'stamp-in': 'stamp-in 260ms cubic-bezier(0.2,0.8,0.2,1)',
       },
     },
   },

@@ -156,6 +156,7 @@ export function Find() {
     const types = filters.event_types;
     return events
       .filter((e) => {
+        if (e.ticket) return false; // passes/tickets are not events
         if (types.length > 0 && !types.includes(e.type)) return false;
         if (filters.free_only && e.cost_cents > 0) return false;
         return dateOk(e.starts_at);
