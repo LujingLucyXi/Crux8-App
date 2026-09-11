@@ -46,7 +46,7 @@ const STYLES: { value: Style; label: string }[] = [
 
 const ACTIVITIES: { value: Activity; emoji: string; label: string; desc: string }[] = [
   { value: 'climb', emoji: '🧗', label: 'Climbing', desc: 'Indoor & outdoor rope + boulder' },
-  { value: 'hike', emoji: '🥾', label: 'Hiking', desc: 'Trails, scrambles, snow, backpacking' },
+  { value: 'hike', emoji: '🥾', label: 'Hiking / Mountaineering', desc: 'Trails, scrambles, snow & multi-day trips' },
   { value: 'events', emoji: '🎉', label: 'Events', desc: 'Meetups, clinics, socials' },
 ];
 

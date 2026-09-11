@@ -38,6 +38,7 @@ const HIKE_TYPES = [
   { v: 'scramble', l: 'Scramble' },
   { v: 'snow', l: 'Snow' },
   { v: 'backpack', l: 'Backpack' },
+  { v: 'expedition', l: 'Multi-day' },
 ];
 const EVENT_TYPES = [
   { v: 'community_night', l: 'Community' },

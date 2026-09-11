@@ -21,7 +21,7 @@ export type Activity = 'climb' | 'hike' | 'events';
 
 export type Vibe = 'chill' | 'projecting' | 'training' | 'social';
 
-export type HikeType = 'trail' | 'scramble' | 'snow' | 'backpack';
+export type HikeType = 'trail' | 'scramble' | 'snow' | 'backpack' | 'expedition';
 
 export type LocationType = 'indoor' | 'outdoor' | 'event';
 
@@ -117,6 +117,10 @@ export interface EventItem {
   age_restricted: boolean;
   description: string;
   gear_note?: string;
+  /** Promoted on the Home page's "Featured on Crux8" rail. */
+  featured?: boolean;
+  /** Short promo label shown on the featured card (e.g. "Launch", "New"). */
+  promo_label?: string;
 }
 
 /** A pending request to join a request-only group, with survey answers. */

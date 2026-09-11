@@ -1021,7 +1021,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 9,
+      version: 11,
       /**
        * v1 → v2: ClimbCall.role → looking_for.
        * v2 → v4: Seattle gym roster refreshed (Bouldering Project rebrand,
@@ -1036,6 +1036,24 @@ export const useAppStore = create<Store>()(
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 11 && s.seededAt) {
+          // Multi-day hiking/mountaineering trips: append any newly-seeded
+          // sessions (e.g. the expedition trips) the persisted store lacks.
+          // Match by id so user RSVPs on existing sessions are preserved.
+          const existing = Array.isArray(s.sessions) ? (s.sessions as Session[]) : [];
+          const haveIds = new Set(existing.map((x) => x.id));
+          const missing = SEED_SESSIONS.filter((x) => !haveIds.has(x.id));
+          s.sessions = [...existing, ...missing];
+        }
+        if (version < 10 && s.seededAt) {
+          // Promoted events: append any newly-seeded events (e.g. the featured
+          // Crux8 spotlight events) that the persisted store doesn't have yet.
+          // Match by id so user RSVPs on existing events are preserved.
+          const existing = Array.isArray(s.events) ? (s.events as EventItem[]) : [];
+          const haveIds = new Set(existing.map((e) => e.id));
+          const missing = SEED_EVENTS.filter((e) => !haveIds.has(e.id));
+          s.events = [...existing, ...missing];
+        }
         if (version < 9 && s.seededAt) {
           // Group management: refresh seeded groups so new fields (avatar,
           // banner, member roster, join policy, survey, pending requests) appear.

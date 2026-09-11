@@ -21,7 +21,7 @@ interface Props {
 }
 
 export function GearChecklistSheet({ session, open, onOpenChange, onConfirm }: Props) {
-  const gear = useMemo(() => (session ? gearFor(session.category) : { required: [], recommended: [] }), [session]);
+  const gear = useMemo(() => (session ? gearFor(session.category, session.hike_type) : { required: [], recommended: [] }), [session]);
   const gearChecklists = useAppStore((s) => s.gearChecklists);
   const updateGearChecklist = useAppStore((s) => s.updateGearChecklist);
   const unrsvp = useAppStore((s) => s.unrsvp);

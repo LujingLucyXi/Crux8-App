@@ -62,6 +62,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const [discipline, setDiscipline] = useState<'belay' | 'boulder' | 'hike'>('belay');
   const [outdoorLoc, setOutdoorLoc] = useState('');
   const [hikeType, setHikeType] = useState<HikeType>('trail');
+  const [tripDays, setTripDays] = useState(2);
 
   // Call state
   const [callLookingFor, setCallLookingFor] = useState<ClimbCall['looking_for']>('take_turns');
@@ -130,6 +131,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     setDiscipline('belay');
     setOutdoorLoc('');
     setHikeType('trail');
+    setTripDays(2);
     setCallLookingFor('take_turns');
     setCallCategory('top_rope');
     setCallTitle('');
@@ -195,7 +197,10 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
       title: sessionTitle.trim() || (discipline === 'hike' ? 'Hike' : 'Boulder Session'),
       subtitle: subtitle || 'All levels welcome',
       starts_at: startsIso,
-      ends_at: plusHours(startsIso, durationHours),
+      ends_at: plusHours(
+        startsIso,
+        discipline === 'hike' && hikeType === 'expedition' ? tripDays * 24 : durationHours,
+      ),
       gym_id: isOutdoor ? undefined : gymId,
       area: isOutdoor ? (outdoorLoc.trim() || (discipline === 'hike' ? 'Trailhead' : 'Outdoor boulders')) : undefined,
       capacity,
@@ -478,12 +483,13 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
             {discipline === 'hike' && (
               <div>
                 <Label>Type</Label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {([
                     { v: 'trail', l: 'Trail' },
                     { v: 'scramble', l: 'Scramble' },
                     { v: 'snow', l: 'Snow' },
                     { v: 'backpack', l: 'Backpack' },
+                    { v: 'expedition', l: 'Multi-day' },
                   ] as const).map((h) => (
                     <button
                       key={h.v}
@@ -497,6 +503,25 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                     </button>
                   ))}
                 </div>
+                {hikeType === 'expedition' && (
+                  <div className="mt-3">
+                    <Label>Trip length</Label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[2, 3, 4, 5].map((d) => (
+                        <button
+                          key={d}
+                          onClick={() => setTripDays(d)}
+                          className={cn(
+                            'rounded-xl border py-2 text-xs font-medium',
+                            tripDays === d ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                          )}
+                        >
+                          {d} days
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <div>

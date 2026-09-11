@@ -1,6 +1,6 @@
 import { Calendar, MapPin, ShieldCheck, SquareWave, TriangleFlag, Cube, Trekking, Walking, Sparks } from 'iconoir-react';
 import type { Session, NpcUser } from '@/seed/types';
-import { formatSessionWhen } from '@/lib/date';
+import { formatSessionWhen, formatTripRange, isMultiDaySpan } from '@/lib/date';
 import { AvatarStack } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
@@ -80,14 +80,24 @@ export function SessionCard({ session, users, gymName, onClick, matchScore, grou
         </div>
         <div className="mt-2 flex items-center gap-1 text-[12px] text-ink-500">
           <Calendar width={13} height={13} />
-          <span>{formatSessionWhen(session.starts_at)}</span>
+          <span>
+            {isMultiDaySpan(session.starts_at, session.ends_at)
+              ? formatTripRange(session.starts_at, session.ends_at)
+              : formatSessionWhen(session.starts_at)}
+          </span>
         </div>
         <div className="mt-1 flex items-center gap-1 text-[12px] text-ink-500">
           <MapPin width={13} height={13} />
           <span className="truncate">{gymName ?? session.area ?? 'Location TBD'}</span>
         </div>
-        {(session.is_verified_only || session.requires_attestation || groupName) && (
+        {(session.is_verified_only || session.requires_attestation || groupName || session.hike_type === 'expedition') && (
           <div className="mt-2 flex flex-wrap gap-1.5">
+            {session.hike_type === 'expedition' && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-gold-100 text-ink-900 text-[10px] font-semibold px-2 py-0.5">
+                <Trekking width={11} height={11} />
+                Multi-day trip
+              </span>
+            )}
             {session.is_verified_only && (
               <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 text-teal-600 text-[10px] font-semibold px-2 py-0.5">
                 <ShieldCheck width={11} height={11} />

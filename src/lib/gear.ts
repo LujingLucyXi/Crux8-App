@@ -1,11 +1,11 @@
-import type { Category } from '@/seed/types';
+import type { Category, HikeType } from '@/seed/types';
 
 export interface GearList {
   required: string[];
   recommended: string[];
 }
 
-export function gearFor(category: Category): GearList {
+export function gearFor(category: Category, hikeType?: HikeType): GearList {
   switch (category) {
     case 'top_rope':
       return {
@@ -64,6 +64,21 @@ export function gearFor(category: Category): GearList {
         recommended: ['Additional pads', 'Tape', 'Sunscreen', 'Water'],
       };
     case 'hiking':
+      // Multi-day / backpacking trips need overnight + navigation gear on top
+      // of the day-hike basics.
+      if (hikeType === 'expedition' || hikeType === 'backpack') {
+        return {
+          required: [
+            'Hiking boots', 'Backpacking pack (50L+)', 'Tent / shelter',
+            'Sleeping bag', 'Sleeping pad', 'Stove + fuel', 'Water filter / treatment',
+            'Layers + insulation', 'Headlamp', 'Multi-day food',
+          ],
+          recommended: [
+            'Rain shell', 'Map / GPS + compass', 'First-aid kit', 'Trekking poles',
+            'Sun protection', 'Bear canister', 'Camp shoes', 'Personal locator beacon',
+          ],
+        };
+      }
       return {
         required: ['Hiking boots / trail shoes', 'Water (2L+)', 'Layers', 'Snacks / lunch'],
         recommended: ['Rain shell', 'Sun protection', 'Map / GPS', 'First-aid kit', 'Trekking poles', 'Headlamp'],

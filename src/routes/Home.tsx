@@ -130,6 +130,15 @@ export function Home() {
       .slice(0, 6);
   }, [me, events]);
 
+  /* ── Featured / promoted events (Crux8 spotlight) ── */
+  const featuredEvents = useMemo(
+    () => events
+      .filter((e) => e.featured && new Date(e.ends_at).getTime() > Date.now())
+      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
+      .slice(0, 8),
+    [events],
+  );
+
   /* ── Challenges + badges ── */
   const challenges = useMemo(
     () => (me ? computeChallenges({
@@ -218,6 +227,48 @@ export function Home() {
           </button>
         );
       })()}
+
+      {/* ── Featured on Crux8 (promoted events) ── */}
+      {featuredEvents.length > 0 && (
+        <CarouselSection
+          title="Featured on Crux8"
+          action={{ label: 'All events', onClick: () => nav('/find') }}
+        >
+          {featuredEvents.map((e) => {
+            const going = e.attendee_ids.length;
+            const isAttending = e.attendee_ids.includes(me.id);
+            return (
+              <button
+                key={e.id}
+                onClick={() => setDetailEvent(e)}
+                className="w-[248px] shrink-0 text-left rounded-3xl overflow-hidden border border-ink-100 bg-white hover:border-ink-300 transition-colors active:scale-[0.99]"
+              >
+                <div className="relative h-20 bg-[linear-gradient(135deg,#8B5CF6,#6D28D9)] px-4 py-3 flex flex-col justify-between">
+                  {e.promo_label && (
+                    <span className="self-start inline-flex items-center rounded-full bg-white/20 ring-1 ring-white/40 text-white text-[10px] font-bold uppercase tracking-wide px-2 py-0.5">
+                      {e.promo_label}
+                    </span>
+                  )}
+                  <h3 className="text-white font-extrabold text-base leading-tight line-clamp-2">{e.title}</h3>
+                </div>
+                <div className="p-4">
+                  <p className="text-[12px] text-ink-600 line-clamp-2 min-h-[32px]">{e.tagline}</p>
+                  <p className="text-[12px] text-ink-900 font-semibold mt-2">{formatSessionWhen(e.starts_at)}</p>
+                  <p className="text-[11px] text-ink-500 mt-0.5 truncate">{e.venue}</p>
+                  <div className="mt-2.5 flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-ink-500">
+                      {going} going{e.capacity ? ` · ${Math.max(0, e.capacity - going)} spots` : ''}
+                    </span>
+                    <span className="text-[11px] font-bold text-teal-600">
+                      {isAttending ? 'You\'re in ✓' : e.cost_cents === 0 ? 'Free · RSVP →' : `$${e.cost_cents / 100} →`}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </CarouselSection>
+      )}
 
       {/* ── Up next (hero) ── */}
       <StackSection title="Up next" className="mt-5">

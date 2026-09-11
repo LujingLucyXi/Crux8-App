@@ -1,4 +1,7 @@
-import { format, isToday, isTomorrow, isThisWeek, formatDistanceToNow } from 'date-fns';
+import {
+  format, isToday, isTomorrow, isThisWeek, formatDistanceToNow,
+  isSameDay, differenceInCalendarDays,
+} from 'date-fns';
 
 export function formatSessionWhen(iso: string): string {
   const d = new Date(iso);
@@ -7,6 +10,25 @@ export function formatSessionWhen(iso: string): string {
   if (isTomorrow(d)) return `Tomorrow · ${time}`;
   if (isThisWeek(d, { weekStartsOn: 1 })) return `${format(d, 'EEE')} · ${time}`;
   return `${format(d, 'MMM d')} · ${time}`;
+}
+
+/** True when start and end fall on different calendar days (a multi-day trip). */
+export function isMultiDaySpan(startIso: string, endIso: string): boolean {
+  return !isSameDay(new Date(startIso), new Date(endIso));
+}
+
+/**
+ * A compact date range for multi-day trips, e.g. `Sep 20–22 · 3 days` or
+ * `Sep 30 – Oct 2 · 3 days` when the months differ.
+ */
+export function formatTripRange(startIso: string, endIso: string): string {
+  const s = new Date(startIso);
+  const e = new Date(endIso);
+  const days = differenceInCalendarDays(e, s) + 1;
+  const left = format(s, 'MMM d');
+  const right = s.getMonth() === e.getMonth() ? format(e, 'd') : format(e, 'MMM d');
+  const sep = s.getMonth() === e.getMonth() ? '–' : ' – ';
+  return `${left}${sep}${right} · ${days} days`;
 }
 
 export function formatChatTimestamp(iso: string): string {
