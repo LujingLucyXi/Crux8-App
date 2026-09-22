@@ -123,6 +123,8 @@ export interface EventItem {
   promo_label?: string;
   /** Paid multi-gym pass (e.g. "Around the World" gym crawl). */
   ticket?: TicketInfo;
+  /** Part of the Crux8 Mystery Crew program (surprise matched crew). */
+  mystery?: boolean;
 }
 
 /** A paid, multi-gym pass sold through Crux8's mock checkout. */

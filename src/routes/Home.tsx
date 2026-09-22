@@ -5,6 +5,8 @@ import { CarouselSection, StackSection } from '@/components/home/Section';
 import {
   UpNextCard, MiniScheduleCard, ChallengeCard, BadgeProgressCard, EmptyNudge,
 } from '@/components/home/HomeCards';
+import { MysteryCrewCard } from '@/components/cards/MysteryCrewCard';
+import { MysteryCrewSheet } from '@/components/sheets/MysteryCrewSheet';
 import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
 import { ClimbCallDetailSheet } from '@/components/sheets/ClimbCallDetailSheet';
 import { EventDetailSheet } from '@/components/sheets/EventDetailSheet';
@@ -61,6 +63,7 @@ export function Home() {
   const [detailCall, setDetailCall] = useState<ClimbCall | null>(null);
   const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
+  const [mysteryOpen, setMysteryOpen] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [logSendOpen, setLogSendOpen] = useState(false);
   const [recapSession, setRecapSession] = useState<Session | null>(null);
@@ -131,12 +134,20 @@ export function Home() {
       .slice(0, 6);
   }, [me, events]);
 
-  /* ── Featured / promoted events (Crux8 spotlight — excludes ticketed passes) ── */
+  /* ── Featured / promoted events (excludes passes + mystery crew, which are their own surfaces) ── */
   const featuredEvents = useMemo(
     () => events
-      .filter((e) => e.featured && !e.ticket && new Date(e.ends_at).getTime() > Date.now())
+      .filter((e) => e.featured && !e.ticket && !e.mystery && new Date(e.ends_at).getTime() > Date.now())
       .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
       .slice(0, 8),
+    [events],
+  );
+
+  /* ── Crux8 Mystery Crew (its own feature surface) ── */
+  const mysteryEvents = useMemo(
+    () => events
+      .filter((e) => e.mystery && new Date(e.ends_at).getTime() > Date.now())
+      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()),
     [events],
   );
 
@@ -236,6 +247,13 @@ export function Home() {
           </button>
         );
       })()}
+
+      {/* ── Crux8 Mystery Crew (signature feature, its own surface) ── */}
+      {mysteryEvents.length > 0 && (
+        <StackSection title="Crux8 Mystery Crew" className="mt-5">
+          <MysteryCrewCard count={mysteryEvents.length} onClick={() => setMysteryOpen(true)} />
+        </StackSection>
+      )}
 
       {/* ── Passes & tickets (distinct ticket-styled surface, not events) ── */}
       {passes.length > 0 && (
@@ -463,7 +481,7 @@ export function Home() {
       {/* ── Suggested sessions (AI ranked) ── */}
       {suggestedSessions.length > 0 && (
         <CarouselSection
-          title="Matched for you"
+          title="Suggested matches"
           action={{ label: 'Auto Match', onClick: () => setAiOpen(true) }}
         >
           {suggestedSessions.map(({ session, score }) => (
@@ -544,6 +562,7 @@ export function Home() {
       <ClimbCallDetailSheet call={detailCall} open={!!detailCall} onOpenChange={(o) => !o && setDetailCall(null)} />
       <EventDetailSheet event={detailEvent} open={!!detailEvent} onOpenChange={(o) => !o && setDetailEvent(null)} />
       <AiMatchSheet open={aiOpen} onOpenChange={setAiOpen} />
+      <MysteryCrewSheet open={mysteryOpen} onOpenChange={setMysteryOpen} />
       <CheckInSheet open={checkInOpen} onOpenChange={setCheckInOpen} />
       <LogSendSheet open={logSendOpen} onOpenChange={setLogSendOpen} />
       <SessionRecapSheet

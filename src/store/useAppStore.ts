@@ -103,6 +103,7 @@ interface Store {
   myGroupMemberships: string[];
   ticketPurchases: string[];            // eventIds of ticketed passes I've bought
   ticketRedemptions: Record<string, Record<string, string>>; // eventId -> gymId -> redeemed_at ISO
+  mysteryMemberUntil: string | null;    // ISO expiry of the $15/mo Mystery Crew pass (null = not a member)
   cruxmates: string[];
   chats: Record<string, ChatMessage[]>;                 // 1:1 DMs, keyed by userId
   sessionChats: Record<string, SessionChat>;            // group chats, keyed by session/event/call id
@@ -138,6 +139,7 @@ interface Store {
   unrsvpEvent: (eventId: string) => void;
   buyTicket: (eventId: string) => void;
   stampPass: (eventId: string, gymId: string) => void;
+  subscribeMysteryPass: () => void;
 
   postSession: (session: Omit<Session, 'id' | 'host_id' | 'participant_ids'>) => Session;
   postEvent: (event: Omit<EventItem, 'id' | 'attendee_ids' | 'waitlist_ids'>) => EventItem;
@@ -257,6 +259,7 @@ export const useAppStore = create<Store>()(
       myGroupMemberships: [],
       ticketPurchases: [],
       ticketRedemptions: {},
+      mysteryMemberUntil: null,
       cruxmates: [],
       chats: {},
       sessionChats: {},
@@ -350,6 +353,7 @@ export const useAppStore = create<Store>()(
           myGroupMemberships: [],
           ticketPurchases: [],
           ticketRedemptions: {},
+          mysteryMemberUntil: null,
           cruxmates: [],
           chats: {},
           verifications: initialVerifications,
@@ -467,6 +471,15 @@ export const useAppStore = create<Store>()(
             [eventId]: { ...forEvent, [gymId]: new Date().toISOString() },
           },
         });
+      },
+
+      subscribeMysteryPass: () => {
+        // Mock subscription: $15/mo "never climb alone" Mystery Crew pass.
+        // Extends 30 days from now (or from the current expiry if still active).
+        const cur = get().mysteryMemberUntil;
+        const base = cur && new Date(cur).getTime() > Date.now() ? new Date(cur) : new Date();
+        base.setDate(base.getDate() + 30);
+        set({ mysteryMemberUntil: base.toISOString() });
       },
 
       postSession: (session) => {
@@ -1057,7 +1070,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 13,
+      version: 15,
       /**
        * v1 → v2: ClimbCall.role → looking_for.
        * v2 → v4: Seattle gym roster refreshed (Bouldering Project rebrand,
@@ -1072,6 +1085,22 @@ export const useAppStore = create<Store>()(
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 15 && s.seededAt) {
+          // Refresh all seeded events from seed (new flags like `mystery`,
+          // capacity / copy / price changes) preserving the user's RSVPs, and
+          // append any newly seeded events (e.g. the extra Mystery Crew nights).
+          // User-created events (not in seed) are left untouched.
+          const seedById = Object.fromEntries(SEED_EVENTS.map((e) => [e.id, e]));
+          const existing = Array.isArray(s.events) ? (s.events as EventItem[]) : [];
+          const haveIds = new Set(existing.map((e) => e.id));
+          const refreshed = existing.map((e) =>
+            seedById[e.id]
+              ? { ...seedById[e.id], attendee_ids: e.attendee_ids, waitlist_ids: e.waitlist_ids }
+              : e,
+          );
+          const missing = SEED_EVENTS.filter((e) => !haveIds.has(e.id));
+          s.events = [...refreshed, ...missing];
+        }
         if (version < 13 && s.seededAt) {
           // Refresh ticketed passes from seed (e.g. price change) while
           // preserving the user's attendee list.

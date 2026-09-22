@@ -9,6 +9,8 @@ import { ClimbCallDetailSheet } from '@/components/sheets/ClimbCallDetailSheet';
 import { AiMatchSheet } from '@/components/sheets/AiMatchSheet';
 import { FilterRow } from '@/components/filters/FilterRow';
 import { CrewsBrowser } from '@/components/crews/CrewsBrowser';
+import { MysteryCrewCard } from '@/components/cards/MysteryCrewCard';
+import { MysteryCrewSheet } from '@/components/sheets/MysteryCrewSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { inHour } from '@/lib/date';
 import { isWeightSafe } from '@/lib/weight';
@@ -94,6 +96,7 @@ export function Find() {
   const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
   const [detailCall, setDetailCall] = useState<ClimbCall | null>(null);
   const [aiMatchOpen, setAiMatchOpen] = useState(false);
+  const [mysteryOpen, setMysteryOpen] = useState(false);
 
   const { l1, env } = filters;
 
@@ -151,12 +154,20 @@ export function Find() {
   }, [l1, filters, sessions]);
 
   /* ── Events ── */
+  const mysteryEvents = useMemo(
+    () => events
+      .filter((e) => e.mystery && new Date(e.ends_at).getTime() > Date.now())
+      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()),
+    [events],
+  );
+
   const eventsFiltered = useMemo(() => {
     if (l1 !== 'event') return [];
     const types = filters.event_types;
     return events
       .filter((e) => {
         if (e.ticket) return false; // passes/tickets are not events
+        if (e.mystery) return false; // Mystery Crew is its own feature (Crew tab)
         if (types.length > 0 && !types.includes(e.type)) return false;
         if (filters.free_only && e.cost_cents > 0) return false;
         return dateOk(e.starts_at);
@@ -227,7 +238,16 @@ export function Find() {
       </div>
 
       {l1 === 'crew' ? (
-        <CrewsBrowser />
+        <div>
+          {mysteryEvents.length > 0 && (
+            <div className="mb-5">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-3">🎭 Crux8 Mystery Crew</h2>
+              <MysteryCrewCard count={mysteryEvents.length} onClick={() => setMysteryOpen(true)} />
+            </div>
+          )}
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-3">Community crews</h2>
+          <CrewsBrowser />
+        </div>
       ) : (
         <>
           {/* ── Level 2: Climb only → Indoor / Outdoor ── */}
@@ -331,6 +351,7 @@ export function Find() {
       <EventDetailSheet event={detailEvent} open={!!detailEvent} onOpenChange={(o) => !o && setDetailEvent(null)} />
       <ClimbCallDetailSheet call={detailCall} open={!!detailCall} onOpenChange={(o) => !o && setDetailCall(null)} />
       <AiMatchSheet open={aiMatchOpen} onOpenChange={setAiMatchOpen} />
+      <MysteryCrewSheet open={mysteryOpen} onOpenChange={setMysteryOpen} />
     </div>
   );
 }
