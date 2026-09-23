@@ -12,6 +12,7 @@ import type { Session, VerificationCategory } from '@/seed/types';
 import { GearChecklistSheet } from './GearChecklistSheet';
 import { CertVerificationSheet } from './CertVerificationSheet';
 import { UserProfileSheet } from './UserProfileSheet';
+import { openExternal, tapTick } from '@/lib/native';
 import type { AvatarConfig } from '@/lib/avatar';
 
 interface Props {
@@ -74,6 +75,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
 
   const confirmRsvp = () => {
     rsvp(session.id);
+    void tapTick();
     toast(`You're in for ${session.title}`, { description: formatSessionWhen(session.starts_at) });
     onOpenChange(false); // close the detail sheet after joining
   };
@@ -128,11 +130,9 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
           </div>
 
           {route && (
-            <a
-              href={route.mp_url}
-              target="_blank"
-              rel="noreferrer"
-              className="mb-5 flex items-center justify-between rounded-xl border border-ink-100 bg-paper-50 px-4 py-3 hover:bg-white"
+            <button
+              onClick={() => void openExternal(route.mp_url)}
+              className="mb-5 flex w-full items-center justify-between rounded-xl border border-ink-100 bg-paper-50 px-4 py-3 text-left hover:bg-white"
             >
               <div>
                 <p className="text-sm font-semibold text-ink-900">{route.name}</p>
@@ -143,7 +143,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
               <span className="text-xs text-teal-600 font-semibold inline-flex items-center gap-1">
                 Mountain Project <OpenInWindow width={12} height={12} />
               </span>
-            </a>
+            </button>
           )}
 
           {session.note && (

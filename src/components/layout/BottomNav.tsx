@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { Home, Compass, Calendar, User, Plus } from 'iconoir-react';
 import { cn } from '@/lib/utils';
+import { tapTick } from '@/lib/native';
 
 interface BottomNavProps {
   onFabClick: () => void;
@@ -45,7 +46,10 @@ export function BottomNav({ onFabClick }: BottomNavProps) {
           )}
         </div>
         <button
-          onClick={onFabClick}
+          onClick={() => {
+            void tapTick();
+            onFabClick();
+          }}
           aria-label="Post a session, call, or event"
           className="absolute left-1/2 -translate-x-1/2 -top-6 w-14 h-14 rounded-full bg-brand-gradient text-white flex items-center justify-center border-4 border-white shadow-brand hover:brightness-105 active:scale-95 transition-all"
         >
