@@ -79,7 +79,7 @@ export function Onboarding() {
   const [activities, setActivities] = useState<Activity[]>(me?.activities ?? ['climb']);
   const [homeGymId, setHomeGymId] = useState<string>(me?.home_gym_id ?? gyms[0]?.id ?? '');
   // Fall back to a real band when the stored grade isn't one of the band values
-  // (e.g. signUp seeds '5.10c', which matches no band → nothing would highlight).
+  // (e.g. the login default '5.10c', which matches no band → nothing would highlight).
   const [topGrade, setTopGrade] = useState<string>(
     GRADE_BANDS.some((g) => g.value === me?.top_grade) ? (me!.top_grade as string) : '5.10a-5.10c',
   );

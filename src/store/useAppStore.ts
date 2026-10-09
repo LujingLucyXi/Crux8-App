@@ -31,7 +31,14 @@ import {
   SEED_CLIMB_CALLS,
 } from '@/seed';
 import { uid } from '@/lib/utils';
-import { DEFAULT_AVATAR, avatarFromSeed } from '@/lib/avatar';
+import { avatarFromSeed } from '@/lib/avatar';
+import {
+  supabase,
+  fetchMyProfile,
+  profileRowToProfile,
+  profilePatchToRow,
+  otpErrorMessage,
+} from '@/lib/supabase';
 import {
   XP,
   levelFromXp,
@@ -127,10 +134,14 @@ interface Store {
 
   // ---------- actions ----------
   seedIfEmpty: () => void;
-  signUp: (input: { display_name: string; pronouns?: string; dob?: string }) => void;
+  // Real auth (Supabase email OTP). Replaces the old mock `signUp`.
+  sendOtp: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  verifyOtp: (email: string, code: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** Reconcile persisted state with the Supabase session on app boot. */
+  initAuth: () => Promise<void>;
   completeOnboarding: (patch: Partial<Profile>) => void;
   updateProfile: (patch: Partial<Profile>) => void;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   resetAll: () => void;
 
   rsvp: (sessionId: string) => void;
@@ -245,6 +256,21 @@ const initialFilters: Filters = {
   free_only: false,
 };
 
+/** Guards the onAuthStateChange subscription in initAuth (module singleton). */
+let initAuthSubscribed = false;
+
+/**
+ * Best-effort write-through of profile changes to the Supabase `profiles`
+ * table (RLS: the user can only update their own row). Fire-and-forget: the
+ * local store is the source of truth for the UI; a failure only logs.
+ */
+async function persistProfilePatch(userId: string, patch: Partial<Profile>): Promise<void> {
+  const row = profilePatchToRow(patch);
+  if (Object.keys(row).length === 0) return;
+  const { error } = await supabase.from('profiles').update(row).eq('id', userId);
+  if (error) console.warn('[auth] profiles update failed', error.message);
+}
+
 export const useAppStore = create<Store>()(
   persist(
     (set, get) => ({
@@ -309,37 +335,92 @@ export const useAppStore = create<Store>()(
         });
       },
 
-      signUp: ({ display_name, pronouns, dob }) => {
-        const me: Profile = {
-          id: 'me',
-          display_name,
-          pronouns,
-          dob,
-          // Seed a look from their name so no two signups look identical;
-          // they refine it in Onboarding step 2.
-          avatar: display_name ? avatarFromSeed(display_name) : DEFAULT_AVATAR,
-          home_gym_id: 'gym_vertical_world',
-          top_grade: '5.10c',
-          preferred_styles: ['top_rope', 'lead', 'outdoor_sport'],
-          about: '',
-          onboarded: false, // routes the new user into the onboarding flow
+      /**
+       * Email OTP login (Supabase). Step 1: sends a 6-digit code to the email.
+       * Creates the auth user on first send; the DB trigger auto-creates the
+       * `profiles` row. Code-based (not magic-link redirect) so it works
+       * inside the Capacitor shell.
+       */
+      sendOtp: async (email) => {
+        const { error } = await supabase.auth.signInWithOtp({ email: email.trim().toLowerCase() });
+        if (error) {
+          return { ok: false as const, error: otpErrorMessage(error, 'Could not send the code — please try again.') };
+        }
+        return { ok: true as const };
+      },
+
+      /** Email OTP login, step 2: verifies the 6-digit code and signs the user in. */
+      verifyOtp: async (email, code) => {
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: normalizedEmail,
+          token: code.trim(),
+          type: 'email',
+        });
+        if (error || !data.user) {
+          return { ok: false as const, error: otpErrorMessage(error, 'Could not verify the code — please try again.') };
+        }
+        const user = data.user;
+        // The on_auth_user_created trigger should have created the row when the
+        // code was sent; fall back to an explicit insert in case of a race.
+        let row = await fetchMyProfile(user.id).catch(() => null);
+        if (!row) {
+          await supabase.from('profiles').insert({ id: user.id, email: user.email }).then(({ error: insErr }) => {
+            if (insErr) console.warn('[auth] profiles insert fallback failed', insErr.message);
+          });
+          row = await fetchMyProfile(user.id).catch(() => null);
+        }
+        set({ me: profileRowToProfile(user.id, user.email ?? normalizedEmail, row) });
+        return { ok: true as const };
+      },
+
+      /**
+       * Reconcile persisted state with the Supabase session on app boot.
+       * - No session (signed out, expired, or a stale mock `me` from the demo):
+       *   clear `me` so the login sheet takes over.
+       * - Session: refresh `me` from the `profiles` table.
+       * Also keeps `me` in sync if the session ends elsewhere.
+       */
+      initAuth: async () => {
+        const applySessionUser = async (userId: string, email: string) => {
+          const row = await fetchMyProfile(userId).catch(() => null);
+          set({ me: profileRowToProfile(userId, email, row) });
         };
-        set({ me });
+        const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+        const sessionUser = data.session?.user ?? null;
+        if (!sessionUser) {
+          if (get().me) set({ me: null });
+        } else {
+          await applySessionUser(sessionUser.id, sessionUser.email ?? '');
+        }
+        if (!initAuthSubscribed) {
+          initAuthSubscribed = true;
+          supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_OUT') {
+              set({ me: null });
+            } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+              await applySessionUser(session.user.id, session.user.email ?? '');
+            }
+          });
+        }
       },
 
       completeOnboarding: (patch) => {
         const cur = get().me;
         if (!cur) return;
         set({ me: { ...cur, ...patch, onboarded: true } });
+        void persistProfilePatch(cur.id, { ...patch, onboarded: true });
       },
 
       updateProfile: (patch) => {
         const cur = get().me;
         if (!cur) return;
         set({ me: { ...cur, ...patch } });
+        void persistProfilePatch(cur.id, patch);
       },
 
-      signOut: () => {
+      signOut: async () => {
+        await supabase.auth.signOut().catch(() => {});
         set({ me: null });
       },
 
@@ -626,7 +707,8 @@ export const useAppStore = create<Store>()(
       },
 
       joinGroup: (groupId) => {
-        if (get().myGroupMemberships.includes(groupId)) return;
+        const me = get().me;
+        if (!me || get().myGroupMemberships.includes(groupId)) return;
         set({
           myGroupMemberships: [...get().myGroupMemberships, groupId],
           groups: get().groups.map((g) =>
@@ -634,7 +716,7 @@ export const useAppStore = create<Store>()(
               ? {
                   ...g,
                   member_count: g.member_count + 1,
-                  member_ids: [...(g.member_ids ?? []), 'me'],
+                  member_ids: [...(g.member_ids ?? []), me.id],
                 }
               : g
           ),
@@ -643,6 +725,7 @@ export const useAppStore = create<Store>()(
       },
 
       leaveGroup: (groupId) => {
+        const myId = get().me?.id;
         set({
           myGroupMemberships: get().myGroupMemberships.filter((id) => id !== groupId),
           groups: get().groups.map((g) =>
@@ -650,7 +733,7 @@ export const useAppStore = create<Store>()(
               ? {
                   ...g,
                   member_count: Math.max(0, g.member_count - 1),
-                  member_ids: (g.member_ids ?? []).filter((id) => id !== 'me'),
+                  member_ids: (g.member_ids ?? []).filter((id) => id !== myId && id !== 'me'),
                 }
               : g
           ),
@@ -1070,8 +1153,9 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 15,
+      version: 16,
       /**
+       * v15 → v16: real Supabase auth replaces the mock demo identity.
        * v1 → v2: ClimbCall.role → looking_for.
        * v2 → v4: Seattle gym roster refreshed (Bouldering Project rebrand,
        *   new boutique gyms Castle / Half Moon, Momentum SODO, BP U District).
@@ -1085,6 +1169,26 @@ export const useAppStore = create<Store>()(
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 16) {
+          // Real Supabase auth replaces the mock demo identity (id 'me').
+          // Drop the persisted mock `me` so the OTP login sheet takes over on
+          // next launch (initAuth also reconciles this at boot), and strip the
+          // stale 'me' marker from group member lists. Group/RSVP selections
+          // in myGroupMemberships are preserved; the user re-joins under
+          // their real id if needed.
+          s.me = null;
+          if (Array.isArray(s.groups)) {
+            for (const g of s.groups as Array<Record<string, unknown>>) {
+              const ids = g.member_ids as string[] | undefined;
+              if (Array.isArray(ids) && ids.includes('me')) {
+                g.member_ids = ids.filter((id) => id !== 'me');
+                if (typeof g.member_count === 'number' && g.member_count > 0) {
+                  g.member_count -= 1;
+                }
+              }
+            }
+          }
+        }
         if (version < 15 && s.seededAt) {
           // Refresh all seeded events from seed (new flags like `mystery`,
           // capacity / copy / price changes) preserving the user's RSVPs, and

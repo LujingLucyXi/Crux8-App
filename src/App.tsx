@@ -6,10 +6,12 @@ import { useAppStore } from '@/store/useAppStore';
 
 export default function App() {
   const seedIfEmpty = useAppStore((s) => s.seedIfEmpty);
+  const initAuth = useAppStore((s) => s.initAuth);
 
   useEffect(() => {
     seedIfEmpty();
-  }, [seedIfEmpty]);
+    void initAuth();
+  }, [seedIfEmpty, initAuth]);
 
   return (
     <>
