@@ -27,7 +27,7 @@ const STEP_META = [
   { n: 2, label: 'Your avatar' },
   { n: 3, label: 'Your profile' },
   { n: 4, label: 'Activities' },
-  { n: 5, label: 'Climbing' },
+  { n: 5, label: 'Outdoors' },
   { n: 6, label: 'Body (private)' },
   { n: 7, label: 'Belay skills' },
   { n: 8, label: 'Invite crew' },
@@ -62,6 +62,28 @@ const TAGS = [
 ];
 const MAX_TAGS = 5;
 
+// Launch cities (Luma-style availability). Values are stable slugs; labels are
+// what users see. Expand this list as new metros open.
+const CITIES = [
+  { value: 'greater-seattle', label: 'Greater Seattle Area' },
+  { value: 'denver', label: 'Denver' },
+  { value: 'sf-bay-area', label: 'San Francisco / Bay Area' },
+  { value: 'salt-lake-city', label: 'Salt Lake City' },
+];
+
+// Hiking preferences (step 5 · Hike section, skippable).
+const HIKE_DISTANCES = [
+  { value: 'under-5', label: 'Under 5 mi' },
+  { value: '5-10', label: '5–10 mi' },
+  { value: '10-15', label: '10–15 mi' },
+  { value: '15-plus', label: '15+ mi' },
+];
+const HIKE_PACES = [
+  { value: 'stroll', label: 'Stroll' },
+  { value: 'steady', label: 'Steady' },
+  { value: 'push', label: 'Push it' },
+];
+
 export function Onboarding() {
   const nav = useNavigate();
   const me = useAppStore((s) => s.me);
@@ -72,6 +94,10 @@ export function Onboarding() {
   const [dob, setDob] = useState(me?.dob ?? '');
   const [location, setLocation] = useState(me?.location ?? '');
   const [displayName, setDisplayName] = useState(me?.display_name ?? '');
+  const [hikeDistance, setHikeDistance] = useState(me?.hike_distance ?? '');
+  const [hikePace, setHikePace] = useState(me?.hike_pace ?? '');
+  const [climbSkipped, setClimbSkipped] = useState(false);
+  const [hikeSkipped, setHikeSkipped] = useState(false);
   const [avatar, setAvatar] = useState<AvatarConfig>(me?.avatar ?? avatarFromSeed(me?.display_name ?? 'anon'));
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(me?.photo_url);
   const [signature, setSignature] = useState(me?.signature ?? '');
@@ -99,6 +125,7 @@ export function Onboarding() {
 
   const go = (n: StepN) => setStep(n);
   const climbs = activities.includes('climb');
+  const hikes = activities.includes('hike');
 
   const finish = () => {
     const weightKg = weightLbs ? lbsToKg(Number(weightLbs)) : undefined;
@@ -113,9 +140,13 @@ export function Onboarding() {
       about: bio.trim() || undefined,
       tags: tags.length ? tags : undefined,
       activities,
-      home_gym_id: homeGymId,
-      top_grade: topGrade,
-      preferred_styles: preferredStyles,
+      // Climb + hike sections are independently skippable — only save what wasn't skipped.
+      ...(climbs && !climbSkipped
+        ? { home_gym_id: homeGymId, top_grade: topGrade, preferred_styles: preferredStyles }
+        : {}),
+      ...(hikes && !hikeSkipped
+        ? { hike_distance: hikeDistance || undefined, hike_pace: hikePace || undefined }
+        : {}),
       weight_kg: weightKg,
       height_cm: heightCm,
     });
@@ -189,7 +220,16 @@ export function Onboarding() {
               </div>
               <div>
                 <Label>Location (optional)</Label>
-                <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Seattle, WA" />
+                <select
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900"
+                >
+                  <option value="">Select a city</option>
+                  {CITIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
                 <p className="mt-1 text-[11px] text-ink-500">Helps match you with climbers and crags near you.</p>
               </div>
               <div>
@@ -337,7 +377,7 @@ export function Onboarding() {
             </div>
             <div className="mt-8 flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => go(3)}>Back</Button>
-              <Button className="flex-1" disabled={activities.length === 0} onClick={() => go(climbs ? 5 : 8)}>
+              <Button className="flex-1" disabled={activities.length === 0} onClick={() => go(climbs || hikes ? 5 : 8)}>
                 Next
               </Button>
             </div>
@@ -349,62 +389,145 @@ export function Onboarding() {
           </>
         )}
 
-        {/* ── Step 5 · Climbing (only if 'climb') ── */}
+        {/* ── Step 5 · Outdoors — climb and/or hike sections, each skippable ── */}
         {step === 5 && (
           <>
-            <h2 className="text-2xl font-semibold text-ink-900">Your climbing shape.</h2>
-            <p className="mt-2 text-sm text-ink-500">Home gym, level, and styles power your matches.</p>
-            <div className="mt-6 space-y-5">
-              <div>
-                <Label>Home gym</Label>
-                <select
-                  value={homeGymId}
-                  onChange={(e) => setHomeGymId(e.target.value)}
-                  className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900"
-                >
-                  {gyms.map((g) => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label>Top grade band</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {GRADE_BANDS.map((band) => (
-                    <button
-                      key={band.value}
-                      onClick={() => setTopGrade(band.value)}
-                      className={cn(
-                        'rounded-xl border py-2.5 text-sm text-center',
-                        topGrade === band.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
-                      )}
-                    >
-                      {band.label}
+            <h2 className="text-2xl font-semibold text-ink-900">Your outdoors profile.</h2>
+            <p className="mt-2 text-sm text-ink-500">A few details power better matches — skip any section that doesn't fit.</p>
+
+            {/* Climb section */}
+            {climbs && (
+              <div className="mt-8">
+                {climbSkipped ? (
+                  <div className="flex items-center justify-between rounded-2xl border border-ink-100 bg-white p-4">
+                    <span className="text-sm text-ink-500">🧗 Climbing — skipped</span>
+                    <button onClick={() => setClimbSkipped(false)} className="text-xs font-semibold text-brand-600">
+                      Add it back
                     </button>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-semibold text-ink-900">🧗 Climbing</h3>
+                      <button onClick={() => setClimbSkipped(true)} className="text-xs font-medium text-ink-400 underline">
+                        Skip
+                      </button>
+                    </div>
+                    <div className="mt-4 space-y-5">
+                      <div>
+                        <Label>Home gym</Label>
+                        <select
+                          value={homeGymId}
+                          onChange={(e) => setHomeGymId(e.target.value)}
+                          className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900"
+                        >
+                          {gyms.map((g) => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Top grade band</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {GRADE_BANDS.map((band) => (
+                            <button
+                              key={band.value}
+                              onClick={() => setTopGrade(band.value)}
+                              className={cn(
+                                'rounded-xl border py-2.5 text-sm text-center',
+                                topGrade === band.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                              )}
+                            >
+                              {band.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Preferred styles</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {STYLES.map((s) => (
+                            <button
+                              key={s.value}
+                              onClick={() => toggleStyle(s.value)}
+                              className={cn(
+                                'rounded-full border px-3 py-1.5 text-xs font-medium',
+                                preferredStyles.includes(s.value) ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                              )}
+                            >
+                              {s.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              <div>
-                <Label>Preferred styles</Label>
-                <div className="flex flex-wrap gap-2">
-                  {STYLES.map((s) => (
-                    <button
-                      key={s.value}
-                      onClick={() => toggleStyle(s.value)}
-                      className={cn(
-                        'rounded-full border px-3 py-1.5 text-xs font-medium',
-                        preferredStyles.includes(s.value) ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
-                      )}
-                    >
-                      {s.label}
+            )}
+
+            {/* Hike section */}
+            {hikes && (
+              <div className="mt-8">
+                {hikeSkipped ? (
+                  <div className="flex items-center justify-between rounded-2xl border border-ink-100 bg-white p-4">
+                    <span className="text-sm text-ink-500">🥾 Hiking — skipped</span>
+                    <button onClick={() => setHikeSkipped(false)} className="text-xs font-semibold text-brand-600">
+                      Add it back
                     </button>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-semibold text-ink-900">🥾 Hiking</h3>
+                      <button onClick={() => setHikeSkipped(true)} className="text-xs font-medium text-ink-400 underline">
+                        Skip
+                      </button>
+                    </div>
+                    <div className="mt-4 space-y-5">
+                      <div>
+                        <Label>Typical distance</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {HIKE_DISTANCES.map((d) => (
+                            <button
+                              key={d.value}
+                              onClick={() => setHikeDistance(d.value)}
+                              className={cn(
+                                'rounded-xl border py-2.5 text-sm text-center',
+                                hikeDistance === d.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                              )}
+                            >
+                              {d.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Pace</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {HIKE_PACES.map((p) => (
+                            <button
+                              key={p.value}
+                              onClick={() => setHikePace(p.value)}
+                              className={cn(
+                                'rounded-full border px-3 py-1.5 text-xs font-medium',
+                                hikePace === p.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                              )}
+                            >
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
+            )}
+
             <div className="mt-8 flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => go(4)}>Back</Button>
-              <Button className="flex-1" onClick={() => go(6)}>Next</Button>
+              <Button className="flex-1" onClick={() => go(climbs ? 6 : 8)}>Next</Button>
             </div>
           </>
         )}
@@ -492,7 +615,7 @@ export function Onboarding() {
               </Button>
             </div>
             <div className="mt-8 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => go(climbs ? 7 : 4)}>Back</Button>
+              <Button variant="outline" className="flex-1" onClick={() => go(climbs ? 7 : hikes ? 5 : 4)}>Back</Button>
               <Button className="flex-1" onClick={finish}>Finish</Button>
             </div>
           </>

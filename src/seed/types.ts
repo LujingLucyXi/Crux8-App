@@ -191,10 +191,13 @@ export interface Profile {
   // ── profile identity (set during onboarding) ──
   signature?: string;        // short one-liner shown next to the name
   tags?: string[];           // fun climbing/hiking flair chips (label incl. emoji)
-  location?: string;         // city / area, e.g. 'Seattle, WA'
+  location?: string;         // launch-city slug, e.g. 'greater-seattle'
   activities?: Activity[];   // preferred top-level activities
   onboarded?: boolean;       // false right after signup; true once onboarding completes.
                              // undefined = pre-existing user (treated as onboarded).
+  // ── hiking (set during onboarding; section is skippable) ──
+  hike_distance?: string;    // e.g. '5-10'
+  hike_pace?: string;        // e.g. 'steady'
   // Weight + height are hidden from other users. Used only to compute
   // the `weight-safe` chip on 1:1 climb calls.
   weight_kg?: number;

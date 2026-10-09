@@ -267,8 +267,10 @@ let initAuthSubscribed = false;
 async function persistProfilePatch(userId: string, patch: Partial<Profile>): Promise<void> {
   const row = profilePatchToRow(patch);
   if (Object.keys(row).length === 0) return;
-  const { error } = await supabase.from('profiles').update(row).eq('id', userId);
-  if (error) console.warn('[auth] profiles update failed', error.message);
+  // Upsert (not update): self-heals when the row is missing — e.g. the
+  // auto-create trigger never ran, or a user predates the profiles table.
+  const { error } = await supabase.from('profiles').upsert({ id: userId, ...row });
+  if (error) console.warn('[auth] profiles upsert failed', error.message);
 }
 
 export const useAppStore = create<Store>()(

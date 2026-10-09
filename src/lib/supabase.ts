@@ -27,6 +27,8 @@ export interface ProfileRow {
   tags?: string[] | null;
   location?: string | null;
   activities?: string[] | null;
+  hike_distance?: string | null;
+  hike_pace?: string | null;
   weight_kg?: number | null;
   height_cm?: number | null;
   onboarded?: boolean | null;
@@ -56,6 +58,8 @@ export function profileRowToProfile(userId: string, email: string, row: ProfileR
     tags: row?.tags ?? undefined,
     location: row?.location ?? undefined,
     activities: (row?.activities as Activity[] | undefined) ?? undefined,
+    hike_distance: row?.hike_distance ?? undefined,
+    hike_pace: row?.hike_pace ?? undefined,
     onboarded: row?.onboarded ?? false,
     weight_kg: row?.weight_kg ?? undefined,
     height_cm: row?.height_cm ?? undefined,
@@ -81,6 +85,8 @@ export function profilePatchToRow(patch: Partial<Profile>): Record<string, unkno
   if (patch.tags !== undefined) row.tags = patch.tags;
   if (patch.location !== undefined) row.location = patch.location;
   if (patch.activities !== undefined) row.activities = patch.activities;
+  if (patch.hike_distance !== undefined) row.hike_distance = patch.hike_distance;
+  if (patch.hike_pace !== undefined) row.hike_pace = patch.hike_pace;
   if (patch.weight_kg !== undefined) row.weight_kg = patch.weight_kg;
   if (patch.height_cm !== undefined) row.height_cm = patch.height_cm;
   if (patch.onboarded !== undefined) row.onboarded = patch.onboarded;
