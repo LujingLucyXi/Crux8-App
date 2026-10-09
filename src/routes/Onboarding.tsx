@@ -71,6 +71,7 @@ export function Onboarding() {
   const [step, setStep] = useState<StepN>(1);
   const [dob, setDob] = useState(me?.dob ?? '');
   const [location, setLocation] = useState(me?.location ?? '');
+  const [displayName, setDisplayName] = useState(me?.display_name ?? '');
   const [avatar, setAvatar] = useState<AvatarConfig>(me?.avatar ?? avatarFromSeed(me?.display_name ?? 'anon'));
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(me?.photo_url);
   const [signature, setSignature] = useState(me?.signature ?? '');
@@ -103,6 +104,7 @@ export function Onboarding() {
     const weightKg = weightLbs ? lbsToKg(Number(weightLbs)) : undefined;
     const heightCm = heightFt || heightIn ? ftInToCm(Number(heightFt || 0), Number(heightIn || 0)) : undefined;
     completeOnboarding({
+      display_name: displayName.trim() || undefined,
       dob: dob || undefined,
       location: location.trim() || undefined,
       avatar,
@@ -178,7 +180,12 @@ export function Onboarding() {
             <div className="mt-6 space-y-4">
               <div>
                 <Label>Display name</Label>
-                <Input value={me.display_name} disabled />
+                <Input
+                  value={displayName}
+                  maxLength={30}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="What should partners call you?"
+                />
               </div>
               <div>
                 <Label>Location (optional)</Label>
@@ -275,7 +282,7 @@ export function Onboarding() {
                   <Avatar photoUrl={photoUrl} config={avatar} alt={me.display_name} size={44} fallback={me.display_name} />
                   <div className="min-w-0">
                     <div className="flex items-center flex-wrap gap-1.5">
-                      <span className="font-semibold text-ink-900">{me.display_name}</span>
+                      <span className="font-semibold text-ink-900">{displayName}</span>
                       {tags.slice(0, 2).map((t) => (
                         <span key={t} className="rounded-full bg-brand-100 text-brand-600 text-[10px] font-semibold px-2 py-0.5">
                           {t}
