@@ -318,8 +318,10 @@ export async function setCallPairing(
 export async function fetchDirectoryProfiles(ids: string[]): Promise<DirectoryProfile[]> {
   const unique = uniq(ids);
   if (unique.length === 0) return [];
+  // directory_profiles is a security-definer view over public.profiles exposing
+  // only the columns shown next to other users' names (weight/height stay private).
   const { data, error } = await supabase
-    .from('profiles')
+    .from('directory_profiles')
     .select('id,display_name,photo_url,top_grade,home_gym_id')
     .in('id', unique);
   if (error) throw new Error(`fetchDirectoryProfiles: ${error.message}`);
