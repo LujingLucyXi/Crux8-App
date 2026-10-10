@@ -1,7 +1,7 @@
 // Shared auth sheet: email-code OTP and email+password in one place.
 // Used by both the landing page and the /claim route so every entry
 // point offers the same sign-in options.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Input, Label } from '@/components/ui/Input';
@@ -16,11 +16,21 @@ interface AuthSheetProps {
   onOpenChange: (open: boolean) => void;
   title?: string;
   onSuccess?: () => void;
+  /** Which tab/mode the sheet opens on (e.g. Sign up → password/create-account). */
+  initialTab?: Tab;
+  initialPwMode?: PwMode;
 }
 
 const looksLikeEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim().toLowerCase());
 
-export function AuthSheet({ open, onOpenChange, title = 'Get started', onSuccess }: AuthSheetProps) {
+export function AuthSheet({
+  open,
+  onOpenChange,
+  title = 'Get started',
+  onSuccess,
+  initialTab = 'code',
+  initialPwMode = 'signin',
+}: AuthSheetProps) {
   const sendOtp = useAppStore((s) => s.sendOtp);
   const verifyOtp = useAppStore((s) => s.verifyOtp);
   const signUpWithPassword = useAppStore((s) => s.signUpWithPassword);
@@ -42,6 +52,20 @@ export function AuthSheet({ open, onOpenChange, title = 'Get started', onSuccess
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  // (Re)open → start on the caller's tab/mode with a clean form.
+  useEffect(() => {
+    if (open) {
+      setTab(initialTab);
+      setPwMode(initialPwMode);
+      setStep('email');
+      setCode('');
+      setPassword('');
+      setBusy(false);
+      setError('');
+      setNotice('');
+    }
+  }, [open, initialTab, initialPwMode]);
 
   const reset = () => {
     setStep('email');

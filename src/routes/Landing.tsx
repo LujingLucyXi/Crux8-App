@@ -15,6 +15,15 @@ const PILLARS = [
 export function Landing() {
   const nav = useNavigate();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetEntry, setSheetEntry] = useState<{ tab: 'code' | 'password'; pwMode: 'signin' | 'signup' }>({
+    tab: 'code',
+    pwMode: 'signin',
+  });
+
+  const openSheet = (tab: 'code' | 'password', pwMode: 'signin' | 'signup') => {
+    setSheetEntry({ tab, pwMode });
+    setSheetOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-paper-50">
@@ -44,10 +53,10 @@ export function Landing() {
         </div>
 
         <div className="mt-10 w-full max-w-sm flex flex-col gap-2">
-          <Button size="lg" onClick={() => setSheetOpen(true)}>
+          <Button size="lg" onClick={() => openSheet('password', 'signup')}>
             Sign up
           </Button>
-          <Button size="lg" variant="outline" onClick={() => setSheetOpen(true)}>
+          <Button size="lg" variant="outline" onClick={() => openSheet('code', 'signin')}>
             Sign in
           </Button>
         </div>
@@ -57,6 +66,8 @@ export function Landing() {
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         onSuccess={() => nav('/')}
+        initialTab={sheetEntry.tab}
+        initialPwMode={sheetEntry.pwMode}
       />
     </div>
   );
