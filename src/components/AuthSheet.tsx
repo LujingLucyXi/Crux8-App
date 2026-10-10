@@ -59,6 +59,12 @@ export function AuthSheet({ open, onOpenChange, title = 'Get started', onSuccess
     onSuccess?.();
   };
 
+  const switchPwMode = (m: PwMode) => {
+    setPwMode(m);
+    setError('');
+    setNotice('');
+  };
+
   const submitEmail = async () => {
     const normalized = email.trim().toLowerCase();
     if (!looksLikeEmail(normalized)) {
@@ -239,68 +245,63 @@ export function AuthSheet({ open, onOpenChange, title = 'Get started', onSuccess
             </>
           )
         ) : (
-          <>
-            {/* sign in / create account toggle */}
-            <div className="grid grid-cols-2 gap-1 rounded-xl bg-paper-50 p-1 text-sm font-semibold mb-4">
-              {(['signin', 'signup'] as PwMode[]).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => {
-                    setPwMode(m);
-                    setError('');
-                    setNotice('');
-                  }}
-                  className={cn(
-                    'rounded-lg py-1.5 transition-colors',
-                    pwMode === m ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500',
-                  )}
-                >
-                  {m === 'signin' ? 'Sign in' : 'Create account'}
-                </button>
-              ))}
+          <div className="mt-4 flex flex-col gap-4">
+            <div>
+              <Label>Email</Label>
+              <Input
+                value={pwEmail}
+                onChange={(e) => setPwEmail(e.target.value)}
+                placeholder="you@example.com"
+                type="email"
+                autoComplete="email"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void submitPassword();
+                }}
+              />
             </div>
-            <div className="flex flex-col gap-4">
-              <div>
-                <Label>Email</Label>
-                <Input
-                  value={pwEmail}
-                  onChange={(e) => setPwEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  type="email"
-                  autoComplete="email"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') void submitPassword();
-                  }}
-                />
-              </div>
-              <div>
-                <Label>Password</Label>
-                <Input
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={pwMode === 'signup' ? 'At least 6 characters' : 'Your password'}
-                  type="password"
-                  autoComplete={pwMode === 'signup' ? 'new-password' : 'current-password'}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') void submitPassword();
-                  }}
-                />
-              </div>
-              <Button onClick={() => void submitPassword()} disabled={busy}>
-                {busy ? 'Please wait…' : pwMode === 'signup' ? 'Create account' : 'Sign in'}
-              </Button>
-              {pwMode === 'signin' ? (
+            <div>
+              <Label>Password</Label>
+              <Input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={pwMode === 'signup' ? 'At least 6 characters' : 'Your password'}
+                type="password"
+                autoComplete={pwMode === 'signup' ? 'new-password' : 'current-password'}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void submitPassword();
+                }}
+              />
+            </div>
+            <Button onClick={() => void submitPassword()} disabled={busy}>
+              {busy ? 'Please wait…' : pwMode === 'signup' ? 'Create account' : 'Sign in'}
+            </Button>
+            {pwMode === 'signin' ? (
+              <div className="flex items-center justify-between text-sm">
                 <button
                   type="button"
-                  className="text-sm font-medium text-ink-500 underline underline-offset-2"
+                  className="font-medium text-ink-500 underline underline-offset-2"
                   onClick={() => void submitReset()}
                 >
                   Forgot password?
                 </button>
-              ) : null}
-            </div>
-          </>
+                <button
+                  type="button"
+                  className="font-medium text-ink-900 underline underline-offset-2"
+                  onClick={() => switchPwMode('signup')}
+                >
+                  New here? Create account
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="text-center text-sm font-medium text-ink-500 underline underline-offset-2"
+                onClick={() => switchPwMode('signin')}
+              >
+                Already have an account? Sign in
+              </button>
+            )}
+          </div>
         )}
       </SheetContent>
     </Sheet>
