@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Input, Label } from '@/components/ui/Input';
-import { Sheet, SheetContent } from '@/components/ui/Sheet';
+import { AuthSheet } from '@/components/AuthSheet';
 import { Logo } from '@/components/layout/Logo';
 import { useAppStore } from '@/store/useAppStore';
 import { DNA_AXES, getArchetype, getHouse, getHouseForArchetype } from '@/lib/quizMeta';
@@ -15,7 +15,7 @@ import type { Profile, QuizDna } from '@/seed/types'; // both used in type posit
  *   /claim?r={archetype_id}&d={v,v,v,v,v,v}&n={nickname}&h={house_id}&l={en|zh}
  * `d` carries the 6 DNA values (0-100) in DNA_AXES order.
  *
- * - Logged out → teaser + OTP sign-in, then the claim card appears.
+ * - Logged out → teaser + sign-in sheet (email code or password), then the claim card appears.
  * - Logged in, DNA not yet claimed → claim card → one tap saves to profile.
  * - Already claimed → points at the profile instead of double-saving.
  */
@@ -75,54 +75,16 @@ function DnaBars({ dna }: { dna: QuizDna }) {
   );
 }
 
-type OtpStep = 'email' | 'code';
-
 export function Claim() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
   const me = useAppStore((s) => s.me);
   const updateProfile = useAppStore((s) => s.updateProfile);
-  const sendOtp = useAppStore((s) => s.sendOtp);
-  const verifyOtp = useAppStore((s) => s.verifyOtp);
 
   const claim = useMemo(() => parseClaim(searchParams), [searchParams]);
 
   const [name, setName] = useState(claim?.nickname ?? '');
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [otpStep, setOtpStep] = useState<OtpStep>('email');
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSendCode = async () => {
-    const normalized = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
-      setError("That email doesn't look right — check it and try again.");
-      return;
-    }
-    setBusy(true);
-    setError('');
-    const res = await sendOtp(normalized);
-    setBusy(false);
-    if (res.ok) setOtpStep('code');
-    else setError(res.error);
-  };
-
-  const handleVerify = async () => {
-    if (code.trim().length < 6) return;
-    setBusy(true);
-    setError('');
-    const res = await verifyOtp(email, code);
-    setBusy(false);
-    if (res.ok) {
-      setSheetOpen(false);
-      setOtpStep('email');
-      setCode('');
-    } else {
-      setError(res.error);
-    }
-  };
 
   const handleClaim = () => {
     if (!claim || !me) return;
@@ -227,16 +189,12 @@ export function Claim() {
                 <Button
                   className="w-full"
                   size="lg"
-                  onClick={() => {
-                    setOtpStep('email');
-                    setError('');
-                    setSheetOpen(true);
-                  }}
+                  onClick={() => setSheetOpen(true)}
                 >
                   Sign in to claim
                 </Button>
                 <p className="mt-3 text-center text-[11px] text-ink-400">
-                  We'll send a 6-digit code to your email. No password needed.
+                  Sign in with an email code or a password — your call.
                 </p>
               </div>
             )}
@@ -244,62 +202,11 @@ export function Claim() {
         )}
       </div>
 
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent title="Sign in">
-          {otpStep === 'email' ? (
-            <div className="flex flex-col gap-4">
-              <p className="text-sm text-ink-500 -mt-2">
-                Sign in with your email to claim your DNA.
-              </p>
-              <div>
-                <Label>Email</Label>
-                <Input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  type="email"
-                  autoComplete="email"
-                  autoFocus
-                  onKeyDown={(e) => { if (e.key === 'Enter') void handleSendCode(); }}
-                />
-              </div>
-              {error ? <p className="text-sm text-red-600 -mt-2">{error}</p> : null}
-              <Button onClick={() => void handleSendCode()} disabled={busy || !email.trim()}>
-                {busy ? 'Sending…' : 'Send code'}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <p className="text-sm text-ink-500 -mt-2">
-                We sent a 6-digit code to <span className="font-semibold text-ink-900">{email.trim()}</span>.
-              </p>
-              <div>
-                <Label>Code</Label>
-                <Input
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="123456"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  autoFocus
-                  onKeyDown={(e) => { if (e.key === 'Enter') void handleVerify(); }}
-                />
-              </div>
-              {error ? <p className="text-sm text-red-600 -mt-2">{error}</p> : null}
-              <Button onClick={() => void handleVerify()} disabled={busy || code.trim().length < 6}>
-                {busy ? 'Verifying…' : 'Verify and continue'}
-              </Button>
-              <button
-                type="button"
-                className="text-sm font-medium text-ink-500 underline underline-offset-2"
-                onClick={() => { setOtpStep('email'); setCode(''); setError(''); }}
-              >
-                Use a different email
-              </button>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
+      <AuthSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        title="Sign in"
+      />
     </div>
   );
 }

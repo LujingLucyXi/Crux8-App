@@ -37,7 +37,7 @@ import {
   fetchMyProfile,
   profileRowToProfile,
   profilePatchToRow,
-  otpErrorMessage,
+  otpErrorMessage, passwordErrorMessage,
 } from '@/lib/supabase';
 import {
   XP,
@@ -137,6 +137,13 @@ interface Store {
   // Real auth (Supabase email OTP). Replaces the old mock `signUp`.
   sendOtp: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   verifyOtp: (email: string, code: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  // Email + password auth (alternative to OTP; same account system).
+  signUpWithPassword: (
+    email: string,
+    password: string,
+  ) => Promise<{ ok: true; needsConfirmation: boolean } | { ok: false; error: string }>;
+  signInWithPassword: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  resetPassword: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   /** Reconcile persisted state with the Supabase session on app boot. */
   initAuth: () => Promise<void>;
   completeOnboarding: (patch: Partial<Profile>) => void;
@@ -273,6 +280,23 @@ async function persistProfilePatch(userId: string, patch: Partial<Profile>): Pro
   if (error) console.warn('[auth] profiles upsert failed', error.message);
 }
 
+/**
+ * Make sure the Supabase `profiles` row exists for an auth user.
+ * The on_auth_user_created trigger normally creates it; this is the
+ * fallback for races or users who predate the table.
+ */
+async function ensureProfileRow(userId: string, email: string | null): Promise<void> {
+  const existing = await fetchMyProfile(userId).catch(() => null);
+  if (!existing) {
+    await supabase
+      .from('profiles')
+      .insert({ id: userId, email })
+      .then(({ error: insErr }) => {
+        if (insErr) console.warn('[auth] profiles insert fallback failed', insErr.message);
+      });
+  }
+}
+
 export const useAppStore = create<Store>()(
   persist(
     (set, get) => ({
@@ -363,16 +387,66 @@ export const useAppStore = create<Store>()(
           return { ok: false as const, error: otpErrorMessage(error, 'Could not verify the code — please try again.') };
         }
         const user = data.user;
-        // The on_auth_user_created trigger should have created the row when the
-        // code was sent; fall back to an explicit insert in case of a race.
-        let row = await fetchMyProfile(user.id).catch(() => null);
-        if (!row) {
-          await supabase.from('profiles').insert({ id: user.id, email: user.email }).then(({ error: insErr }) => {
-            if (insErr) console.warn('[auth] profiles insert fallback failed', insErr.message);
-          });
-          row = await fetchMyProfile(user.id).catch(() => null);
-        }
+        await ensureProfileRow(user.id, user.email);
+        const row = await fetchMyProfile(user.id).catch(() => null);
         set({ me: profileRowToProfile(user.id, user.email ?? normalizedEmail, row) });
+        return { ok: true as const };
+      },
+
+      /**
+       * Password sign-up. With "Confirm email" on (Supabase default), this
+       * sends a confirmation link and returns needsConfirmation — no session
+       * yet. If confirmation is off, the user is signed in immediately.
+       */
+      signUpWithPassword: async (email, password) => {
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data, error } = await supabase.auth.signUp({
+          email: normalizedEmail,
+          password,
+        });
+        if (error || !data.user) {
+          return { ok: false as const, error: passwordErrorMessage(error, 'Could not create your account — please try again.') };
+        }
+        const user = data.user;
+        // No session yet → email confirmation required before first sign-in.
+        if (!data.session) {
+          return { ok: true as const, needsConfirmation: true };
+        }
+        await ensureProfileRow(user.id, user.email);
+        const row = await fetchMyProfile(user.id).catch(() => null);
+        set({ me: profileRowToProfile(user.id, user.email ?? normalizedEmail, row) });
+        return { ok: true as const, needsConfirmation: false };
+      },
+
+      /** Password sign-in for an existing account. */
+      signInWithPassword: async (email, password) => {
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
+        if (error || !data.user) {
+          return { ok: false as const, error: passwordErrorMessage(error, 'Could not sign you in — please try again.') };
+        }
+        const user = data.user;
+        await ensureProfileRow(user.id, user.email);
+        const row = await fetchMyProfile(user.id).catch(() => null);
+        set({ me: profileRowToProfile(user.id, user.email ?? normalizedEmail, row) });
+        return { ok: true as const };
+      },
+
+      /**
+       * Send a password-reset email (uses the "Reset password" template).
+       * The link lands on /update-password, which exchanges it for a session
+       * and lets the user set a new password.
+       */
+      resetPassword: async (email) => {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+          redirectTo: `${window.location.origin}/update-password`,
+        });
+        if (error) {
+          return { ok: false as const, error: passwordErrorMessage(error, 'Could not send the reset email — please try again.') };
+        }
         return { ok: true as const };
       },
 
