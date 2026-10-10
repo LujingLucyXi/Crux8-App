@@ -23,12 +23,10 @@ import type {
 import {
   SEED_GYMS,
   SEED_ROUTES,
-  SEED_SESSIONS,
   SEED_EVENTS,
   SEED_GROUPS,
   SEED_USERS,
   SEED_CRUXMATES,
-  SEED_CLIMB_CALLS,
 } from '@/seed';
 import { uid } from '@/lib/utils';
 import { avatarFromSeed } from '@/lib/avatar';
@@ -50,6 +48,17 @@ import {
   CHECKIN_COLORS,
 } from '@/lib/rewards';
 import { celebrate } from '@/store/useCelebration';
+import {
+  fetchSessions as dbFetchSessions,
+  createSession as dbCreateSession,
+  setSessionRsvp,
+  fetchClimbCalls as dbFetchClimbCalls,
+  createClimbCall as dbCreateClimbCall,
+  setCallPairing,
+  fetchDirectoryProfiles,
+  type DirectoryProfile,
+} from '@/lib/db';
+import { resolveUser } from '@/lib/resolveUser';
 
 export type Verification = { status: VerificationStatus; photo_url?: string; verified_at?: string; attested_at?: string };
 
@@ -105,6 +114,8 @@ interface Store {
   groups: Group[];
   users: NpcUser[];
   climbCalls: ClimbCall[];
+  /** Real profiles seen on sessions/calls (Supabase), keyed by user id. */
+  directory: Record<string, DirectoryProfile>;
 
   // relations
   myGroupMemberships: string[];
@@ -131,9 +142,16 @@ interface Store {
   // UI state
   filters: Filters;
   seededAt: number | null;
+  /** True while sessions load from Supabase. */
+  sessionsLoading: boolean;
 
   // ---------- actions ----------
   seedIfEmpty: () => void;
+  /** Load sessions / climb calls from Supabase (real backend). */
+  fetchSessions: () => Promise<void>;
+  fetchClimbCalls: () => Promise<void>;
+  /** Fetch unknown user ids into `directory` for display resolution. */
+  ensureDirectoryProfiles: (ids: string[]) => Promise<void>;
   // Real auth (Supabase email OTP). Replaces the old mock `signUp`.
   sendOtp: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   verifyOtp: (email: string, code: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -151,19 +169,19 @@ interface Store {
   signOut: () => Promise<void>;
   resetAll: () => void;
 
-  rsvp: (sessionId: string) => void;
-  unrsvp: (sessionId: string) => void;
+  rsvp: (sessionId: string) => Promise<void>;
+  unrsvp: (sessionId: string) => Promise<void>;
   rsvpEvent: (eventId: string, waitlist?: boolean) => void;
   unrsvpEvent: (eventId: string) => void;
   buyTicket: (eventId: string) => void;
   stampPass: (eventId: string, gymId: string) => void;
   subscribeMysteryPass: () => void;
 
-  postSession: (session: Omit<Session, 'id' | 'host_id' | 'participant_ids'>) => Session;
+  postSession: (session: Omit<Session, 'id' | 'host_id' | 'participant_ids'>) => Promise<Session>;
   postEvent: (event: Omit<EventItem, 'id' | 'attendee_ids' | 'waitlist_ids'>) => EventItem;
-  postClimbCall: (call: Omit<ClimbCall, 'id' | 'user_id' | 'status'>) => ClimbCall;
-  requestPair: (callId: string) => void;
-  cancelPairRequest: (callId: string) => void;
+  postClimbCall: (call: Omit<ClimbCall, 'id' | 'user_id' | 'status' | 'participant_ids'>) => Promise<ClimbCall>;
+  requestPair: (callId: string) => Promise<void>;
+  cancelPairRequest: (callId: string) => Promise<void>;
 
   checkIn: (gymId: string) => void;
   checkOut: () => void;
@@ -308,6 +326,7 @@ export const useAppStore = create<Store>()(
       groups: [],
       users: [],
       climbCalls: [],
+      directory: {},
       myGroupMemberships: [],
       ticketPurchases: [],
       ticketRedemptions: {},
@@ -328,17 +347,16 @@ export const useAppStore = create<Store>()(
       lastCheckinDay: null,
       filters: initialFilters,
       seededAt: null,
+      sessionsLoading: false,
 
       seedIfEmpty: () => {
         if (get().seededAt) return;
         set({
           gyms: SEED_GYMS,
           routes: SEED_ROUTES,
-          sessions: SEED_SESSIONS,
           events: SEED_EVENTS,
           groups: SEED_GROUPS,
           users: SEED_USERS,
-          climbCalls: SEED_CLIMB_CALLS,
           gymPresence: Object.fromEntries(SEED_GYMS.map((g) => [g.id, g.here_now])),
           cruxmates: SEED_CRUXMATES,
           myGroupMemberships: ['grp_seattle_queer_climbers'],
@@ -359,6 +377,55 @@ export const useAppStore = create<Store>()(
           },
           seededAt: Date.now(),
         });
+        // Sessions and climb calls now come from Supabase (real backend).
+        void get().fetchSessions();
+        void get().fetchClimbCalls();
+      },
+
+      fetchSessions: async () => {
+        set({ sessionsLoading: true });
+        try {
+          const sessions = await dbFetchSessions();
+          set({ sessions });
+          await get().ensureDirectoryProfiles(
+            sessions.flatMap((s) => [s.host_id, ...s.participant_ids]),
+          );
+        } catch (e) {
+          console.error('[sessions] fetch failed', e);
+        } finally {
+          set({ sessionsLoading: false });
+        }
+      },
+
+      fetchClimbCalls: async () => {
+        try {
+          const climbCalls = await dbFetchClimbCalls();
+          set({ climbCalls });
+          await get().ensureDirectoryProfiles(
+            climbCalls.flatMap((c) => [c.user_id, ...c.participant_ids]),
+          );
+        } catch (e) {
+          console.error('[calls] fetch failed', e);
+        }
+      },
+
+      ensureDirectoryProfiles: async (ids) => {
+        const me = get().me;
+        const known = new Set([
+          ...(me ? [me.id] : []),
+          ...get().users.map((u) => u.id),
+          ...Object.keys(get().directory),
+        ]);
+        const missing = [...new Set(ids)].filter((id) => id && !known.has(id));
+        if (missing.length === 0) return;
+        try {
+          const profiles = await fetchDirectoryProfiles(missing);
+          const directory = { ...get().directory };
+          for (const p of profiles) directory[p.id] = p;
+          set({ directory });
+        } catch (e) {
+          console.error('[directory] fetch failed', e);
+        }
       },
 
       /**
@@ -507,6 +574,7 @@ export const useAppStore = create<Store>()(
           events: [],
           groups: [],
           users: [],
+          directory: {},
           myGroupMemberships: [],
           ticketPurchases: [],
           ticketRedemptions: {},
@@ -527,7 +595,7 @@ export const useAppStore = create<Store>()(
         });
       },
 
-      rsvp: (sessionId) => {
+      rsvp: async (sessionId) => {
         const me = get().me;
         if (!me) return;
         const already = get().sessions.find((s) => s.id === sessionId)?.participant_ids.includes(me.id);
@@ -552,9 +620,14 @@ export const useAppStore = create<Store>()(
           );
         }
         get().checkBadges();
+        try {
+          await setSessionRsvp(sessionId, me.id, true);
+        } catch (e) {
+          console.error('[sessions] rsvp write failed', e);
+        }
       },
 
-      unrsvp: (sessionId) => {
+      unrsvp: async (sessionId) => {
         const me = get().me;
         if (!me) return;
         set({
@@ -564,6 +637,11 @@ export const useAppStore = create<Store>()(
               : s
           ),
         });
+        try {
+          await setSessionRsvp(sessionId, me.id, false);
+        } catch (e) {
+          console.error('[sessions] unrsvp write failed', e);
+        }
       },
 
       rsvpEvent: (eventId, waitlist) => {
@@ -639,16 +717,13 @@ export const useAppStore = create<Store>()(
         set({ mysteryMemberUntil: base.toISOString() });
       },
 
-      postSession: (session) => {
+      postSession: async (session) => {
         const me = get().me!;
-        const newSession: Session = {
-          ...session,
-          id: uid('ses'),
-          host_id: me.id,
-          participant_ids: [me.id],
-        };
-        set({ sessions: [newSession, ...get().sessions] });
-        return newSession;
+        // Errors throw to the caller (the sheet shows a toast).
+        const created = await dbCreateSession({ ...session, host_id: me.id });
+        set({ sessions: [created, ...get().sessions] });
+        void get().ensureDirectoryProfiles([created.host_id]);
+        return created;
       },
 
       postEvent: (event) => {
@@ -663,18 +738,13 @@ export const useAppStore = create<Store>()(
         return newEvent;
       },
 
-      postClimbCall: (call) => {
+      postClimbCall: async (call) => {
         const me = get().me!;
-        const seededParticipants = call.participant_ids?.length ? call.participant_ids : [me.id];
-        const newCall: ClimbCall = {
-          ...call,
-          id: uid('call'),
-          user_id: me.id,
-          status: 'live',
-          participant_ids: seededParticipants,
-        };
-        set({ climbCalls: [newCall, ...get().climbCalls] });
-        return newCall;
+        // Errors throw to the caller (the sheet shows a toast).
+        const created = await dbCreateClimbCall({ ...call, user_id: me.id });
+        set({ climbCalls: [created, ...get().climbCalls] });
+        void get().ensureDirectoryProfiles([created.user_id]);
+        return created;
       },
 
       checkIn: (gymId) => {
@@ -741,7 +811,7 @@ export const useAppStore = create<Store>()(
         get().checkBadges();
       },
 
-      requestPair: (callId) => {
+      requestPair: async (callId) => {
         const me = get().me;
         if (!me) return;
         if (get().pairRequests.includes(callId)) return;
@@ -758,9 +828,7 @@ export const useAppStore = create<Store>()(
         const call = get().climbCalls.find((c) => c.id === callId);
         if (call) {
           const gym = get().gyms.find((g) => g.id === call.gym_id);
-          const host = call.user_id === 'me'
-            ? get().me?.display_name
-            : get().users.find((u) => u.id === call.user_id)?.display_name;
+          const host = resolveUser(call.user_id, get().me, get().users, get().directory)?.display_name;
           get().ensureSessionChat(
             call.id,
             'call',
@@ -769,9 +837,14 @@ export const useAppStore = create<Store>()(
             call.participant_ids,
           );
         }
+        try {
+          await setCallPairing(callId, me.id, true);
+        } catch (e) {
+          console.error('[calls] pair write failed', e);
+        }
       },
 
-      cancelPairRequest: (callId) => {
+      cancelPairRequest: async (callId) => {
         const me = get().me;
         if (!me) return;
         set({
@@ -780,6 +853,11 @@ export const useAppStore = create<Store>()(
             c.id === callId ? { ...c, participant_ids: c.participant_ids.filter((id) => id !== me.id) } : c,
           ),
         });
+        try {
+          await setCallPairing(callId, me.id, false);
+        } catch (e) {
+          console.error('[calls] unpair write failed', e);
+        }
       },
 
       joinGroup: (groupId) => {
@@ -1229,8 +1307,11 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 16,
+      version: 17,
       /**
+       * v16 → v17: sessions + climb calls move to real Supabase tables.
+       *   Drop persisted mock sessions/calls (and their chats/pairings/
+       *   recaps); fetchSessions/fetchClimbCalls repopulate from the backend.
        * v15 → v16: real Supabase auth replaces the mock demo identity.
        * v1 → v2: ClimbCall.role → looking_for.
        * v2 → v4: Seattle gym roster refreshed (Bouldering Project rebrand,
@@ -1262,6 +1343,23 @@ export const useAppStore = create<Store>()(
                   g.member_count -= 1;
                 }
               }
+            }
+          }
+        }
+        if (version < 17) {
+          // v16 → v17: sessions and climb calls are now real Supabase data.
+          // Drop the persisted mock collections so fetchSessions /
+          // fetchClimbCalls repopulate from the backend; drop the mock
+          // session/call group chats (mock ids carry ses_/call_ prefixes)
+          // and any mock-derived pairing/recap state.
+          s.sessions = [];
+          s.climbCalls = [];
+          s.pairRequests = [];
+          s.recaps = {};
+          const scs = s.sessionChats as Record<string, { id: string }> | undefined;
+          if (scs) {
+            for (const key of Object.keys(scs)) {
+              if (key.startsWith('ses_') || key.startsWith('call_')) delete scs[key];
             }
           }
         }
@@ -1301,15 +1399,6 @@ export const useAppStore = create<Store>()(
             const missing = SEED_EVENTS.filter((e) => !haveIds.has(e.id));
             s.events = [...existing, ...missing];
           }
-        }
-        if (version < 11 && s.seededAt) {
-          // Multi-day hiking/mountaineering trips: append any newly-seeded
-          // sessions (e.g. the expedition trips) the persisted store lacks.
-          // Match by id so user RSVPs on existing sessions are preserved.
-          const existing = Array.isArray(s.sessions) ? (s.sessions as Session[]) : [];
-          const haveIds = new Set(existing.map((x) => x.id));
-          const missing = SEED_SESSIONS.filter((x) => !haveIds.has(x.id));
-          s.sessions = [...existing, ...missing];
         }
         if (version < 10 && s.seededAt) {
           // Promoted events: append any newly-seeded events (e.g. the featured

@@ -11,6 +11,7 @@ import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
 import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
+import { resolveUser } from '@/lib/resolveUser';
 import type { Session, ClimbCall, EventItem } from '@/seed/types';
 
 type Item =
@@ -30,6 +31,7 @@ export function Sessions() {
   const climbCalls = useAppStore((s) => s.climbCalls);
   const events = useAppStore((s) => s.events);
   const users = useAppStore((s) => s.users);
+  const directory = useAppStore((s) => s.directory);
   const gyms = useAppStore((s) => s.gyms);
   const groups = useAppStore((s) => s.groups);
   const recaps = useAppStore((s) => s.recaps);
@@ -97,7 +99,7 @@ export function Sessions() {
     }
     if (it.kind === 'call') {
       const c = it.data;
-      const caller = c.user_id === me.id ? me : users.find((u) => u.id === c.user_id);
+      const caller = resolveUser(c.user_id, me, users, directory);
       const gym = gyms.find((g) => g.id === c.gym_id);
       if (!caller || !gym) return null;
       return (

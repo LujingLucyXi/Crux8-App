@@ -4,6 +4,7 @@ import { formatSessionWhen, formatTripRange, isMultiDaySpan } from '@/lib/date';
 import { AvatarStack } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
+import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
 
 // Each category paints the whole card: a saturated icon tile on a matching
 // pastel surface, so the Find list reads as colorful blocks, not white rows.
@@ -41,19 +42,22 @@ interface SessionCardProps {
 }
 
 export function SessionCard({ session, users, gymName, onClick, matchScore, groupName }: SessionCardProps) {
-  const meAvatar = useAppStore((s) => s.me?.avatar);
-  const mePhoto = useAppStore((s) => s.me?.photo_url);
+  const me = useAppStore((s) => s.me);
+  const directory = useAppStore((s) => s.directory);
   const color = categoryColor[session.category];
   const Icon = categoryIcon[session.category];
+  // DB-backed ids resolve via me -> NPC seeds -> Supabase directory.
   const participants = session.participant_ids
-    .map((id) => users.find((u) => u.id === id))
-    .filter((u): u is NpcUser => !!u);
+    .map((id) => resolveUser(id, me, users, directory))
+    .filter((u): u is ResolvedUser => !!u);
 
-  const meIncluded = session.participant_ids.includes('me');
-  // If me is in participants but not resolved from users list, add pseudo-entry
-  const displayUsers = meIncluded
-    ? [{ id: 'me', display_name: 'You', avatar: meAvatar, photo_url: mePhoto }, ...participants]
-    : participants;
+  // Label the signed-in user "You"; photo (when set) wins over the avatar.
+  const displayUsers = participants.map((p) => ({
+    id: p.id,
+    display_name: p.id === me?.id ? 'You' : p.display_name,
+    avatar: p.avatar,
+    photo_url: p.photo_url ?? undefined,
+  }));
 
   return (
     <button

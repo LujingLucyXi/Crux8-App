@@ -13,6 +13,7 @@ import { GearChecklistSheet } from './GearChecklistSheet';
 import { CertVerificationSheet } from './CertVerificationSheet';
 import { UserProfileSheet } from './UserProfileSheet';
 import { openExternal, tapTick } from '@/lib/native';
+import { resolveUser } from '@/lib/resolveUser';
 import type { AvatarConfig } from '@/lib/avatar';
 
 interface Props {
@@ -34,6 +35,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const rsvp = useAppStore((s) => s.rsvp);
   const unrsvp = useAppStore((s) => s.unrsvp);
   const users = useAppStore((s) => s.users);
+  const directory = useAppStore((s) => s.directory);
   const gyms = useAppStore((s) => s.gyms);
   const routes = useAppStore((s) => s.routes);
   const verifications = useAppStore((s) => s.verifications);
@@ -51,14 +53,13 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const isFull = session.participant_ids.length >= session.capacity;
   const gym = session.gym_id ? gyms.find((g) => g.id === session.gym_id) : undefined;
   const route = session.route_id ? routes.find((r) => r.id === session.route_id) : undefined;
-  const host = users.find((u) => u.id === session.host_id);
+  const host = resolveUser(session.host_id, me, users, directory);
   const participants = session.participant_ids
     .map((id) => {
-      if (id === 'me') return { id: 'me', display_name: me.display_name, avatar: me.avatar, photo_url: me.photo_url, isMe: true };
-      const u = users.find((x) => x.id === id);
-      return u ? { ...u, isMe: false } : null;
+      const u = resolveUser(id, me, users, directory);
+      return u ? { ...u, isMe: id === me.id } : null;
     })
-    .filter(Boolean) as Array<{ id: string; display_name: string; avatar?: AvatarConfig; photo_url?: string; isMe?: boolean }>;
+    .filter(Boolean) as Array<{ id: string; display_name: string; avatar?: AvatarConfig; photo_url?: string | null; isMe?: boolean }>;
 
   const requiredVerification = catToVerification(session.category);
   const isVerified = requiredVerification
@@ -73,16 +74,16 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
     setGearOpen(true);
   };
 
-  const confirmRsvp = () => {
-    rsvp(session.id);
+  const confirmRsvp = async () => {
+    await rsvp(session.id);
     void tapTick();
     toast(`You're in for ${session.title}`, { description: formatSessionWhen(session.starts_at) });
     onOpenChange(false); // close the detail sheet after joining
   };
 
-  const handleRsvp = () => {
+  const handleRsvp = async () => {
     if (isJoined) {
-      unrsvp(session.id);
+      await unrsvp(session.id);
       toast('Left session');
       return;
     }
@@ -164,7 +165,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
                   disabled={p.isMe}
                   className="flex items-center gap-3 p-2 rounded-xl hover:bg-paper-50 disabled:cursor-default disabled:hover:bg-transparent text-left"
                 >
-                  <Avatar photoUrl={p.photo_url} config={p.avatar} alt={p.display_name} size={32} fallback={p.display_name} />
+                  <Avatar photoUrl={p.photo_url ?? undefined} config={p.avatar} alt={p.display_name} size={32} fallback={p.display_name} />
                   <span className="text-sm text-ink-900 flex-1">{p.display_name}</span>
                   {p.id === session.host_id && (
                     <span className="text-[10px] font-semibold text-ink-500 uppercase tracking-wider">Host</span>

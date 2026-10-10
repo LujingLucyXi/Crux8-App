@@ -124,7 +124,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   };
 
   const catInfo = CATEGORIES.find((c) => c.value === category)!;
-  const adminGroups = groups.filter((g) => g.admin_ids.includes(me?.id ?? 'me'));
+  const adminGroups = groups.filter((g) => g.admin_ids.includes(me?.id ?? ''));
 
   const reset = () => {
     setMode('indoor');
@@ -163,59 +163,71 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     setEvtGroupId('');
   };
 
-  const handleSubmitCall = () => {
+  const handleSubmitCall = async () => {
     const startsAt = resolveStart();
     const isOutdoor = mode === 'outdoor';
-    postClimbCall({
-      title: callTitle.trim() || undefined,
-      looking_for: callLookingFor,
-      category: callCategory,
-      grade: callGrade,
-      location_type: isOutdoor ? 'outdoor' : 'indoor',
-      gym_id: isOutdoor ? undefined : callGymId,
-      area: isOutdoor ? (outdoorLoc.trim() || 'Outdoor crag') : undefined,
-      starts_at: startsAt,
-      ends_at: plusHours(startsAt, callDurationHours),
-      note: callNote.trim() || undefined,
-      is_friend_only: false,
-      weight_kg: me?.weight_kg,
-      capacity: callCapacity,
-      participant_ids: [me!.id],
-    });
+    try {
+      // The store fills user_id from the signed-in user and seeds
+      // participant_ids from it; the payload must NOT carry them.
+      await postClimbCall({
+        title: callTitle.trim() || undefined,
+        looking_for: callLookingFor,
+        category: callCategory,
+        grade: callGrade,
+        location_type: isOutdoor ? 'outdoor' : 'indoor',
+        gym_id: isOutdoor ? undefined : callGymId,
+        area: isOutdoor ? (outdoorLoc.trim() || 'Outdoor crag') : undefined,
+        starts_at: startsAt,
+        ends_at: plusHours(startsAt, callDurationHours),
+        note: callNote.trim() || undefined,
+        is_friend_only: false,
+        weight_kg: me?.weight_kg,
+        capacity: callCapacity,
+      });
+    } catch {
+      toast("Couldn't post — check your connection and try again.");
+      return;
+    }
     toast('Climb call live', { description: `Belay partners can request to pair.` });
     onOpenChange(false);
     reset();
   };
 
-  const handleSubmitSession = () => {
+  const handleSubmitSession = async () => {
     // Boulder session; indoor or outdoor decided by `mode`.
     const isOutdoor = mode === 'outdoor';
     const startsIso = resolveStart();
-    const session = postSession({
-      category: discipline === 'hike' ? 'hiking' : isOutdoor ? 'outdoor_boulder' : 'boulder',
-      hike_type: discipline === 'hike' ? hikeType : undefined,
-      title: sessionTitle.trim() || (discipline === 'hike' ? 'Hike' : 'Boulder Session'),
-      subtitle: subtitle || 'All levels welcome',
-      starts_at: startsIso,
-      ends_at: plusHours(
-        startsIso,
-        discipline === 'hike' && hikeType === 'expedition' ? tripDays * 24 : durationHours,
-      ),
-      gym_id: isOutdoor ? undefined : gymId,
-      area: isOutdoor ? (outdoorLoc.trim() || (discipline === 'hike' ? 'Trailhead' : 'Outdoor boulders')) : undefined,
-      capacity,
-      vibe,
-      location_type: isOutdoor ? 'outdoor' : 'indoor',
-      is_verified_only: false,
-      requires_attestation: false,
-      posted_by_group_id: defaultGroupId,
-      note: note.trim() || undefined,
-    });
-    toast('Session posted', {
-      description: `${session.capacity - 1} spots open · appears at the top of Find.`,
-    });
-    onOpenChange(false);
-    reset();
+    try {
+      // The store fills host_id from the signed-in user and seeds
+      // participant_ids from it; the payload must NOT carry them.
+      const session = await postSession({
+        category: discipline === 'hike' ? 'hiking' : isOutdoor ? 'outdoor_boulder' : 'boulder',
+        hike_type: discipline === 'hike' ? hikeType : undefined,
+        title: sessionTitle.trim() || (discipline === 'hike' ? 'Hike' : 'Boulder Session'),
+        subtitle: subtitle || 'All levels welcome',
+        starts_at: startsIso,
+        ends_at: plusHours(
+          startsIso,
+          discipline === 'hike' && hikeType === 'expedition' ? tripDays * 24 : durationHours,
+        ),
+        gym_id: isOutdoor ? undefined : gymId,
+        area: isOutdoor ? (outdoorLoc.trim() || (discipline === 'hike' ? 'Trailhead' : 'Outdoor boulders')) : undefined,
+        capacity,
+        vibe,
+        location_type: isOutdoor ? 'outdoor' : 'indoor',
+        is_verified_only: false,
+        requires_attestation: false,
+        posted_by_group_id: defaultGroupId,
+        note: note.trim() || undefined,
+      });
+      toast('Session posted', {
+        description: `${session.capacity - 1} spots open · appears at the top of Find.`,
+      });
+      onOpenChange(false);
+      reset();
+    } catch {
+      toast("Couldn't post — check your connection and try again.");
+    }
   };
 
   const handleSubmitEvent = () => {

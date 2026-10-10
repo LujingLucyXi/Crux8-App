@@ -1,0 +1,327 @@
+/**
+ * Supabase data-access layer for the real backend: sessions, session_rsvps,
+ * climb_calls, call_pairings, plus the public profile directory.
+ *
+ * Row <-> TS mappers translate DB rows into the app's Session / ClimbCall
+ * shapes (src/seed/types.ts) so the UI keeps working unchanged. Column names
+ * match the TS field names 1:1 (schema v2).
+ *
+ * All inserts set host_id / user_id explicitly — RLS requires
+ * auth.uid() to match the owner column.
+ */
+import { supabase } from '@/lib/supabase';
+import type {
+  Session,
+  ClimbCall,
+  Category,
+  Vibe,
+  LocationType,
+  HikeType,
+} from '@/seed/types';
+
+export interface DirectoryProfile {
+  id: string;
+  display_name: string;
+  photo_url?: string | null;
+  top_grade?: string | null;
+  home_gym_id?: string | null;
+}
+
+/** DB row shapes (the supabase-js client is untyped; cast at the boundary). */
+interface SessionRow {
+  id: string;
+  host_id: string;
+  category: string | null;
+  title: string;
+  subtitle: string | null;
+  starts_at: string;
+  ends_at: string;
+  gym_id: string | null;
+  area: string | null;
+  route_id: string | null;
+  hike_type: string | null;
+  capacity: number | null;
+  vibe: string | null;
+  location_type: string | null;
+  is_verified_only: boolean | null;
+  requires_attestation: boolean | null;
+  posted_by_group_id: string | null;
+  note: string | null;
+}
+
+interface ClimbCallRow {
+  id: string;
+  user_id: string;
+  title: string | null;
+  looking_for: string | null;
+  category: string | null;
+  grade: string | null;
+  location_type: string | null;
+  gym_id: string | null;
+  area: string | null;
+  starts_at: string;
+  ends_at: string;
+  note: string | null;
+  is_friend_only: boolean | null;
+  status: string | null;
+  weight_kg: number | string | null;
+  capacity: number | null;
+}
+
+interface RsvpRow {
+  session_id: string;
+  user_id: string;
+}
+
+interface PairingRow {
+  call_id: string;
+  user_id: string;
+}
+
+/** Cast the untyped supabase-js payload at the boundary. */
+function asRows<T>(data: unknown): T[] {
+  return Array.isArray(data) ? (data as T[]) : [];
+}
+
+function asRow<T>(data: unknown): T | null {
+  return data !== null && typeof data === 'object' ? (data as T) : null;
+}
+
+function uniq(ids: string[]): string[] {
+  return [...new Set(ids.filter(Boolean))];
+}
+
+function mapSessionRow(row: SessionRow, participantIds: string[]): Session {
+  return {
+    id: row.id,
+    host_id: row.host_id,
+    category: (row.category as Category | null) ?? 'boulder',
+    title: row.title,
+    subtitle: row.subtitle ?? '',
+    starts_at: row.starts_at,
+    ends_at: row.ends_at,
+    gym_id: row.gym_id ?? undefined,
+    area: row.area ?? undefined,
+    route_id: row.route_id ?? undefined,
+    hike_type: (row.hike_type as HikeType | null) ?? undefined,
+    participant_ids: uniq([row.host_id, ...participantIds]),
+    capacity: row.capacity ?? 4,
+    vibe: (row.vibe as Vibe | null) ?? 'social',
+    location_type:
+      (row.location_type as LocationType | null) ?? (row.gym_id ? 'indoor' : 'outdoor'),
+    is_verified_only: row.is_verified_only ?? false,
+    requires_attestation: row.requires_attestation ?? false,
+    posted_by_group_id: row.posted_by_group_id ?? undefined,
+    note: row.note ?? undefined,
+  };
+}
+
+function mapCallRow(row: ClimbCallRow, participantIds: string[]): ClimbCall {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    title: row.title ?? undefined,
+    looking_for: (row.looking_for as ClimbCall['looking_for'] | null) ?? 'take_turns',
+    category: (row.category as ClimbCall['category'] | null) ?? 'top_rope',
+    grade: row.grade ?? '',
+    location_type: (row.location_type as ClimbCall['location_type'] | null) ?? 'indoor',
+    gym_id: row.gym_id ?? undefined,
+    area: row.area ?? undefined,
+    starts_at: row.starts_at,
+    ends_at: row.ends_at,
+    note: row.note ?? undefined,
+    is_friend_only: row.is_friend_only ?? false,
+    status: (row.status as ClimbCall['status'] | null) ?? 'live',
+    weight_kg: row.weight_kg === null ? undefined : Number(row.weight_kg),
+    capacity: row.capacity ?? 2,
+    participant_ids: uniq([row.user_id, ...participantIds]),
+  };
+}
+
+/** Sessions ending in the last 7 days or later, with their 'going' RSVPs. */
+export async function fetchSessions(): Promise<Session[]> {
+  const cutoff = new Date(Date.now() - 7 * 86400_000).toISOString();
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('*')
+    .gt('ends_at', cutoff)
+    .order('starts_at', { ascending: true });
+  if (error) throw new Error(`fetchSessions: ${error.message}`);
+  const rows = asRows<SessionRow>(data);
+
+  const bySession = new Map<string, string[]>();
+  if (rows.length > 0) {
+    const { data: rsvpData, error: rsvpError } = await supabase
+      .from('session_rsvps')
+      .select('session_id,user_id')
+      .in(
+        'session_id',
+        rows.map((r) => r.id),
+      )
+      .eq('status', 'going');
+    if (rsvpError) throw new Error(`fetchSessions rsvps: ${rsvpError.message}`);
+    for (const r of asRows<RsvpRow>(rsvpData)) {
+      const arr = bySession.get(r.session_id) ?? [];
+      arr.push(r.user_id);
+      bySession.set(r.session_id, arr);
+    }
+  }
+  return rows.map((r) => mapSessionRow(r, bySession.get(r.id) ?? []));
+}
+
+/** Insert a session; the host is auto-RSVP'd as 'going'. */
+export async function createSession(
+  input: Omit<Session, 'id' | 'participant_ids'>,
+): Promise<Session> {
+  const { data, error } = await supabase
+    .from('sessions')
+    .insert({
+      host_id: input.host_id,
+      category: input.category,
+      title: input.title,
+      subtitle: input.subtitle,
+      starts_at: input.starts_at,
+      ends_at: input.ends_at,
+      gym_id: input.gym_id ?? null,
+      area: input.area ?? null,
+      route_id: input.route_id ?? null,
+      hike_type: input.hike_type ?? null,
+      capacity: input.capacity,
+      vibe: input.vibe,
+      location_type: input.location_type,
+      is_verified_only: input.is_verified_only,
+      requires_attestation: input.requires_attestation,
+      posted_by_group_id: input.posted_by_group_id ?? null,
+      note: input.note ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw new Error(`createSession: ${error.message}`);
+  const row = asRow<SessionRow>(data);
+  if (!row) throw new Error('createSession: no row returned');
+  const { error: rsvpError } = await supabase.from('session_rsvps').upsert(
+    { session_id: row.id, user_id: input.host_id, status: 'going' },
+    { onConflict: 'session_id,user_id' },
+  );
+  if (rsvpError) throw new Error(`createSession rsvp: ${rsvpError.message}`);
+  return mapSessionRow(row, [input.host_id]);
+}
+
+/** going=true upserts a 'going' RSVP; going=false deletes the row. */
+export async function setSessionRsvp(
+  sessionId: string,
+  userId: string,
+  going: boolean,
+): Promise<void> {
+  if (going) {
+    const { error } = await supabase.from('session_rsvps').upsert(
+      { session_id: sessionId, user_id: userId, status: 'going' },
+      { onConflict: 'session_id,user_id' },
+    );
+    if (error) throw new Error(`setSessionRsvp: ${error.message}`);
+  } else {
+    const { error } = await supabase
+      .from('session_rsvps')
+      .delete()
+      .eq('session_id', sessionId)
+      .eq('user_id', userId);
+    if (error) throw new Error(`setSessionRsvp: ${error.message}`);
+  }
+}
+
+/** Live, not-yet-ended climb calls with their pairings. */
+export async function fetchClimbCalls(): Promise<ClimbCall[]> {
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('climb_calls')
+    .select('*')
+    .eq('status', 'live')
+    .gt('ends_at', now)
+    .order('starts_at', { ascending: true });
+  if (error) throw new Error(`fetchClimbCalls: ${error.message}`);
+  const rows = asRows<ClimbCallRow>(data);
+
+  const byCall = new Map<string, string[]>();
+  if (rows.length > 0) {
+    const { data: pairingData, error: pairingError } = await supabase
+      .from('call_pairings')
+      .select('call_id,user_id')
+      .in(
+        'call_id',
+        rows.map((r) => r.id),
+      )
+      .in('status', ['requested', 'confirmed']);
+    if (pairingError) throw new Error(`fetchClimbCalls pairings: ${pairingError.message}`);
+    for (const p of asRows<PairingRow>(pairingData)) {
+      const arr = byCall.get(p.call_id) ?? [];
+      arr.push(p.user_id);
+      byCall.set(p.call_id, arr);
+    }
+  }
+  return rows.map((r) => mapCallRow(r, byCall.get(r.id) ?? []));
+}
+
+/** Insert a climb call as 'live'; the caller is the first participant. */
+export async function createClimbCall(
+  input: Omit<ClimbCall, 'id' | 'participant_ids' | 'status'>,
+): Promise<ClimbCall> {
+  const { data, error } = await supabase
+    .from('climb_calls')
+    .insert({
+      user_id: input.user_id,
+      title: input.title ?? null,
+      looking_for: input.looking_for,
+      category: input.category,
+      grade: input.grade,
+      location_type: input.location_type,
+      gym_id: input.gym_id ?? null,
+      area: input.area ?? null,
+      starts_at: input.starts_at,
+      ends_at: input.ends_at,
+      note: input.note ?? null,
+      is_friend_only: input.is_friend_only,
+      status: 'live',
+      weight_kg: input.weight_kg ?? null,
+      capacity: input.capacity,
+    })
+    .select()
+    .single();
+  if (error) throw new Error(`createClimbCall: ${error.message}`);
+  const row = asRow<ClimbCallRow>(data);
+  if (!row) throw new Error('createClimbCall: no row returned');
+  return mapCallRow(row, [input.user_id]);
+}
+
+/** paired=true upserts a 'requested' pairing; paired=false deletes the row. */
+export async function setCallPairing(
+  callId: string,
+  userId: string,
+  paired: boolean,
+): Promise<void> {
+  if (paired) {
+    const { error } = await supabase.from('call_pairings').upsert(
+      { call_id: callId, user_id: userId, status: 'requested' },
+      { onConflict: 'call_id,user_id' },
+    );
+    if (error) throw new Error(`setCallPairing: ${error.message}`);
+  } else {
+    const { error } = await supabase
+      .from('call_pairings')
+      .delete()
+      .eq('call_id', callId)
+      .eq('user_id', userId);
+    if (error) throw new Error(`setCallPairing: ${error.message}`);
+  }
+}
+
+/** Public profile directory entries for display names / photos. No-op on []. */
+export async function fetchDirectoryProfiles(ids: string[]): Promise<DirectoryProfile[]> {
+  const unique = uniq(ids);
+  if (unique.length === 0) return [];
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id,display_name,photo_url,top_grade,home_gym_id')
+    .in('id', unique);
+  if (error) throw new Error(`fetchDirectoryProfiles: ${error.message}`);
+  return asRows<DirectoryProfile>(data);
+}

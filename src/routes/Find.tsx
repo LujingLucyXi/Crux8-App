@@ -15,6 +15,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { inHour } from '@/lib/date';
 import { isWeightSafe } from '@/lib/weight';
 import { cn } from '@/lib/utils';
+import { resolveUser } from '@/lib/resolveUser';
 import type { Session, EventItem, ClimbCall } from '@/seed/types';
 
 const L1_TABS = [
@@ -91,6 +92,7 @@ export function Find() {
   const groups = useAppStore((s) => s.groups);
   const cruxmates = useAppStore((s) => s.cruxmates);
   const me = useAppStore((s) => s.me);
+  const directory = useAppStore((s) => s.directory);
 
   const [detailSession, setDetailSession] = useState<Session | null>(null);
   const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
@@ -187,7 +189,7 @@ export function Find() {
   const activeStyles = filters[styleKey];
 
   const renderCall = (c: ClimbCall) => {
-    const caller = c.user_id === me?.id ? me : users.find((u) => u.id === c.user_id);
+    const caller = resolveUser(c.user_id, me, users, directory);
     if (!caller) return null;
     const gym = c.gym_id ? gyms.find((g) => g.id === c.gym_id) : undefined;
     return (
@@ -359,7 +361,7 @@ export function Find() {
 function EmptyState() {
   const clearFilters = useAppStore((s) => s.clearFilters);
   return (
-    <div className="rounded-2xl bg-white border border-ink-100 p-10 flex flex-col items-center text-center">
+    <div className="rounded-2xl bg-white border border-dashed border-ink-100 p-10 flex flex-col items-center text-center">
       <SearchEngine width={32} height={32} className="text-ink-300" />
       <p className="mt-3 text-sm text-ink-500">Nothing matches your filters yet.</p>
       <button onClick={clearFilters} className="mt-3 text-xs font-semibold text-teal-600">

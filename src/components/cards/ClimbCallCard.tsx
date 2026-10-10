@@ -1,11 +1,12 @@
 import { Calendar, MapPin, SquareWave, TriangleFlag, ShieldCheck } from 'iconoir-react';
 import { format } from 'date-fns';
-import type { ClimbCall, NpcUser, Profile } from '@/seed/types';
+import type { ClimbCall, NpcUser } from '@/seed/types';
 import { formatSessionWhen } from '@/lib/date';
 import { AvatarStack } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { isWeightSafe } from '@/lib/weight';
+import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
 
 /* Full-color gradient surfaces — each category gets its own energy so a list
    of belay calls reads as a vivid, varied stack, not a wall of white cards. */
@@ -27,7 +28,7 @@ export const LOOKING_FOR_LABEL: Record<ClimbCall['looking_for'], string> = {
 
 interface ClimbCallCardProps {
   call: ClimbCall;
-  caller: NpcUser | Profile;
+  caller: ResolvedUser;
   gymName: string;
   users: NpcUser[];
   isFriend?: boolean;
@@ -39,6 +40,7 @@ export function ClimbCallCard({
   call, caller, gymName, users, isFriend, onRequest, onViewCard,
 }: ClimbCallCardProps) {
   const me = useAppStore((s) => s.me);
+  const directory = useAppStore((s) => s.directory);
   const pairRequests = useAppStore((s) => s.pairRequests);
   const cancelPairRequest = useAppStore((s) => s.cancelPairRequest);
 
@@ -49,13 +51,17 @@ export function ClimbCallCard({
   const isMyCall = call.user_id === me?.id;
   const isFull = call.participant_ids.length >= call.capacity;
 
+  // DB-backed ids resolve via me -> NPC seeds -> Supabase directory.
+  // Label the signed-in user "You"; photo (when set) wins over the avatar.
   const participants = call.participant_ids
-    .map((id) => {
-      if (id === me?.id) return { id: me.id, display_name: 'You', avatar: me.avatar, photo_url: me.photo_url };
-      const u = users.find((x) => x.id === id);
-      return u ? { id: u.id, display_name: u.display_name, avatar: u.avatar } : null;
-    })
-    .filter(Boolean) as Array<{ id: string; display_name: string; avatar: Profile['avatar']; photo_url?: string }>;
+    .map((id) => resolveUser(id, me, users, directory))
+    .filter((u): u is ResolvedUser => !!u)
+    .map((p) => ({
+      id: p.id,
+      display_name: p.id === me?.id ? 'You' : p.display_name,
+      avatar: p.avatar,
+      photo_url: p.photo_url ?? undefined,
+    }));
 
   const start = new Date(call.starts_at);
   const end = new Date(call.ends_at);

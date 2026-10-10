@@ -8,13 +8,14 @@ import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { ReactionPicker } from '@/components/chat/ReactionPicker';
 import { useAppStore, scKey } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
-import type { AvatarConfig } from '@/lib/avatar';
+import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
 
 export function SessionChatDetail() {
   const { sessionChatId } = useParams<{ sessionChatId: string }>();
   const nav = useNavigate();
   const sessionChats = useAppStore((s) => s.sessionChats);
   const users = useAppStore((s) => s.users);
+  const directory = useAppStore((s) => s.directory);
   const me = useAppStore((s) => s.me);
   const sendSessionMessage = useAppStore((s) => s.sendSessionMessage);
   const toggleReactionSession = useAppStore((s) => s.toggleReactionSession);
@@ -46,10 +47,17 @@ export function SessionChatDetail() {
     );
   }
 
+  // Legacy persisted/seed chats can still carry the 'me' literal alongside real ids.
   const participants = chat.participant_ids
-    .filter((id) => id !== 'me')
-    .map((id) => users.find((u) => u.id === id))
-    .filter(Boolean) as { id: string; display_name: string; avatar: AvatarConfig }[];
+    .filter((id) => id !== 'me' && id !== me?.id)
+    .map((id) => resolveUser(id, me, users, directory))
+    .filter((u): u is ResolvedUser => !!u)
+    .map((p) => ({
+      id: p.id,
+      display_name: p.display_name,
+      avatar: p.avatar,
+      photo_url: p.photo_url ?? undefined,
+    }));
 
   const handleSend = () => {
     const t = text.trim();
@@ -59,9 +67,9 @@ export function SessionChatDetail() {
   };
 
   const userName = (from: string) => {
-    if (from === 'me') return 'You';
+    if (from === 'me' || from === me?.id) return 'You';
     if (from === 'system') return null;
-    return users.find((u) => u.id === from)?.display_name ?? 'Someone';
+    return resolveUser(from, me, users, directory)?.display_name ?? 'Someone';
   };
 
   return (
@@ -85,11 +93,11 @@ export function SessionChatDetail() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
         <div className="flex flex-col gap-3">
           {messages.map((m, i) => {
-            const isMe = m.from === 'me';
+            const isMe = m.from === 'me' || m.from === me?.id;
             const isSystem = m.from === 'system';
+            const author = resolveUser(m.from, me, users, directory);
             const showTime =
               i === 0 || new Date(messages[i - 1].sent_at).toDateString() !== new Date(m.sent_at).toDateString();
-            const author = users.find((u) => u.id === m.from);
 
             if (isSystem) {
               return (
@@ -116,6 +124,7 @@ export function SessionChatDetail() {
                 <div className={cn('flex gap-2', isMe ? 'justify-end' : 'justify-start')}>
                   {!isMe && (
                     <Avatar
+                      photoUrl={author?.photo_url ?? undefined}
                       config={author?.avatar}
                       alt={author?.display_name ?? '?'}
                       size={28}

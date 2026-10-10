@@ -10,6 +10,7 @@ import { REACTIONS } from '@/lib/reactions';
 import { formatSessionWhen } from '@/lib/date';
 import type { Session, PartnerFlag } from '@/seed/types';
 import { cn } from '@/lib/utils';
+import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
 
 interface Props {
   session: Session | null;
@@ -33,6 +34,7 @@ const FLAG_REASONS: { value: PartnerFlag['reason']; label: string }[] = [
 export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
   const me = useAppStore((s) => s.me);
   const users = useAppStore((s) => s.users);
+  const directory = useAppStore((s) => s.directory);
   const gyms = useAppStore((s) => s.gyms);
   const recaps = useAppStore((s) => s.recaps);
   const logSessionRecap = useAppStore((s) => s.logSessionRecap);
@@ -50,8 +52,8 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
   const recap = recaps[session.id];
   const partners = session.participant_ids
     .filter((id) => id !== me.id)
-    .map((id) => users.find((u) => u.id === id))
-    .filter(Boolean) as typeof users;
+    .map((id) => resolveUser(id, me, users, directory))
+    .filter((u): u is ResolvedUser => !!u);
 
   const close = () => {
     // Logging on close guarantees the recap exists (feeds badges/history)
@@ -105,7 +107,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
                 return (
                   <div key={p.id} className="rounded-2xl border border-ink-100 p-3.5">
                     <div className="flex items-center gap-3">
-                      <Avatar config={p.avatar} alt={p.display_name} size={40} fallback={p.display_name} />
+                      <Avatar photoUrl={p.photo_url ?? undefined} config={p.avatar} alt={p.display_name} size={40} fallback={p.display_name} />
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-ink-900">{p.display_name}</p>
                         <p className="text-[11px] text-ink-500">Climbed together</p>

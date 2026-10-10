@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useAppStore } from '@/store/useAppStore';
 import { isWeightSafe } from '@/lib/weight';
 import { LOOKING_FOR_LABEL } from '@/components/cards/ClimbCallCard';
+import { resolveUser } from '@/lib/resolveUser';
 import type { ClimbCall } from '@/seed/types';
 
 interface Props {
@@ -19,6 +20,7 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
   const nav = useNavigate();
   const me = useAppStore((s) => s.me);
   const users = useAppStore((s) => s.users);
+  const directory = useAppStore((s) => s.directory);
   const gyms = useAppStore((s) => s.gyms);
   const cruxmates = useAppStore((s) => s.cruxmates);
   const pairRequests = useAppStore((s) => s.pairRequests);
@@ -28,23 +30,25 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
   const sendMessage = useAppStore((s) => s.sendMessage);
 
   if (!call || !me) return null;
-  const caller = users.find((u) => u.id === call.user_id);
+  const caller = resolveUser(call.user_id, me, users, directory);
   const gym = call.gym_id ? gyms.find((g) => g.id === call.gym_id) : undefined;
   const locationLabel = gym?.name ?? call.area ?? 'Location TBD';
   if (!caller) return null;
+  // NPC-only fields (verifications, pronouns) aren't on resolved directory users.
+  const callerNpc = users.find((u) => u.id === call.user_id);
 
   const isRequested = pairRequests.includes(call.id);
   const isFriend = cruxmates.includes(caller.id);
   const weightSafe = isWeightSafe(me.weight_kg, call.weight_kg);
   const isMyCall = caller.id === me.id;
 
-  const handleRequest = () => {
+  const handleRequest = async () => {
     if (isRequested) {
-      cancelPairRequest(call.id);
+      await cancelPairRequest(call.id);
       toast('Pair request canceled');
       return;
     }
-    requestPair(call.id);
+    await requestPair(call.id);
     // Auto-add as CruxMate + start chat
     if (!isFriend) addCruxMate(caller.id);
     sendMessage(caller.id, `Hi! Requesting to pair on your ${call.category === 'top_rope' ? 'top-rope' : 'lead'} call at ${gym?.short_name ?? call.area}.`);
@@ -61,16 +65,16 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent title=" ">
         <div className="flex flex-col items-center -mt-4 mb-5">
-          <Avatar config={caller.avatar} alt={caller.display_name} size={96} fallback={caller.display_name} />
+          <Avatar photoUrl={caller.photo_url ?? undefined} config={caller.avatar} alt={caller.display_name} size={96} fallback={caller.display_name} />
           <h2 className="mt-3 text-xl font-semibold text-ink-900">{caller.display_name}</h2>
-          {caller.pronouns && <p className="text-sm text-ink-500">{caller.pronouns}</p>}
+          {callerNpc?.pronouns && <p className="text-sm text-ink-500">{callerNpc.pronouns}</p>}
 
           <div className="mt-3 flex flex-wrap gap-1.5 justify-center">
             <span className="rounded-full bg-paper-50 border border-ink-100 text-ink-700 text-[11px] font-semibold px-2.5 py-0.5 tracking-wider">
               {LOOKING_FOR_LABEL[call.looking_for].toUpperCase()}
             </span>
             {weightSafe && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 text-teal-600 text-[11px] font-semibold px-2.5 py-0.5">
+              <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 text-teal-600 text-[11px] font-semibold px-2 py-0.5">
                 ⚖ weight-safe with you
               </span>
             )}
@@ -84,7 +88,7 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
           {/* Verified belay chips */}
           <div className="mt-3 flex flex-wrap gap-1 justify-center">
             {(['top_rope', 'lead', 'trad'] as const).map((cat) => {
-              const isV = caller.verifications[cat] === 'verified';
+              const isV = callerNpc?.verifications[cat] === 'verified';
               return (
                 <span
                   key={cat}

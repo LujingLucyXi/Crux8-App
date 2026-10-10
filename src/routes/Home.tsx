@@ -22,6 +22,7 @@ import { Position, Check } from 'iconoir-react';
 import { formatSessionWhen } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import { LOOKING_FOR_LABEL } from '@/components/cards/ClimbCallCard';
+import { resolveUser } from '@/lib/resolveUser';
 import type { Session, ClimbCall, EventItem } from '@/seed/types';
 
 /** Time-of-day greeting — small touch, makes the app feel alive. */
@@ -48,6 +49,7 @@ export function Home() {
   const groups = useAppStore((s) => s.groups);
   const gyms = useAppStore((s) => s.gyms);
   const users = useAppStore((s) => s.users);
+  const directory = useAppStore((s) => s.directory);
   const cruxmates = useAppStore((s) => s.cruxmates);
   const myGroupMemberships = useAppStore((s) => s.myGroupMemberships);
   const verifications = useAppStore((s) => s.verifications);
@@ -464,7 +466,7 @@ export function Home() {
           action={{ label: 'All calls', onClick: () => nav('/find') }}
         >
           {suggestedCalls.map((c) => {
-            const host = users.find((u) => u.id === c.user_id);
+            const host = resolveUser(c.user_id, me, users, directory);
             return (
               <MiniScheduleCard
                 key={c.id} accent="bg-sky-200" emoji="🪢"
