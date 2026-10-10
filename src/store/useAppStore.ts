@@ -285,7 +285,7 @@ async function persistProfilePatch(userId: string, patch: Partial<Profile>): Pro
  * The on_auth_user_created trigger normally creates it; this is the
  * fallback for races or users who predate the table.
  */
-async function ensureProfileRow(userId: string, email: string | null): Promise<void> {
+async function ensureProfileRow(userId: string, email: string | null | undefined): Promise<void> {
   const existing = await fetchMyProfile(userId).catch(() => null);
   if (!existing) {
     await supabase
