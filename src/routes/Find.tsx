@@ -93,6 +93,8 @@ export function Find() {
   const cruxmates = useAppStore((s) => s.cruxmates);
   const me = useAppStore((s) => s.me);
   const directory = useAppStore((s) => s.directory);
+  const sessionsLoading = useAppStore((s) => s.sessionsLoading);
+  const setNewSessionOpen = useAppStore((s) => s.setNewSessionOpen);
 
   const [detailSession, setDetailSession] = useState<Session | null>(null);
   const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
@@ -178,6 +180,10 @@ export function Find() {
   }, [l1, filters, events]);
 
   const climbEmpty = climbCallsFiltered.length === 0 && climbSessionsFiltered.length === 0;
+
+  // Unfiltered: is the tab empty because nothing exists (vs. filters hiding it)?
+  const hasAnyClimb = climbCalls.length > 0 || sessions.some((s) => s.category !== 'hiking');
+  const hasAnyHike = sessions.some((s) => s.category === 'hiking');
 
   // Which chip set is visible at "styles" level
   const styleSet =
@@ -323,17 +329,21 @@ export function Find() {
 
           {/* ── Content ── */}
           <div className="flex flex-col gap-3">
+            {sessionsLoading && (l1 === 'climb' || l1 === 'hike') ? (
+              <LoadingCards />
+            ) : (
+              <>
             {l1 === 'climb' && (
               <>
                 {climbCallsFiltered.map(renderCall)}
                 {climbSessionsFiltered.map(renderSession)}
-                {climbEmpty && <EmptyState />}
+                {climbEmpty && <EmptyState nothingPosted={!hasAnyClimb} />}
               </>
             )}
             {l1 === 'hike' && (
               <>
                 {hikesFiltered.map(renderSession)}
-                {hikesFiltered.length === 0 && <EmptyState />}
+                {hikesFiltered.length === 0 && <EmptyState nothingPosted={!hasAnyHike} />}
               </>
             )}
             {l1 === 'event' && (
@@ -343,6 +353,8 @@ export function Find() {
                   return <EventCard key={e.id} event={e} hostGroupName={host?.name} onClick={() => setDetailEvent(e)} />;
                 })}
                 {eventsFiltered.length === 0 && <EmptyState />}
+              </>
+            )}
               </>
             )}
           </div>
@@ -358,8 +370,40 @@ export function Find() {
   );
 }
 
-function EmptyState() {
+function LoadingCards() {
+  return (
+    <div className="flex flex-col gap-3" aria-label="Loading sessions">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="rounded-2xl bg-white border border-ink-100 p-4 animate-pulse">
+          <div className="h-4 w-2/3 rounded bg-ink-100" />
+          <div className="mt-2 h-3 w-1/2 rounded bg-ink-100" />
+          <div className="mt-3 flex gap-2">
+            <div className="h-8 w-8 rounded-full bg-ink-100" />
+            <div className="h-8 w-8 rounded-full bg-ink-100" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({ nothingPosted }: { nothingPosted?: boolean }) {
   const clearFilters = useAppStore((s) => s.clearFilters);
+  const setNewSessionOpen = useAppStore((s) => s.setNewSessionOpen);
+  if (nothingPosted) {
+    return (
+      <div className="rounded-2xl bg-white border border-dashed border-ink-100 p-10 flex flex-col items-center text-center">
+        <SearchEngine width={32} height={32} className="text-ink-300" />
+        <p className="mt-3 text-sm text-ink-500">Nothing here yet — be the first to post.</p>
+        <button
+          onClick={() => setNewSessionOpen(true)}
+          className="mt-3 text-xs font-semibold text-teal-600"
+        >
+          Post a session →
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="rounded-2xl bg-white border border-dashed border-ink-100 p-10 flex flex-col items-center text-center">
       <SearchEngine width={32} height={32} className="text-ink-300" />

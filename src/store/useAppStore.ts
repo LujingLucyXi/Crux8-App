@@ -144,6 +144,9 @@ interface Store {
   seededAt: number | null;
   /** True while sessions load from Supabase. */
   sessionsLoading: boolean;
+  /** Global open state for the post-session/call sheet (FAB + empty-state CTAs). */
+  newSessionOpen: boolean;
+  setNewSessionOpen: (open: boolean) => void;
 
   // ---------- actions ----------
   seedIfEmpty: () => void;
@@ -348,6 +351,8 @@ export const useAppStore = create<Store>()(
       filters: initialFilters,
       seededAt: null,
       sessionsLoading: false,
+      newSessionOpen: false,
+      setNewSessionOpen: (open: boolean) => set({ newSessionOpen: open }),
 
       seedIfEmpty: () => {
         if (get().seededAt) return;

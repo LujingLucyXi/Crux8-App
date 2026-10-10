@@ -35,6 +35,7 @@ export function Sessions() {
   const gyms = useAppStore((s) => s.gyms);
   const groups = useAppStore((s) => s.groups);
   const recaps = useAppStore((s) => s.recaps);
+  const sessionsLoading = useAppStore((s) => s.sessionsLoading);
 
   const [view, setView] = useState<'upcoming' | 'past'>('upcoming');
   const [detailSession, setDetailSession] = useState<Session | null>(null);
@@ -146,7 +147,16 @@ export function Sessions() {
         ))}
       </div>
 
-      {list.length > 0 ? (
+      {sessionsLoading && list.length === 0 ? (
+        <div className="flex flex-col gap-3" aria-label="Loading climbs">
+          {[0, 1].map((i) => (
+            <div key={i} className="rounded-2xl bg-white border border-ink-100 p-4 animate-pulse">
+              <div className="h-4 w-2/3 rounded bg-ink-100" />
+              <div className="mt-2 h-3 w-1/2 rounded bg-ink-100" />
+            </div>
+          ))}
+        </div>
+      ) : list.length > 0 ? (
         <div className="flex flex-col gap-3">{list.map(renderItem)}</div>
       ) : (
         <div className="rounded-2xl bg-white border border-dashed border-ink-100 p-10 flex flex-col items-center text-center">
