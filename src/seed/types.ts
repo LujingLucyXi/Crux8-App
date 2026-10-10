@@ -19,6 +19,15 @@ export type Style = 'top_rope' | 'lead' | 'boulder' | 'outdoor_sport' | 'trad' |
 /** Top-level activities a user is into (mirrors the Find L1 nav). */
 export type Activity = 'climb' | 'hike' | 'events';
 
+/** One normalized Climber DNA axis (0-100), as stored on the profile. */
+export interface QuizDnaAxis {
+  key: string;
+  label: string;
+  emoji: string;
+  value: number;
+}
+export type QuizDna = QuizDnaAxis[];
+
 export type Vibe = 'chill' | 'projecting' | 'training' | 'social';
 
 export type HikeType = 'trail' | 'scramble' | 'snow' | 'backpack' | 'expedition';
@@ -198,6 +207,10 @@ export interface Profile {
   // ── hiking (set during onboarding; section is skippable) ──
   hike_distance?: string;    // e.g. '5-10'
   hike_pace?: string;        // e.g. 'steady'
+  // ── quiz DNA (claimed via /claim; no waitlist involved) ──
+  quiz_result_type?: string; // archetype id, e.g. 'send-machine'
+  quiz_dna?: QuizDna;        // 6-axis DNA bars, normalized
+  quiz_house_id?: string;    // e.g. 'send'
   // Weight + height are hidden from other users. Used only to compute
   // the `weight-safe` chip on 1:1 climb calls.
   weight_kg?: number;

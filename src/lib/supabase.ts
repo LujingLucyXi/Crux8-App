@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Profile, Style, Activity } from '@/seed/types';
+import type { Profile, Style, Activity, QuizDna } from '@/seed/types';
+import { DNA_AXES } from '@/lib/quizMeta';
 import { avatarFromSeed } from '@/lib/avatar';
 
 const SUPABASE_URL = 'https://njthgcbvmlavhwvcwqqx.supabase.co';
@@ -29,9 +30,36 @@ export interface ProfileRow {
   activities?: string[] | null;
   hike_distance?: string | null;
   hike_pace?: string | null;
+  quiz_result_type?: string | null;
+  quiz_dna?: unknown | null;
+  quiz_house_id?: string | null;
   weight_kg?: number | null;
   height_cm?: number | null;
   onboarded?: boolean | null;
+}
+
+/**
+ * Normalize the stored `quiz_dna` jsonb into QuizDna. Tolerates missing or
+ * partial data — axes fall back to the canonical DNA_AXES metadata.
+ */
+export function normalizeQuizDna(raw: unknown): QuizDna | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const axes: QuizDna = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const rec = item as Record<string, unknown>;
+    const key = typeof rec.key === 'string' ? rec.key : '';
+    const meta = DNA_AXES.find((a) => a.key === key);
+    const value = Number(rec.value);
+    if (!key || !Number.isFinite(value)) continue;
+    axes.push({
+      key,
+      label: typeof rec.label === 'string' ? rec.label : (meta?.label_en ?? key.toUpperCase()),
+      emoji: typeof rec.emoji === 'string' ? rec.emoji : (meta?.emoji ?? ''),
+      value: Math.max(0, Math.min(100, Math.round(value))),
+    });
+  }
+  return axes.length ? axes : undefined;
 }
 
 /**
@@ -60,6 +88,9 @@ export function profileRowToProfile(userId: string, email: string, row: ProfileR
     activities: (row?.activities as Activity[] | undefined) ?? undefined,
     hike_distance: row?.hike_distance ?? undefined,
     hike_pace: row?.hike_pace ?? undefined,
+    quiz_result_type: row?.quiz_result_type ?? undefined,
+    quiz_dna: normalizeQuizDna(row?.quiz_dna),
+    quiz_house_id: row?.quiz_house_id ?? undefined,
     onboarded: row?.onboarded ?? false,
     weight_kg: row?.weight_kg ?? undefined,
     height_cm: row?.height_cm ?? undefined,
@@ -87,6 +118,9 @@ export function profilePatchToRow(patch: Partial<Profile>): Record<string, unkno
   if (patch.activities !== undefined) row.activities = patch.activities;
   if (patch.hike_distance !== undefined) row.hike_distance = patch.hike_distance;
   if (patch.hike_pace !== undefined) row.hike_pace = patch.hike_pace;
+  if (patch.quiz_result_type !== undefined) row.quiz_result_type = patch.quiz_result_type;
+  if (patch.quiz_dna !== undefined) row.quiz_dna = patch.quiz_dna;
+  if (patch.quiz_house_id !== undefined) row.quiz_house_id = patch.quiz_house_id;
   if (patch.weight_kg !== undefined) row.weight_kg = patch.weight_kg;
   if (patch.height_cm !== undefined) row.height_cm = patch.height_cm;
   if (patch.onboarded !== undefined) row.onboarded = patch.onboarded;

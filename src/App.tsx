@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import { App as CapacitorApp } from '@capacitor/app';
 import { router } from './router';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -11,6 +12,26 @@ export default function App() {
   useEffect(() => {
     seedIfEmpty();
     void initAuth();
+    // Universal links (e.g. play.crux8.app/claim?...): when iOS hands the
+    // URL to the native shell, route it into the React router. No-op on web.
+    let listener: Promise<{ remove: () => Promise<void> }> | null = null;
+    try {
+      listener = CapacitorApp.addListener('appUrlOpen', ({ url }) => {
+        try {
+          const u = new URL(url);
+          if (u.pathname === '/claim') {
+            void router.navigate(`/claim${u.search}`);
+          }
+        } catch {
+          /* ignore malformed deep links */
+        }
+      });
+    } catch {
+      /* Capacitor App plugin unavailable (plain web) — ignore */
+    }
+    return () => {
+      if (listener) void listener.then((s) => s.remove().catch(() => {}));
+    };
   }, [seedIfEmpty, initAuth]);
 
   return (

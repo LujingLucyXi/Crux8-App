@@ -4,6 +4,7 @@ import { RouteError } from '@/components/ErrorScreen';
 import { AppShell } from '@/components/layout/AppShell';
 import { Landing } from '@/routes/Landing';
 import { Onboarding } from '@/routes/Onboarding';
+import { Claim } from '@/routes/Claim'; // quiz → app DNA bridge (public; handles its own auth)
 import { Home } from '@/routes/Home';
 import { Find } from '@/routes/Find';
 import { Sessions } from '@/routes/Sessions';
@@ -33,6 +34,7 @@ function LandingOrHome() {
 export const router = createBrowserRouter([
   { path: '/', element: <LandingOrHome />, errorElement: <RouteError /> },
   { path: '/onboarding', element: <Onboarding />, errorElement: <RouteError /> },
+  { path: '/claim', element: <Claim />, errorElement: <RouteError /> },
   { path: '/lab', element: <Lab />, errorElement: <RouteError /> },
   {
     // Outer boundary: catches crashes in RequireAuth / AppShell itself → full-screen.
