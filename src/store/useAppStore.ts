@@ -414,11 +414,6 @@ export const useAppStore = create<Store>()(
 
       /** Make sure every signed-in user has Cruxy's welcome thread. Idempotent. */
       ensureCruxyThread: () => {
-        // After an explicit "Reset all data", the tester wants a clean slate —
-        // don't bring the welcome thread back until a full browser data clear.
-        try {
-          if (sessionStorage.getItem('crux8:no-cruxy') === '1') return;
-        } catch { /* storage unavailable */ }
         const { chats, cruxmates } = get();
         const patch: Partial<{ chats: Record<string, ChatMessage[]>; cruxmates: string[] }> = {};
         if (!cruxmates.includes('cruxy')) patch.cruxmates = [...cruxmates, 'cruxy'];
@@ -657,11 +652,6 @@ export const useAppStore = create<Store>()(
       },
 
       resetAll: () => {
-        // Suppress the Cruxy welcome re-seed after an explicit reset so the
-        // tester gets a truly clean slate (cleared by a full browser data wipe).
-        try {
-          sessionStorage.setItem('crux8:no-cruxy', '1');
-        } catch { /* storage unavailable */ }
         set({
           me: null,
           sessions: [],
