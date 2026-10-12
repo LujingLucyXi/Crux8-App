@@ -580,11 +580,11 @@ export function Onboarding() {
           <>
             <h2 className="text-2xl font-semibold text-ink-900">Belay skills.</h2>
             <p className="mt-2 text-sm text-ink-500">
-              Tell us what you can belay. No cert upload — partners confirm it after real sessions.
+              Tell us what you can belay — no cert upload needed.
             </p>
             <div className="mt-6 rounded-2xl bg-white border border-ink-100 p-5">
               <p className="text-sm text-ink-700">
-                Self-report Top Rope, Lead, or Trad. A few partner confirmations turn “self-reported” into “peer-confirmed.” Always do an in-person buddy check first.
+                Self-reported skills become peer-confirmed after a few sessions with partners. Always do an in-person buddy check first.
               </p>
             </div>
             <div className="mt-6 flex flex-col gap-2">
