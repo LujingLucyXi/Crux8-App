@@ -1450,7 +1450,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 18,
+      version: 19,
       /**
        * v16 → v17: sessions + climb calls move to real Supabase tables.
        *   Drop persisted mock sessions/calls (and their chats/pairings/
@@ -1469,6 +1469,21 @@ export const useAppStore = create<Store>()(
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 19) {
+          // v18 → v19: drop the old mock DM threads (Lilly/Marcus/Priya),
+          // replaced by the Cruxy onboarding bot in 3a3082f. Removes them
+          // from the cruxmate list, their chat threads, and read tracking.
+          const MOCK_DM_IDS = ['usr_lilly', 'usr_marcus', 'usr_priya'];
+          if (Array.isArray(s.cruxmates)) {
+            s.cruxmates = (s.cruxmates as string[]).filter((id) => !MOCK_DM_IDS.includes(id));
+          }
+          if (s.chats && typeof s.chats === 'object') {
+            for (const id of MOCK_DM_IDS) delete (s.chats as Record<string, unknown>)[id];
+          }
+          if (s.chatReads && typeof s.chatReads === 'object') {
+            for (const id of MOCK_DM_IDS) delete (s.chatReads as Record<string, unknown>)[id];
+          }
+        }
         if (version < 18) {
           // v17 → v18: drop the last mocked events + crews (placeholders
           // removed from seed in f45aa8f). Only the exact old mock IDs are
