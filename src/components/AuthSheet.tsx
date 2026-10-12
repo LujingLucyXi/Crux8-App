@@ -237,7 +237,7 @@ export function AuthSheet({
                   <Label>Code</Label>
                   <Input
                     value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
                     placeholder="123456"
                     inputMode="numeric"
                     autoComplete="one-time-code"
