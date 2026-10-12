@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppStore, countUnreadThreads } from '@/store/useAppStore';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { InfoSheet } from '@/components/sheets/InfoSheet';
+import { FeedbackSheet } from '@/components/sheets/FeedbackSheet';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Logo } from './Logo';
@@ -11,6 +12,7 @@ import { Logo } from './Logo';
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoKind, setInfoKind] = useState<'about' | 'trust' | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const nav = useNavigate();
   const me = useAppStore((s) => s.me);
   const signOut = useAppStore((s) => s.signOut);
@@ -86,6 +88,15 @@ export function Header() {
             >
               Trust & safety
             </button>
+            <button
+              className="text-left px-3 py-3 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold flex items-center gap-2"
+              onClick={() => {
+                setMenuOpen(false);
+                setFeedbackOpen(true);
+              }}
+            >
+              🐞 Report a problem
+            </button>
             <div className="h-px bg-ink-100 my-2" />
             <Button
               variant="ghost"
@@ -117,6 +128,7 @@ export function Header() {
       {infoKind && (
         <InfoSheet open onOpenChange={(v) => !v && setInfoKind(null)} kind={infoKind} />
       )}
+      <FeedbackSheet open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </>
   );
 }
