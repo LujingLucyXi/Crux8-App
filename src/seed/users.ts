@@ -16,7 +16,7 @@ export const SEED_USERS: NpcUser[] = [
   {
     id: 'cruxy',
     display_name: 'Cruxy',
-    avatar: { skin: 'porcelain', hair: 'wavy', hairColor: 'ultraviolet', eyes: 'stoked', accessory: 'none', backdrop: 'gold' } as AvatarConfig,
+    avatar: { skin: 'porcelain', hair: 'spacebuns', hairColor: 'bubblegum', eyes: 'stoked', accessory: 'none', backdrop: 'gold' } as AvatarConfig,
     home_gym_id: '',
     top_grade: '5.15d',
     preferred_styles: ['top_rope', 'lead', 'boulder'],

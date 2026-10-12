@@ -150,6 +150,8 @@ interface Store {
 
   // ---------- actions ----------
   seedIfEmpty: () => void;
+  /** Make sure every signed-in user has Cruxy's welcome thread. Idempotent. */
+  ensureCruxyThread: () => void;
   /** Load sessions / climb calls from Supabase (real backend). */
   fetchSessions: () => Promise<void>;
   fetchClimbCalls: () => Promise<void>;
@@ -276,6 +278,14 @@ function cruxyReply(input: string): string {
   return 'Good question! I\'m still learning — but here\'s a tip: the fastest way to meet partners is posting a session from the + button. Give it a try! 🧗';
 }
 
+/** Cruxy's welcome thread for a brand-new user. */
+function cruxyWelcomeMessages(): ChatMessage[] {
+  return [
+    { id: uid('msg'), from: 'cruxy', text: 'Hey, welcome to Crux8! 🧗 I\'m Cruxy, your climbing buddy bot.', sent_at: new Date(Date.now() - 60000).toISOString() },
+    { id: uid('msg'), from: 'cruxy', text: 'Post a session from the + button to find partners, or browse the Find tab to join someone else\'s climb. Ask me anything — try "how do I post a session?"', sent_at: new Date(Date.now() - 30000).toISOString() },
+  ];
+}
+
 /**
  * A thread is "unread" when its most recent message came from someone other
  * than me AND was sent after the last time I opened that thread. My own
@@ -391,6 +401,17 @@ export const useAppStore = create<Store>()(
       newSessionOpen: false,
       setNewSessionOpen: (open: boolean) => set({ newSessionOpen: open }),
 
+      /** Make sure every signed-in user has Cruxy's welcome thread. Idempotent. */
+      ensureCruxyThread: () => {
+        const { chats, cruxmates } = get();
+        const patch: Partial<{ chats: Record<string, ChatMessage[]>; cruxmates: string[] }> = {};
+        if (!cruxmates.includes('cruxy')) patch.cruxmates = [...cruxmates, 'cruxy'];
+        if (!chats['cruxy'] || chats['cruxy'].length === 0) {
+          patch.chats = { ...chats, cruxy: cruxyWelcomeMessages() };
+        }
+        if (Object.keys(patch).length > 0) set(patch);
+      },
+
       seedIfEmpty: () => {
         if (get().seededAt) return;
         set({
@@ -403,17 +424,13 @@ export const useAppStore = create<Store>()(
           cruxmates: SEED_CRUXMATES,
           myGroupMemberships: [],
           badges: ['first_session', 'community'],
-          chats: {
-            cruxy: [
-              { id: uid('msg'), from: 'cruxy', text: 'Hey, welcome to Crux8! 🧗 I\'m Cruxy, your climbing buddy bot.', sent_at: new Date(Date.now() - 60000).toISOString() },
-              { id: uid('msg'), from: 'cruxy', text: 'Post a session from the + button to find partners, or browse the Find tab to join someone else\'s climb. Ask me anything — try "how do I post a session?"', sent_at: new Date(Date.now() - 30000).toISOString() },
-            ],
-          },
+          chats: {},
           seededAt: Date.now(),
         });
         // Sessions and climb calls now come from Supabase (real backend).
         void get().fetchSessions();
         void get().fetchClimbCalls();
+        get().ensureCruxyThread();
       },
 
       fetchSessions: async () => {
@@ -491,6 +508,7 @@ export const useAppStore = create<Store>()(
         await ensureProfileRow(user.id, user.email);
         const row = await fetchMyProfile(user.id).catch(() => null);
         set({ me: profileRowToProfile(user.id, user.email ?? normalizedEmail, row) });
+        get().ensureCruxyThread();
         return { ok: true as const };
       },
 
@@ -534,6 +552,7 @@ export const useAppStore = create<Store>()(
         await ensureProfileRow(user.id, user.email);
         const row = await fetchMyProfile(user.id).catch(() => null);
         set({ me: profileRowToProfile(user.id, user.email ?? normalizedEmail, row) });
+        get().ensureCruxyThread();
         return { ok: true as const, needsConfirmation: false };
       },
 
@@ -551,6 +570,7 @@ export const useAppStore = create<Store>()(
         await ensureProfileRow(user.id, user.email);
         const row = await fetchMyProfile(user.id).catch(() => null);
         set({ me: profileRowToProfile(user.id, user.email ?? normalizedEmail, row) });
+        get().ensureCruxyThread();
         return { ok: true as const };
       },
 
@@ -580,6 +600,7 @@ export const useAppStore = create<Store>()(
         const applySessionUser = async (userId: string, email: string) => {
           const row = await fetchMyProfile(userId).catch(() => null);
           set({ me: profileRowToProfile(userId, email, row) });
+          get().ensureCruxyThread();
         };
         const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
         const sessionUser = data.session?.user ?? null;
