@@ -14,6 +14,16 @@ import type { AvatarConfig } from '@/lib/avatar';
 
 export const SEED_USERS: NpcUser[] = [
   {
+    id: 'cruxy',
+    display_name: 'Cruxy',
+    avatar: { skin: 'porcelain', hair: 'wavy', hairColor: 'ultraviolet', eyes: 'stoked', accessory: 'none', backdrop: 'gold' } as AvatarConfig,
+    home_gym_id: '',
+    top_grade: '5.15d',
+    preferred_styles: ['top_rope', 'lead', 'boulder'],
+    verifications: { top_rope: 'verified', lead: 'verified' },
+    signature: 'Your Crux8 guide 🧗',
+  },
+  {
     id: 'usr_lilly',
     display_name: 'Lilly Chen',
     pronouns: 'she/her',
@@ -98,4 +108,4 @@ export const SEED_USERS: NpcUser[] = [
 export const USER_BY_ID = Object.fromEntries(SEED_USERS.map((u) => [u.id, u] as const));
 
 // Pre-seeded CruxMate (friend) list for the mocked signed-in user.
-export const SEED_CRUXMATES = ['usr_lilly', 'usr_marcus', 'usr_priya'];
+export const SEED_CRUXMATES = ['cruxy'];

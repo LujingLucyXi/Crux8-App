@@ -243,6 +243,40 @@ export const dmKey = (userId: string) => `dm:${userId}`;
 export const scKey = (sessionChatId: string) => `sc:${sessionChatId}`;
 
 /**
+ * Cruxy — the friendly onboarding bot. Rule-based replies (no backend needed)
+ * so new users get a living chat thread instead of mocked-up conversations.
+ */
+function cruxyReply(input: string): string {
+  const t = input.toLowerCase();
+  const has = (...words: string[]) => words.some((w) => t.includes(w));
+  if (has('hi', 'hello', 'hey', 'yo', 'sup')) {
+    return 'Hey hey! 🧗 Great to see you here. Want help posting your first session, or finding partners to climb with?';
+  }
+  if (has('post', 'create', 'session', 'host')) {
+    return 'Posting a session is easy: tap the + button, pick indoor or outdoor, set the time and vibe, and hit post. Partners in your area will see it on the Find tab!';
+  }
+  if (has('find', 'partner', 'belay', 'buddy', 'mate')) {
+    return 'Head to the Find tab — you\'ll see open sessions and climb calls near you. Tap one to RSVP or message the host. That\'s how partners happen here. 🤝';
+  }
+  if (has('grade', 'level', 'beginner', 'new')) {
+    return 'All levels are welcome here! When you post, set the grade range so partners know what to expect. There\'s a crew for every level. 💪';
+  }
+  if (has('event', 'crew')) {
+    return 'Events and crews are coming soon — right now the action is in sessions and climb calls. Post one and start the stoke! 🔥';
+  }
+  if (has('help', 'how', 'what can you', 'stuck')) {
+    return 'I can help with the basics: posting sessions, finding partners, and getting around the app. Real humans show up once you RSVP to a session — I\'m just the warm-up act. 😄';
+  }
+  if (has('thank', 'thanks', 'thx')) {
+    return 'Anytime! Now go touch some plastic (or real rock). 🪨';
+  }
+  if (has('bye')) {
+    return 'See you at the crag! 👋';
+  }
+  return 'Good question! I\'m still learning — but here\'s a tip: the fastest way to meet partners is posting a session from the + button. Give it a try! 🧗';
+}
+
+/**
  * A thread is "unread" when its most recent message came from someone other
  * than me AND was sent after the last time I opened that thread. My own
  * messages never count, and threads I've opened since the last message clear.
@@ -370,17 +404,9 @@ export const useAppStore = create<Store>()(
           myGroupMemberships: [],
           badges: ['first_session', 'community'],
           chats: {
-            usr_lilly: [
-              { id: uid('msg'), from: 'usr_lilly', text: 'Down for the top rope sesh tonight?', sent_at: new Date(Date.now() - 3600_000).toISOString() },
-              { id: uid('msg'), from: 'me', text: 'Yes! Meet at 5?', sent_at: new Date(Date.now() - 3500_000).toISOString() },
-              { id: uid('msg'), from: 'usr_lilly', text: 'Perfect — see you there.', sent_at: new Date(Date.now() - 3400_000).toISOString() },
-            ],
-            usr_marcus: [
-              { id: uid('msg'), from: 'usr_marcus', text: 'Index next Sunday?', sent_at: new Date(Date.now() - 86400_000).toISOString() },
-            ],
-            usr_priya: [
-              { id: uid('msg'), from: 'me', text: 'Sending party at BlocHaus tomorrow?', sent_at: new Date(Date.now() - 7200_000).toISOString() },
-              { id: uid('msg'), from: 'usr_priya', text: 'Already RSVPd 🎯', sent_at: new Date(Date.now() - 7100_000).toISOString() },
+            cruxy: [
+              { id: uid('msg'), from: 'cruxy', text: 'Hey, welcome to Crux8! 🧗 I\'m Cruxy, your climbing buddy bot.', sent_at: new Date(Date.now() - 60000).toISOString() },
+              { id: uid('msg'), from: 'cruxy', text: 'Post a session from the + button to find partners, or browse the Find tab to join someone else\'s climb. Ask me anything — try "how do I post a session?"', sent_at: new Date(Date.now() - 30000).toISOString() },
             ],
           },
           seededAt: Date.now(),
@@ -1039,6 +1065,15 @@ export const useAppStore = create<Store>()(
           chats: { ...get().chats, [userId]: [...existing, msg] },
           chatReads: { ...get().chatReads, [dmKey(userId)]: msg.sent_at },
         });
+        // Cruxy bot auto-replies (rule-based, no backend needed).
+        if (userId === 'cruxy') {
+          const reply = cruxyReply(text);
+          setTimeout(() => {
+            const botMsg: ChatMessage = { id: uid('msg'), from: 'cruxy', text: reply, sent_at: new Date().toISOString() };
+            const thread = get().chats['cruxy'] ?? [];
+            set({ chats: { ...get().chats, cruxy: [...thread, botMsg] } });
+          }, 900);
+        }
       },
 
       sendSessionMessage: (sessionChatId: string, text: string) => {
