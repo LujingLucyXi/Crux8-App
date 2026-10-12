@@ -92,7 +92,7 @@ export function Onboarding() {
 
   const [step, setStep] = useState<StepN>(1);
   const [dob, setDob] = useState(me?.dob ?? '');
-  const [location, setLocation] = useState(me?.location ?? '');
+  const [location, setLocation] = useState(me?.location ?? 'greater-seattle');
   const [displayName, setDisplayName] = useState(me?.display_name ?? '');
   const [hikeDistance, setHikeDistance] = useState(me?.hike_distance ?? '');
   const [hikePace, setHikePace] = useState(me?.hike_pace ?? '');
