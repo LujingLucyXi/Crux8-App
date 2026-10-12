@@ -30,6 +30,7 @@ export function NewCrewSheet({ open, onOpenChange }: Props) {
   const [category, setCategory] = useState<GroupCategory>('general');
   const [description, setDescription] = useState('');
   const [joinPolicy, setJoinPolicy] = useState<'open' | 'request'>('open');
+  const [questions, setQuestions] = useState('');
   const [error, setError] = useState('');
 
   const reset = () => {
@@ -38,6 +39,7 @@ export function NewCrewSheet({ open, onOpenChange }: Props) {
     setCategory('general');
     setDescription('');
     setJoinPolicy('open');
+    setQuestions('');
     setError('');
   };
 
@@ -52,6 +54,13 @@ export function NewCrewSheet({ open, onOpenChange }: Props) {
       category,
       description,
       join_policy: joinPolicy,
+      survey_questions:
+        joinPolicy === 'request'
+          ? questions
+              .split('\n')
+              .map((q) => q.trim())
+              .filter(Boolean)
+          : undefined,
     });
     if (!id) {
       setError('Something went wrong — please try again.');
@@ -153,6 +162,18 @@ export function NewCrewSheet({ open, onOpenChange }: Props) {
               </button>
             </div>
           </div>
+          {joinPolicy === 'request' && (
+            <div>
+              <Label>Join questions <span className="text-ink-400 font-normal">(one per line, optional)</span></Label>
+              <Textarea
+                value={questions}
+                onChange={(e) => setQuestions(e.target.value)}
+                placeholder={'How long have you been climbing?\nWhat are you looking for in this crew?'}
+                rows={3}
+                maxLength={500}
+              />
+            </div>
+          )}
           {error && <p className="text-sm text-coral-600">{error}</p>}
           <Button onClick={submit} className="w-full mt-2">
             Create crew

@@ -13,6 +13,8 @@ export function GroupCard({ group }: GroupCardProps) {
   const joinGroup = useAppStore((s) => s.joinGroup);
   const leaveGroup = useAppStore((s) => s.leaveGroup);
   const joined = memberships.includes(group.id);
+  const requestPolicy = (group.join_policy ?? 'open') === 'request';
+  const requested = (group.pending ?? []).some((r) => r.user_id === 'me');
 
   return (
     <div
@@ -38,14 +40,18 @@ export function GroupCard({ group }: GroupCardProps) {
             <p className="text-[11px] text-teal-600 mt-1.5 font-medium">{group.recent_activity}</p>
           </div>
           <Button
-            variant={joined ? 'outline' : 'primary'}
+            variant={joined || requested ? 'outline' : 'primary'}
             size="sm"
+            disabled={requested}
             onClick={(e) => {
               e.stopPropagation();
-              joined ? leaveGroup(group.id) : joinGroup(group.id);
+              if (joined) return leaveGroup(group.id);
+              // Request-only crews go through the detail page's request flow.
+              if (requestPolicy) return nav(`/community/${group.id}`);
+              joinGroup(group.id);
             }}
           >
-            {joined ? 'Joined' : 'Join'}
+            {joined ? 'Joined' : requested ? 'Requested' : requestPolicy ? 'Request' : 'Join'}
           </Button>
         </div>
       </div>

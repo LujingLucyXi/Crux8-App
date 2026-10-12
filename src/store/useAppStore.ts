@@ -208,6 +208,7 @@ interface Store {
     category: GroupCategory;
     description: string;
     join_policy: 'open' | 'request';
+    survey_questions?: string[];
   }) => string | null;
   requestToJoinGroup: (groupId: string, answers: string[]) => void;
   approveJoinRequest: (groupId: string, userId: string) => void;
@@ -1019,6 +1020,15 @@ export const useAppStore = create<Store>()(
           owner_id: me.id,
           member_ids: [me.id],
           join_policy: input.join_policy,
+          survey_questions:
+            input.join_policy === 'request'
+              ? input.survey_questions?.length
+                ? input.survey_questions
+                : [
+                    'How long have you been climbing, and what grades do you usually climb?',
+                    'What are you looking for in this crew?',
+                  ]
+              : undefined,
         };
         set({
           groups: [group, ...get().groups],
@@ -1450,7 +1460,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 17,
+      version: 18,
       /**
        * v16 → v17: sessions + climb calls move to real Supabase tables.
        *   Drop persisted mock sessions/calls (and their chats/pairings/
@@ -1469,6 +1479,36 @@ export const useAppStore = create<Store>()(
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 18) {
+          // v17 → v18: drop the last mocked events + crews (placeholders
+          // removed from seed in f45aa8f). Only the exact old mock IDs are
+          // removed — user-created items are untouched.
+          const MOCK_EVENT_IDS = new Set([
+            'evt_around_the_world_crawl', 'evt_backcountry_snow', 'evt_belay_match_night',
+            'evt_bipoc_meetup', 'evt_blochaus_comp', 'evt_climb_refreshments',
+            'evt_coffee_climbers', 'evt_crux8_launch_party', 'evt_intro_multi_pitch',
+            'evt_mystery_crew_beginner', 'evt_mystery_crew_climb', 'evt_mystery_crew_send',
+            'evt_queer_climb_night', 'evt_singles_climbing_night', 'evt_trad_anchors',
+            'evt_womens_send',
+          ]);
+          const MOCK_GROUP_IDS = new Set([
+            'grp_backcountry_coalition', 'grp_beginners_belay_buddies', 'grp_bipoc_climbers_pnw',
+            'grp_cascade_alpine_club', 'grp_everett_boulderers', 'grp_movement_community',
+            'grp_pnw_climbers', 'grp_rainier_mountaineers', 'grp_seattle_queer_climbers',
+            'grp_send_train', 'grp_trad_dads_seattle', 'grp_women_plus_who_send',
+          ]);
+          if (Array.isArray(s.events)) {
+            s.events = (s.events as Array<{ id: string }>).filter((e) => !MOCK_EVENT_IDS.has(e.id));
+          }
+          if (Array.isArray(s.groups)) {
+            s.groups = (s.groups as Array<{ id: string }>).filter((g) => !MOCK_GROUP_IDS.has(g.id));
+          }
+          if (Array.isArray(s.myGroupMemberships)) {
+            s.myGroupMemberships = (s.myGroupMemberships as string[]).filter(
+              (id) => !MOCK_GROUP_IDS.has(id),
+            );
+          }
+        }
         if (version < 16) {
           // Real Supabase auth replaces the mock demo identity (id 'me').
           // Drop the persisted mock `me` so the OTP login sheet takes over on
