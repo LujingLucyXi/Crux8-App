@@ -362,12 +362,12 @@ export const useAppStore = create<Store>()(
         set({
           gyms: SEED_GYMS,
           routes: SEED_ROUTES,
-          events: SEED_EVENTS,
-          groups: SEED_GROUPS,
+          events: [],
+          groups: [],
           users: SEED_USERS,
           gymPresence: Object.fromEntries(SEED_GYMS.map((g) => [g.id, g.here_now])),
           cruxmates: SEED_CRUXMATES,
-          myGroupMemberships: ['grp_seattle_queer_climbers'],
+          myGroupMemberships: [],
           badges: ['first_session', 'community'],
           chats: {
             usr_lilly: [
