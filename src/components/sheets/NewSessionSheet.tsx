@@ -7,7 +7,7 @@ import { Input, Label, Textarea } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { useAppStore } from '@/store/useAppStore';
 import type { Category, EventType, LocationType, Vibe, ClimbCall, HikeType } from '@/seed/types';
-import { plusHours } from '@/seed/types';
+import { plusHours, UNCAPPED_CAPACITY } from '@/seed/types';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -221,7 +221,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
         note: note.trim() || undefined,
       });
       toast('Session posted', {
-        description: `${session.capacity - 1} spots open · appears at the top of Find.`,
+        description: `${session.capacity >= UNCAPPED_CAPACITY ? 'Open invite' : `${session.capacity - 1} spots open`} · appears at the top of Find.`,
       });
       onOpenChange(false);
       reset();
@@ -564,7 +564,8 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               <div>
                 <Label>Capacity</Label>
                 <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900">
-                  {[2, 3, 4, 5, 6].map((c) => (<option key={c} value={c}>{c} people</option>))}
+                  {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((c) => (<option key={c} value={c}>{c} people</option>))}
+                  <option value={UNCAPPED_CAPACITY}>10+ (uncapped)</option>
                 </select>
               </div>
             </div>

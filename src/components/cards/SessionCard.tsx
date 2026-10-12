@@ -1,5 +1,6 @@
 import { Calendar, MapPin, ShieldCheck, SquareWave, TriangleFlag, Cube, Trekking, Walking, Sparks } from 'iconoir-react';
 import type { Session, NpcUser } from '@/seed/types';
+import { formatCapacity } from '@/seed/types';
 import { formatSessionWhen, formatTripRange, isMultiDaySpan } from '@/lib/date';
 import { AvatarStack } from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils';
@@ -124,7 +125,7 @@ export function SessionCard({ session, users, gymName, onClick, matchScore, grou
       <div className="flex flex-col items-end gap-1 shrink-0">
         <AvatarStack users={displayUsers} max={3} size={22} />
         <span className={cn('text-[11px] font-medium', color.text)}>
-          {session.participant_ids.length} / {session.capacity} people
+          {session.participant_ids.length} / {formatCapacity(session.capacity)} people
         </span>
       </div>
     </button>

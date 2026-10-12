@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { ShieldCheck, MapPin, Calendar, OpenInWindow, User } from 'iconoir-react';
+import { ShieldCheck, MapPin, Calendar, OpenInWindow, User, EditPencil } from 'iconoir-react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
+import { Input, Label, Textarea } from '@/components/ui/Input';
 import { Dialog, DialogContent } from '@/components/ui/Dialog';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAppStore } from '@/store/useAppStore';
 import { formatSessionWhen } from '@/lib/date';
-import type { Session, VerificationCategory } from '@/seed/types';
+import type { Session, VerificationCategory, Vibe } from '@/seed/types';
+import { formatCapacity } from '@/seed/types';
 import { GearChecklistSheet } from './GearChecklistSheet';
 import { CertVerificationSheet } from './CertVerificationSheet';
 import { UserProfileSheet } from './UserProfileSheet';
@@ -34,6 +36,7 @@ function catToVerification(cat: Session['category']): VerificationCategory | nul
 export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const rsvp = useAppStore((s) => s.rsvp);
   const unrsvp = useAppStore((s) => s.unrsvp);
+  const updateSession = useAppStore((s) => s.updateSession);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
   const gyms = useAppStore((s) => s.gyms);
@@ -47,10 +50,17 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const [gateOpen, setGateOpen] = useState(false);
   const [attested, setAttested] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   if (!session || !me) return null;
+  const isHost = session.host_id === me.id;
   const isJoined = session.participant_ids.includes(me.id);
   const isFull = session.participant_ids.length >= session.capacity;
+  // Editing locks 2 hours before the session starts.
+  const editLocked = new Date(session.starts_at).getTime() - Date.now() < 2 * 3600_000;
+  const canEdit = isHost && !editLocked;
   const gym = session.gym_id ? gyms.find((g) => g.id === session.gym_id) : undefined;
   const route = session.route_id ? routes.find((r) => r.id === session.route_id) : undefined;
   const host = resolveUser(session.host_id, me, users, directory);
@@ -155,7 +165,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
 
           <div className="mb-5">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
-              Who's going · {participants.length} / {session.capacity}
+              Who's going · {participants.length} / {formatCapacity(session.capacity)}
             </h3>
             <div className="flex flex-col gap-2">
               {participants.map((p) => (
@@ -186,6 +196,41 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
           >
             {isJoined ? 'Leave session' : isFull ? 'Full' : 'RSVP'}
           </Button>
+          {canEdit && !editing && (
+            <Button variant="outline" className="w-full mt-2" onClick={() => setEditing(true)}>
+              <EditPencil width={14} height={14} className="mr-1" /> Edit session
+            </Button>
+          )}
+          {isHost && editLocked && (
+            <p className="text-xs text-ink-400 text-center mt-2">
+              Editing is locked within 2 hours of the session.
+            </p>
+          )}
+          {editing && (
+            <EditSessionForm
+              session={session}
+              gyms={gyms}
+              onCancel={() => {
+                setEditing(false);
+                setEditError('');
+              }}
+              onSave={async (patch) => {
+                setSaving(true);
+                setEditError('');
+                try {
+                  await updateSession(session.id, patch);
+                  toast('Session updated');
+                  setEditing(false);
+                } catch (e) {
+                  setEditError(e instanceof Error ? e.message : 'Could not save — try again.');
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              saving={saving}
+              error={editError}
+            />
+          )}
         </SheetContent>
       </Sheet>
 
@@ -257,5 +302,137 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
         onOpenChange={(o) => !o && setProfileUserId(null)}
       />
     </>
+  );
+}
+
+const EDIT_VIBES: Vibe[] = ['chill', 'projecting', 'training', 'social'];
+
+/** Host-only inline editor. Editing is locked 2h before start (enforced in the store too). */
+function EditSessionForm({
+  session,
+  gyms,
+  onCancel,
+  onSave,
+  saving,
+  error,
+}: {
+  session: Session;
+  gyms: { id: string; name: string }[];
+  onCancel: () => void;
+  onSave: (patch: Partial<Session>) => Promise<void>;
+  saving: boolean;
+  error: string;
+}) {
+  const start = new Date(session.starts_at);
+  const toDateStr = (d: Date) => d.toISOString().slice(0, 10);
+  const toTimeStr = (d: Date) =>
+    `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const [title, setTitle] = useState(session.title);
+  const [subtitle, setSubtitle] = useState(session.subtitle);
+  const [date, setDate] = useState(toDateStr(start));
+  const [time, setTime] = useState(toTimeStr(start));
+  const [gymId, setGymId] = useState(session.gym_id ?? '');
+  const [capacity, setCapacity] = useState(session.capacity);
+  const [vibe, setVibe] = useState<Vibe>(session.vibe);
+  const [note, setNote] = useState(session.note ?? '');
+
+  const durationMs = new Date(session.ends_at).getTime() - new Date(session.starts_at).getTime();
+
+  const save = () => {
+    const startsAt = new Date(`${date}T${time}`);
+    if (isNaN(startsAt.getTime())) return;
+    void onSave({
+      title: title.trim() || session.title,
+      subtitle: subtitle.trim() || session.subtitle,
+      starts_at: startsAt.toISOString(),
+      ends_at: new Date(startsAt.getTime() + durationMs).toISOString(),
+      gym_id: gymId || undefined,
+      capacity: Math.max(2, capacity),
+      vibe,
+      note: note.trim() || undefined,
+    });
+  };
+
+  return (
+    <div className="mt-4 rounded-2xl border border-ink-100 bg-paper-50 p-4 flex flex-col gap-3">
+      <h3 className="font-semibold text-ink-900 text-sm">Edit session</h3>
+      <div>
+        <Label>Title</Label>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60} />
+      </div>
+      <div>
+        <Label>Subtitle</Label>
+        <Input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} maxLength={60} />
+      </div>
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <Label>Date</Label>
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <div className="flex-1">
+          <Label>Time</Label>
+          <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        </div>
+      </div>
+      <div>
+        <Label>Gym</Label>
+        <select
+          value={gymId}
+          onChange={(e) => setGymId(e.target.value)}
+          className="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900"
+        >
+          <option value="">No gym</option>
+          {gyms.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <Label>Party size</Label>
+          <select
+            value={capacity}
+            onChange={(e) => setCapacity(Number(e.target.value))}
+            className="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900"
+          >
+            {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((c) => (
+              <option key={c} value={c}>
+                {c} people
+              </option>
+            ))}
+            <option value={99}>10+ (uncapped)</option>
+          </select>
+        </div>
+        <div className="flex-1">
+          <Label>Vibe</Label>
+          <select
+            value={vibe}
+            onChange={(e) => setVibe(e.target.value as Vibe)}
+            className="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 capitalize"
+          >
+            {EDIT_VIBES.map((v) => (
+              <option key={v} value={v} className="capitalize">
+                {v}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div>
+        <Label>Note</Label>
+        <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={280} />
+      </div>
+      {error && <p className="text-sm text-coral-600">{error}</p>}
+      <div className="flex gap-2">
+        <Button variant="outline" className="flex-1" onClick={onCancel} disabled={saving}>
+          Cancel
+        </Button>
+        <Button className="flex-1" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save changes'}
+        </Button>
+      </div>
+    </div>
   );
 }

@@ -207,6 +207,28 @@ export async function createSession(
   return mapSessionRow(row, [input.host_id]);
 }
 
+/** Host-only: update a session's editable fields. */
+export async function updateSession(
+  id: string,
+  patch: Partial<Pick<Session, 'title' | 'subtitle' | 'starts_at' | 'ends_at' | 'gym_id' | 'area' | 'route_id' | 'capacity' | 'vibe' | 'note' | 'is_verified_only'>>,
+): Promise<void> {
+  const row: Record<string, unknown> = {};
+  if (patch.title !== undefined) row.title = patch.title;
+  if (patch.subtitle !== undefined) row.subtitle = patch.subtitle;
+  if (patch.starts_at !== undefined) row.starts_at = patch.starts_at;
+  if (patch.ends_at !== undefined) row.ends_at = patch.ends_at;
+  if (patch.gym_id !== undefined) row.gym_id = patch.gym_id;
+  if (patch.area !== undefined) row.area = patch.area;
+  if (patch.route_id !== undefined) row.route_id = patch.route_id;
+  if (patch.capacity !== undefined) row.capacity = patch.capacity;
+  if (patch.vibe !== undefined) row.vibe = patch.vibe;
+  if (patch.note !== undefined) row.note = patch.note ?? null;
+  if (patch.is_verified_only !== undefined) row.is_verified_only = patch.is_verified_only;
+  if (Object.keys(row).length === 0) return;
+  const { error } = await supabase.from('sessions').update(row).eq('id', id);
+  if (error) throw new Error(`updateSession: ${error.message}`);
+}
+
 /** going=true upserts a 'going' RSVP; going=false deletes the row. */
 export async function setSessionRsvp(
   sessionId: string,

@@ -52,6 +52,7 @@ import { celebrate } from '@/store/useCelebration';
 import {
   fetchSessions as dbFetchSessions,
   createSession as dbCreateSession,
+  updateSession as dbUpdateSession,
   setSessionRsvp,
   fetchClimbCalls as dbFetchClimbCalls,
   createClimbCall as dbCreateClimbCall,
@@ -187,6 +188,7 @@ interface Store {
   subscribeMysteryPass: () => void;
 
   postSession: (session: Omit<Session, 'id' | 'host_id' | 'participant_ids'>) => Promise<Session>;
+  updateSession: (id: string, patch: Partial<Session>) => Promise<void>;
   postEvent: (event: Omit<EventItem, 'id' | 'attendee_ids' | 'waitlist_ids'>) => EventItem;
   postClimbCall: (call: Omit<ClimbCall, 'id' | 'user_id' | 'status' | 'participant_ids'>) => Promise<ClimbCall>;
   requestPair: (callId: string) => Promise<void>;
@@ -805,6 +807,22 @@ export const useAppStore = create<Store>()(
         set({ sessions: [created, ...get().sessions] });
         void get().ensureDirectoryProfiles([created.host_id]);
         return created;
+      },
+
+      updateSession: async (id, patch) => {
+        const me = get().me!;
+        const existing = get().sessions.find((s) => s.id === id);
+        if (!existing || existing.host_id !== me.id) {
+          throw new Error('Only the host can edit this session.');
+        }
+        // Editing locks 2 hours before the session starts.
+        if (new Date(existing.starts_at).getTime() - Date.now() < 2 * 3600_000) {
+          throw new Error('Editing is locked within 2 hours of the session.');
+        }
+        await dbUpdateSession(id, patch);
+        set({
+          sessions: get().sessions.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+        });
       },
 
       postEvent: (event) => {

@@ -100,7 +100,7 @@ export interface Session {
   hike_type?: HikeType;       // only when category === 'hiking'
   host_id: string;
   participant_ids: string[]; // includes host
-  capacity: number;
+  capacity: number;          // 2-10, or UNCAPPED_CAPACITY (99) = "10+"
   vibe: Vibe;
   location_type: LocationType;
   is_verified_only: boolean;
@@ -313,3 +313,9 @@ export const plusHours = (startIso: string, hours: number): string => {
   d.setHours(d.getHours() + hours);
   return d.toISOString();
 };
+
+/** Sentinel capacity meaning "10+" (uncapped). Stored as 99; displayed as "10+". */
+export const UNCAPPED_CAPACITY = 99;
+/** Display string for a session capacity: "6" or "10+". */
+export const formatCapacity = (capacity: number): string =>
+  capacity >= UNCAPPED_CAPACITY ? '10+' : String(capacity);
