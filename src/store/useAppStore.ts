@@ -162,7 +162,10 @@ interface Store {
   signUpWithPassword: (
     email: string,
     password: string,
-  ) => Promise<{ ok: true; needsConfirmation: boolean } | { ok: false; error: string }>;
+  ) => Promise<
+    | { ok: true; needsConfirmation: boolean }
+    | { ok: false; error: string; code?: 'already_registered' | 'already_registered_unconfirmed' }
+  >;
   signInWithPassword: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   resetPassword: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   /** Reconcile persisted state with the Supabase session on app boot. */
@@ -480,6 +483,24 @@ export const useAppStore = create<Store>()(
           return { ok: false as const, error: passwordErrorMessage(error, 'Could not create your account — please try again.') };
         }
         const user = data.user;
+        // Supabase stays silent on existing emails (anti-enumeration): it returns the
+        // existing user with identities populated, no session, and sends no email.
+        // Detect that so the UI can say "already registered, try signing in" instead
+        // of the confusing "check your email" message.
+        if ((user.identities?.length ?? 0) > 0) {
+          if (user.email_confirmed_at) {
+            return {
+              ok: false as const,
+              code: 'already_registered' as const,
+              error: 'This email is already registered — try signing in instead.',
+            };
+          }
+          return {
+            ok: false as const,
+            code: 'already_registered_unconfirmed' as const,
+            error: 'This email is already registered but not confirmed yet — check your inbox for the confirmation link.',
+          };
+        }
         // No session yet → email confirmation required before first sign-in.
         if (!data.session) {
           return { ok: true as const, needsConfirmation: true };

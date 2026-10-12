@@ -135,6 +135,12 @@ export function AuthSheet({
     setBusy(false);
     if (!res.ok) {
       setError(res.error);
+      // Already-registered email: point them at sign-in instead of leaving them
+      // staring at the signup form.
+      if ('code' in res && res.code === 'already_registered') {
+        setPwMode('signin');
+        setPassword('');
+      }
       return;
     }
     if (pwMode === 'signup' && 'needsConfirmation' in res && res.needsConfirmation) {
