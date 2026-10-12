@@ -9,6 +9,7 @@ import { AvatarCustomizer } from '@/components/ui/AvatarCustomizer';
 import { DEFAULT_AVATAR } from '@/lib/avatar';
 import { SessionCard } from '@/components/cards/SessionCard';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
+import { ProfileEditSheet } from '@/components/sheets/ProfileEditSheet';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
 import { LogSendSheet } from '@/components/sheets/LogSendSheet';
@@ -67,6 +68,7 @@ export function Profile() {
   const [editingAbout, setEditingAbout] = useState(false);
   const [hwOpen, setHwOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [draftAvatar, setDraftAvatar] = useState(me?.avatar ?? DEFAULT_AVATAR);
   const [draftPhoto, setDraftPhoto] = useState<string | undefined>(me?.photo_url);
   const [weightLbs, setWeightLbs] = useState(me?.weight_kg ? String(kgToLbs(me.weight_kg)) : '');
@@ -166,7 +168,7 @@ export function Profile() {
         </div>
 
         <div className="mt-4 flex gap-2">
-          <Button variant="outline" className="flex-1" onClick={() => nav('/onboarding')}>
+          <Button variant="outline" className="flex-1" onClick={() => setProfileEditOpen(true)}>
             Edit profile
           </Button>
         </div>
@@ -560,6 +562,8 @@ export function Profile() {
       />
 
       <LogSendSheet open={logSendOpen} onOpenChange={setLogSendOpen} />
+
+      <ProfileEditSheet open={profileEditOpen} onOpenChange={setProfileEditOpen} />
     </div>
   );
 }
