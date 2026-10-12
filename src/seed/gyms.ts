@@ -40,7 +40,7 @@ export const SEED_GYMS: Gym[] = [
   {
     id: 'gym_sbp_poplar',
     name: 'Bouldering Project — Poplar',
-    short_name: 'BP Poplar',
+    short_name: 'SBP Poplar',
     address: '900 Poplar Pl S',
     city: 'Seattle, WA',
     neighborhood: 'Central District',
@@ -52,7 +52,7 @@ export const SEED_GYMS: Gym[] = [
   {
     id: 'gym_sbp_fremont',
     name: 'Bouldering Project — Fremont / Upper Walls',
-    short_name: 'BP Fremont',
+    short_name: 'SBP Fremont',
     address: '3535 Interlake Ave N',
     city: 'Seattle, WA',
     neighborhood: 'Fremont',
@@ -64,7 +64,7 @@ export const SEED_GYMS: Gym[] = [
   {
     id: 'gym_bp_udistrict',
     name: 'Bouldering Project — U District',
-    short_name: 'BP U District',
+    short_name: 'SBP U District',
     address: '4502 University Way NE',
     city: 'Seattle, WA',
     neighborhood: 'University District',
