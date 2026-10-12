@@ -5,6 +5,7 @@ import type {
   Session,
   EventItem,
   Group,
+  GroupCategory,
   NpcUser,
   Gym,
   Route,
@@ -199,6 +200,13 @@ interface Store {
 
   joinGroup: (groupId: string) => void;
   leaveGroup: (groupId: string) => void;
+  createGroup: (input: {
+    name: string;
+    tagline: string;
+    category: GroupCategory;
+    description: string;
+    join_policy: 'open' | 'request';
+  }) => string | null;
   requestToJoinGroup: (groupId: string, answers: string[]) => void;
   approveJoinRequest: (groupId: string, userId: string) => void;
   declineJoinRequest: (groupId: string, userId: string) => void;
@@ -965,6 +973,31 @@ export const useAppStore = create<Store>()(
               : g
           ),
         });
+      },
+
+      createGroup: (input) => {
+        const me = get().me;
+        if (!me) return null;
+        const group: Group = {
+          id: uid('grp'),
+          name: input.name.trim(),
+          tagline: input.tagline.trim(),
+          category: input.category,
+          member_count: 1,
+          cover_url: '',
+          description: input.description.trim(),
+          admin_ids: [me.id],
+          recent_activity: 'Just created 🎉',
+          owner_id: me.id,
+          member_ids: [me.id],
+          join_policy: input.join_policy,
+        };
+        set({
+          groups: [group, ...get().groups],
+          myGroupMemberships: [...get().myGroupMemberships, group.id],
+        });
+        get().checkBadges();
+        return group.id;
       },
 
       requestToJoinGroup: (groupId, answers) => {

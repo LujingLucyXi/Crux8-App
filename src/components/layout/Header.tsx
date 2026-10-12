@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore, countUnreadThreads } from '@/store/useAppStore';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
+import { InfoSheet } from '@/components/sheets/InfoSheet';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Logo } from './Logo';
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [infoKind, setInfoKind] = useState<'about' | 'trust' | null>(null);
   const nav = useNavigate();
   const me = useAppStore((s) => s.me);
   const signOut = useAppStore((s) => s.signOut);
@@ -66,10 +68,22 @@ export function Header() {
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
         <SheetContent title="Menu">
           <div className="flex flex-col gap-1 mt-2">
-            <button className="text-left px-3 py-3 rounded-xl hover:bg-paper-50 text-ink-900 font-medium">
+            <button
+              className="text-left px-3 py-3 rounded-xl hover:bg-paper-50 text-ink-900 font-medium"
+              onClick={() => {
+                setMenuOpen(false);
+                setInfoKind('about');
+              }}
+            >
               About Crux8
             </button>
-            <button className="text-left px-3 py-3 rounded-xl hover:bg-paper-50 text-ink-900 font-medium">
+            <button
+              className="text-left px-3 py-3 rounded-xl hover:bg-paper-50 text-ink-900 font-medium"
+              onClick={() => {
+                setMenuOpen(false);
+                setInfoKind('trust');
+              }}
+            >
               Trust & safety
             </button>
             <div className="h-px bg-ink-100 my-2" />
@@ -100,6 +114,9 @@ export function Header() {
           </div>
         </SheetContent>
       </Sheet>
+      {infoKind && (
+        <InfoSheet open onOpenChange={(v) => !v && setInfoKind(null)} kind={infoKind} />
+      )}
     </>
   );
 }

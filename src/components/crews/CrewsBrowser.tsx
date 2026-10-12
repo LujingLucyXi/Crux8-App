@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Search } from 'iconoir-react';
+import { Search, Plus } from 'iconoir-react';
 import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 import { GroupCard } from '@/components/cards/GroupCard';
+import { NewCrewSheet } from '@/components/sheets/NewCrewSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +27,7 @@ export function CrewsBrowser() {
   const groups = useAppStore((s) => s.groups);
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<string | null>(null);
+  const [crewOpen, setCrewOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return groups.filter((g) => {
@@ -60,8 +63,16 @@ export function CrewsBrowser() {
         {filtered.map((g) => (
           <GroupCard key={g.id} group={g} />
         ))}
-        {filtered.length === 0 && <p className="text-center text-sm text-ink-500 py-8">No crews match.</p>}
+        {filtered.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-sm text-ink-500">No crews match.</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => setCrewOpen(true)}>
+              <Plus width={14} height={14} className="mr-1" /> Start a crew
+            </Button>
+          </div>
+        )}
       </div>
+      <NewCrewSheet open={crewOpen} onOpenChange={setCrewOpen} />
     </div>
   );
 }
