@@ -16,7 +16,7 @@ export const SEED_CLIMB_CALLS: ClimbCall[] = [
     category: 'top_rope',
     grade: '5.10–5.11a',
     location_type: 'indoor',
-    gym_id: 'gym_momentum_sodo', // rope gym (BP Poplar is bouldering-only)
+    gym_id: 'gym_momentum_sodo', // rope gym (SBP Poplar is bouldering-only)
     starts_at: daysFromNow(0, 18, 0),
     ends_at: daysFromNow(0, 20, 0),
     note: 'Projecting 5.11a — soft catches please',

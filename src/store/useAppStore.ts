@@ -1692,7 +1692,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 20,
+      version: 21,
       /**
        * v16 → v17: sessions + climb calls move to real Supabase tables.
        *   Drop persisted mock sessions/calls (and their chats/pairings/
@@ -1700,7 +1700,7 @@ export const useAppStore = create<Store>()(
        * v15 → v16: real Supabase auth replaces the mock demo identity.
        * v1 → v2: ClimbCall.role → looking_for.
        * v2 → v4: Seattle gym roster refreshed (Bouldering Project rebrand,
-       *   new boutique gyms Castle / Half Moon, Momentum SODO, BP U District).
+       *   new boutique gyms Castle / Half Moon, Momentum SODO, SBP U District).
        *   Refresh persisted `gyms` + backfill presence, and repoint any
        *   persisted belay call that's sitting at a bouldering-only gym onto a
        *   rope gym (Bouldering Project has no ropes). All gym_ids preserved.
@@ -1711,6 +1711,21 @@ export const useAppStore = create<Store>()(
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 21) {
+          // v20 → v21: gym short names rebranded BP -> SBP in the seed
+          // (2b53b03) without a migration, so persisted gyms still said
+          // "BP Poplar". Rewrite the prefix in persisted gym names.
+          if (Array.isArray(s.gyms)) {
+            s.gyms = (s.gyms as Array<Record<string, unknown>>).map((g) => ({
+              ...g,
+              name: typeof g.name === 'string' ? g.name.replace(/^BP /, 'SBP ') : g.name,
+              short_name:
+                typeof g.short_name === 'string'
+                  ? g.short_name.replace(/^BP /, 'SBP ')
+                  : g.short_name,
+            }));
+          }
+        }
         if (version < 20) {
           // v19 → v20: card collection system. Initialize empty; existing
           // cruxmates don't retro-collect (their moment passed).
