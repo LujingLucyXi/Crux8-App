@@ -29,8 +29,15 @@ export function UpdatePassword() {
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
-          setStatus('invalid');
-          return;
+          // Don't declare the link dead yet: the client may have already
+          // exchanged the code during boot (detectSessionInUrl), or the
+          // hash-based flow may have established the session. Only a
+          // missing session means the link is really invalid.
+          const existing = await supabase.auth.getSession();
+          if (!existing.data.session) {
+            setStatus('invalid');
+            return;
+          }
         }
       }
       const { data } = await supabase.auth.getSession();
