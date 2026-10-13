@@ -48,9 +48,11 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
   const callerNpc = users.find((u) => u.id === call.user_id);
 
   const isRequested = pairRequests.includes(call.id);  const isFriend = cruxmates.includes(caller.id);
-  const canStart = call.participant_ids.length >= 2 && call.status === 'live';
   const weightSafe = isWeightSafe(me.weight_kg, call.weight_kg);
   const isMyCall = caller.id === me.id;
+  // The host can always start their own call (even solo — others can join
+  // the live session later); anyone else needs a real group of 2+.
+  const canStart = call.status === 'live' && (isMyCall || call.participant_ids.length >= 2);
 
   const handleRequest = async () => {
     if (isRequested) {

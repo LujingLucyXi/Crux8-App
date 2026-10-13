@@ -41,15 +41,15 @@ export function StartSessionSheet({ call, open, onOpenChange, onStarted }: Props
   const effectivePresent = present.length === 0 && !starting ? [me.id, ...participants] : present.length === 0 ? [me.id] : present;
 
   const handleStart = async () => {
-    if (effectivePresent.length < 2) {
-      toast.error('Need at least 2 people to start a session');
-      return;
-    }
     setStarting(true);
     try {
       const sessionId = await startCallSession(call.id, effectivePresent);
       if (sessionId) {
-        toast.success('Session started! Cards collected 🃏');
+        toast.success(
+          effectivePresent.length < 2
+            ? 'Session started — others can still join 🧗'
+            : 'Session started! Cards collected 🃏',
+        );
         onOpenChange(false);
         setPresent([]);
         onStarted?.(sessionId);
@@ -66,7 +66,7 @@ export function StartSessionSheet({ call, open, onOpenChange, onStarted }: Props
       <SheetContent>
         <h2 className="text-lg font-bold text-ink-900">Who's here?</h2>
         <p className="text-sm text-ink-500 mt-1">
-          Confirm who's actually climbing. Everyone present collects each other's DNA cards.
+          Confirm who's actually climbing. Everyone present collects each other's DNA cards. Just you for now? You can start solo — others can still join the session later.
         </p>
         <div className="mt-4 space-y-2">
           {[me.id, ...participants].map((id) => {
@@ -97,13 +97,15 @@ export function StartSessionSheet({ call, open, onOpenChange, onStarted }: Props
         <Button
           className="mt-5 w-full bg-teal-600 hover:bg-teal-500 border-teal-600"
           size="lg"
-          disabled={starting || effectivePresent.length < 2}
+          disabled={starting}
           onClick={handleStart}
         >
           {starting ? 'Starting…' : `Start session 🧗 (${effectivePresent.length})`}
         </Button>
         <p className="mt-2 text-center text-[11px] text-ink-400">
-          {effectivePresent.length - 1} card{effectivePresent.length - 1 === 1 ? '' : 's'} will be collected
+          {effectivePresent.length < 2
+            ? 'No cards to collect yet — they come when a cruxmate climbs with you'
+            : `${effectivePresent.length - 1} card${effectivePresent.length - 1 === 1 ? '' : 's'} will be collected`}
         </p>
       </SheetContent>
     </Sheet>

@@ -1007,7 +1007,9 @@ export const useAppStore = create<Store>()(
         if (!me || !call) return null;
         const present = presentUserIds.filter((id) => call.participant_ids.includes(id));
         if (!present.includes(me.id)) present.push(me.id);
-        if (present.length < 2) return null;
+        // The host may start solo (just themselves) — the session stays
+        // joinable afterwards. Anyone present collects cards mutually.
+        if (present.length < 1) return null;
 
         const now = new Date();
         const endsAt = new Date(now.getTime() + 3 * 3600_000);
@@ -1019,7 +1021,9 @@ export const useAppStore = create<Store>()(
           ends_at: endsAt.toISOString(),
           gym_id: call.gym_id,
           area: call.area,
-          capacity: present.length,
+          // Solo start keeps the call's capacity so others can still join
+          // the live session; a group start seats exactly who's here.
+          capacity: present.length >= 2 ? present.length : call.capacity,
           vibe: 'chill',
           location_type: call.location_type,
           is_verified_only: false,
