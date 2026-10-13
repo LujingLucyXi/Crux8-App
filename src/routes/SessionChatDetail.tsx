@@ -73,7 +73,7 @@ export function SessionChatDetail() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] -mx-4">
+    <div className="flex flex-col h-[calc(100dvh-8rem)] -mx-4">
       <div className="px-4 py-3 border-b border-ink-100 bg-paper-100 flex items-center gap-3">
         <button onClick={() => nav('/chat')} aria-label="Back">
           <NavArrowLeft width={22} height={22} className="text-ink-700" />
