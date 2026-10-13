@@ -82,7 +82,7 @@ export function ShareCallSheet({ call, open, onOpenChange }: Props) {
   return (
     <Sheet open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setSharedTo(null); setInvited([]); } }}>
       <SheetContent>
-        <h2 className="text-lg font-bold text-ink-900">Share this climb call</h2>
+        <h2 className="text-lg font-bold text-ink-900">Invite &amp; share</h2>
         <p className="text-sm text-ink-500 mt-1">
           Invite a cruxmate directly, post it to a crew chat, or send the link — anyone with it can view the call and request to pair.
         </p>

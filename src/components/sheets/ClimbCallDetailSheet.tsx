@@ -34,7 +34,6 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
   const cancelPairRequest = useAppStore((s) => s.cancelPairRequest);
   const addCruxMate = useAppStore((s) => s.addCruxMate);
   const sendMessage = useAppStore((s) => s.sendMessage);
-  const inviteCruxyToCall = useAppStore((s) => s.inviteCruxyToCall);
   const [shareOpen, setShareOpen] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -155,14 +154,9 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
               <Button variant="outline" onClick={() => setEditing(true)}>
                 Edit call
               </Button>
-              {!call.participant_ids.includes('cruxy') && (
-                <button
-                  onClick={() => inviteCruxyToCall(call.id)}
-                  className="w-full rounded-xl border border-dashed border-brand-600/60 py-2.5 text-sm font-semibold text-brand-600"
-                >
-                  🦊 Invite Cruxy — she auto-accepts
-                </button>
-              )}
+              <Button variant="outline" onClick={() => setShareOpen(true)}>
+                Invite CruxMate
+              </Button>
             </>
           ) : (
             <Button

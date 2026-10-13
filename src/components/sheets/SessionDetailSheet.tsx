@@ -40,7 +40,6 @@ function catToVerification(cat: Session['category']): VerificationCategory | nul
 export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const rsvp = useAppStore((s) => s.rsvp);
   const unrsvp = useAppStore((s) => s.unrsvp);
-  const inviteCruxy = useAppStore((s) => s.inviteCruxy);
   const updateSession = useAppStore((s) => s.updateSession);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
@@ -223,15 +222,6 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
             </div>
           </div>
 
-          {isHost && !session.participant_ids.includes('cruxy') && (
-            <button
-              onClick={() => inviteCruxy(session.id)}
-              className="mb-4 w-full rounded-xl border border-dashed border-brand-600/60 py-2.5 text-sm font-semibold text-brand-600"
-            >
-              🦊 Invite Cruxy — she auto-accepts
-            </button>
-          )}
-
           <Button
             variant={isJoined ? 'outline' : 'primary'}
             className="w-full"
@@ -246,7 +236,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
               onClick={() => setShareOpen(true)}
               className="mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-ink-100 py-2.5 text-sm font-semibold text-ink-700"
             >
-              <ShareIos width={15} height={15} /> Share / invite cruxmates
+              <ShareIos width={15} height={15} /> Invite CruxMate
             </button>
           )}
 
