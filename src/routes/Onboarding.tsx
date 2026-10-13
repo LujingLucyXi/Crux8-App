@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { EyeClosed } from 'iconoir-react';
@@ -91,33 +91,62 @@ export function Onboarding() {
   const gyms = useAppStore((s) => s.gyms);
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
 
-  const [step, setStep] = useState<StepN>(1);
-  const [dob, setDob] = useState(me?.dob ?? '');
-  const [location, setLocation] = useState(me?.location ?? 'greater-seattle');
-  const [displayName, setDisplayName] = useState(me?.display_name ?? '');
-  const [hikeDistance, setHikeDistance] = useState(me?.hike_distance ?? '');
-  const [hikePace, setHikePace] = useState(me?.hike_pace ?? '');
-  const [climbSkipped, setClimbSkipped] = useState(false);
-  const [hikeSkipped, setHikeSkipped] = useState(false);
-  const [avatar, setAvatar] = useState<AvatarConfig>(me?.avatar ?? avatarFromSeed(me?.display_name ?? 'anon'));
-  const [photoUrl, setPhotoUrl] = useState<string | undefined>(me?.photo_url);
-  const [signature, setSignature] = useState(me?.signature ?? '');
-  const [bio, setBio] = useState(me?.about ?? '');
-  const [tags, setTags] = useState<string[]>(me?.tags ?? []);
-  const [activities, setActivities] = useState<Activity[]>(me?.activities ?? ['climb']);
-  const [homeGymId, setHomeGymId] = useState<string>(me?.home_gym_id ?? gyms[0]?.id ?? '');
+  // Onboarding draft: form state lives in useState and is only committed at
+  // Finish. If the user detours (e.g. takes the quiz in a new tab and claims
+  // there), an un-persisted draft would be lost. Save/restore via localStorage.
+  const draft = (() => {
+    try {
+      const raw = localStorage.getItem('crux8-onboarding-draft');
+      return raw ? (JSON.parse(raw) as Record<string, any>) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const [step, setStep] = useState<StepN>((draft?.step as StepN) ?? 1);
+  const [dob, setDob] = useState(draft?.dob ?? me?.dob ?? '');
+  const [location, setLocation] = useState(draft?.location ?? me?.location ?? 'greater-seattle');
+  const [displayName, setDisplayName] = useState(draft?.displayName ?? me?.display_name ?? '');
+  const [hikeDistance, setHikeDistance] = useState(draft?.hikeDistance ?? me?.hike_distance ?? '');
+  const [hikePace, setHikePace] = useState(draft?.hikePace ?? me?.hike_pace ?? '');
+  const [climbSkipped, setClimbSkipped] = useState(draft?.climbSkipped ?? false);
+  const [hikeSkipped, setHikeSkipped] = useState(draft?.hikeSkipped ?? false);
+  const [avatar, setAvatar] = useState<AvatarConfig>(draft?.avatar ?? me?.avatar ?? avatarFromSeed(me?.display_name ?? 'anon'));
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>(draft?.photoUrl ?? me?.photo_url);
+  const [signature, setSignature] = useState(draft?.signature ?? me?.signature ?? '');
+  const [bio, setBio] = useState(draft?.bio ?? me?.about ?? '');
+  const [tags, setTags] = useState<string[]>(draft?.tags ?? me?.tags ?? []);
+  const [activities, setActivities] = useState<Activity[]>(draft?.activities ?? me?.activities ?? ['climb']);
+  const [homeGymId, setHomeGymId] = useState<string>(draft?.homeGymId ?? me?.home_gym_id ?? gyms[0]?.id ?? '');
   // Fall back to a real band when the stored grade isn't one of the band values
   // (e.g. the login default '5.10c', which matches no band → nothing would highlight).
   const [topGrade, setTopGrade] = useState<string>(
-    GRADE_BANDS.some((g) => g.value === me?.top_grade) ? (me!.top_grade as string) : '5.10a-5.10c',
+    draft?.topGrade ?? (GRADE_BANDS.some((g) => g.value === me?.top_grade) ? (me!.top_grade as string) : '5.10a-5.10c'),
   );
-  const [preferredStyles, setPreferredStyles] = useState<Style[]>(me?.preferred_styles ?? ['top_rope', 'lead']);
+  const [preferredStyles, setPreferredStyles] = useState<Style[]>(draft?.preferredStyles ?? me?.preferred_styles ?? ['top_rope', 'lead']);
   const [certOpen, setCertOpen] = useState(false);
-  const [weightLbs, setWeightLbs] = useState<string>(me?.weight_kg ? String(kgToLbs(me.weight_kg)) : '');
-  const [heightFt, setHeightFt] = useState<string>(me?.height_cm ? String(Math.floor(me.height_cm / 2.54 / 12)) : '');
+  const [weightLbs, setWeightLbs] = useState<string>(draft?.weightLbs ?? (me?.weight_kg ? String(kgToLbs(me.weight_kg)) : ''));
+  const [heightFt, setHeightFt] = useState<string>(draft?.heightFt ?? (me?.height_cm ? String(Math.floor(me.height_cm / 2.54 / 12)) : ''));
   const [heightIn, setHeightIn] = useState<string>(
-    me?.height_cm ? String(Math.round(me.height_cm / 2.54 - Math.floor(me.height_cm / 2.54 / 12) * 12)) : '',
+    draft?.heightIn ?? (me?.height_cm ? String(Math.round(me.height_cm / 2.54 - Math.floor(me.height_cm / 2.54 / 12) * 12)) : ''),
   );
+
+  // If DNA got claimed mid-onboarding (quiz detour), the quiz step is moot.
+  useEffect(() => {
+    if (me?.quiz_result_type && step === 9) setStep(8);
+  }, [me?.quiz_result_type, step]);
+
+  // Persist the draft as the user types/advances.
+  useEffect(() => {
+    try {
+      localStorage.setItem('crux8-onboarding-draft', JSON.stringify({
+        step, dob, location, displayName, hikeDistance, hikePace, climbSkipped, hikeSkipped,
+        avatar, photoUrl, signature, bio, tags, activities, homeGymId, topGrade, preferredStyles,
+        weightLbs, heightFt, heightIn,
+      }));
+    } catch { /* storage full/blocked — draft just won't persist */ }
+  }, [step, dob, location, displayName, hikeDistance, hikePace, climbSkipped, hikeSkipped, avatar, photoUrl, signature, bio, tags, activities, homeGymId, topGrade, preferredStyles, weightLbs, heightFt, heightIn]);
+
 
   if (!me) {
     nav('/');
@@ -151,6 +180,7 @@ export function Onboarding() {
       weight_kg: weightKg,
       height_cm: heightCm,
     });
+    try { localStorage.removeItem('crux8-onboarding-draft'); } catch { /* ok */ }
     toast('Welcome to Crux8! 🎉');
     nav('/home');
   };
