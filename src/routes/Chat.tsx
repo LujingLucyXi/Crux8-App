@@ -41,65 +41,78 @@ export function Chat() {
     );
   }
 
+  const crewChatList = sessionChatList.filter((sc) => sc.source === 'group');
+  const pureSessionChatList = sessionChatList.filter((sc) => sc.source !== 'group');
+
+  const renderThreadRow = (sc: (typeof sessionChatList)[number]) => {
+    const last = sc.messages[sc.messages.length - 1];
+    const unread = isThreadUnread(scKey(sc.id), last);
+    const participants = sc.participant_ids
+      .filter((id) => id !== 'me')
+      .map((id) => users.find((u) => u.id === id))
+      .filter(Boolean) as { id: string; display_name: string; avatar: AvatarConfig }[];
+    return (
+      <li key={sc.id}>
+        <button
+          onClick={() => nav(`/chat/session/${sc.id}`)}
+          className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-paper-100 transition-colors text-left"
+        >
+          <div className="relative shrink-0">
+            <div className="w-11 h-11 rounded-full bg-teal-100 flex items-center justify-center">
+              <Community width={20} height={20} className="text-teal-600" />
+            </div>
+            {unread && (
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-coral-500 ring-2 ring-paper-50" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="font-semibold text-ink-900 truncate">{sc.title}</p>
+              {last && (
+                <span className={cn('text-[11px] shrink-0', unread ? 'text-coral-500 font-semibold' : 'text-ink-500')}>
+                  {formatChatTimestamp(last.sent_at)}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className={cn('text-sm truncate flex-1', unread ? 'text-ink-900 font-medium' : 'text-ink-500')}>
+                {last
+                  ? last.from === 'me'
+                    ? `You: ${last.text}`
+                    : last.from === 'system'
+                      ? last.text
+                      : `${users.find((u) => u.id === last.from)?.display_name?.split(' ')[0] ?? 'Someone'}: ${last.text}`
+                  : 'Say hi!'}
+              </p>
+              <AvatarStack users={participants} max={3} size={18} />
+            </div>
+          </div>
+        </button>
+      </li>
+    );
+  };
+
   return (
     <div>
       <h1 className="text-2xl font-semibold text-ink-900 mb-4">Chats</h1>
 
-      {/* Session chats (group) */}
-      {sessionChatList.length > 0 && (
+      {/* Crew chats (group threads) */}
+      {crewChatList.length > 0 && (
         <section className="mb-5">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
-            Session chats · {sessionChatList.length}
+            Crew chats · {crewChatList.length}
           </h2>
-          <ul className="flex flex-col gap-1">
-            {sessionChatList.map((sc) => {
-              const last = sc.messages[sc.messages.length - 1];
-              const unread = isThreadUnread(scKey(sc.id), last);
-              const participants = sc.participant_ids
-                .filter((id) => id !== 'me')
-                .map((id) => users.find((u) => u.id === id))
-                .filter(Boolean) as { id: string; display_name: string; avatar: AvatarConfig }[];
-              return (
-                <li key={sc.id}>
-                  <button
-                    onClick={() => nav(`/chat/session/${sc.id}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-paper-100 transition-colors text-left"
-                  >
-                    <div className="relative shrink-0">
-                      <div className="w-11 h-11 rounded-full bg-teal-100 flex items-center justify-center">
-                        <Community width={20} height={20} className="text-teal-600" />
-                      </div>
-                      {unread && (
-                        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-coral-500 ring-2 ring-paper-50" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="font-semibold text-ink-900 truncate">{sc.title}</p>
-                        {last && (
-                          <span className={cn('text-[11px] shrink-0', unread ? 'text-coral-500 font-semibold' : 'text-ink-500')}>
-                            {formatChatTimestamp(last.sent_at)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <p className={cn('text-sm truncate flex-1', unread ? 'text-ink-900 font-medium' : 'text-ink-500')}>
-                          {last
-                            ? last.from === 'me'
-                              ? `You: ${last.text}`
-                              : last.from === 'system'
-                              ? last.text
-                              : `${users.find((u) => u.id === last.from)?.display_name?.split(' ')[0] ?? 'Someone'}: ${last.text}`
-                            : 'Say hi!'}
-                        </p>
-                        <AvatarStack users={participants} max={3} size={18} />
-                      </div>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          <ul className="flex flex-col gap-1">{crewChatList.map(renderThreadRow)}</ul>
+        </section>
+      )}
+
+      {/* Session chats */}
+      {pureSessionChatList.length > 0 && (
+        <section className="mb-5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
+            Session chats · {pureSessionChatList.length}
+          </h2>
+          <ul className="flex flex-col gap-1">{pureSessionChatList.map(renderThreadRow)}</ul>
         </section>
       )}
 
