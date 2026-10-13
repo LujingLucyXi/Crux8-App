@@ -28,7 +28,7 @@ export function AuthSheet({
   onOpenChange,
   title = 'Get started',
   onSuccess,
-  initialTab = 'code',
+  initialTab = 'password',
   initialPwMode = 'signin',
 }: AuthSheetProps) {
   const sendOtp = useAppStore((s) => s.sendOtp);
@@ -37,7 +37,7 @@ export function AuthSheet({
   const signInWithPassword = useAppStore((s) => s.signInWithPassword);
   const resetPassword = useAppStore((s) => s.resetPassword);
 
-  const [tab, setTab] = useState<Tab>('code');
+  const [tab, setTab] = useState<Tab>('password');
 
   // --- email-code state ---
   const [step, setStep] = useState<'email' | 'code'>('email');

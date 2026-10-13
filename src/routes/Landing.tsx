@@ -16,7 +16,7 @@ export function Landing() {
   const nav = useNavigate();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetEntry, setSheetEntry] = useState<{ tab: 'code' | 'password'; pwMode: 'signin' | 'signup' }>({
-    tab: 'code',
+    tab: 'password',
     pwMode: 'signin',
   });
 
@@ -56,7 +56,7 @@ export function Landing() {
           <Button size="lg" onClick={() => openSheet('password', 'signup')}>
             Sign up
           </Button>
-          <Button size="lg" variant="outline" onClick={() => openSheet('code', 'signin')}>
+          <Button size="lg" variant="outline" onClick={() => openSheet('password', 'signin')}>
             Sign in
           </Button>
         </div>

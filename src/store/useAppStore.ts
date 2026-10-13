@@ -679,6 +679,15 @@ export const useAppStore = create<Store>()(
         if (!initAuthSubscribed) {
           initAuthSubscribed = true;
           supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+              // Reset links land wherever Supabase's allowlist sends them —
+              // if that's not /update-password itself, route there now so
+              // the user can actually set a new password.
+              if (window.location.pathname !== '/update-password') {
+                window.location.assign('/update-password');
+              }
+              return;
+            }
             if (event === 'SIGNED_OUT') {
               set({ me: null });
             } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
