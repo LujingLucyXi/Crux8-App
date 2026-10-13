@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { SessionSummarySheet } from '@/components/sheets/SessionSummarySheet';
 import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
+import { ShareSessionSheet } from '@/components/sheets/ShareSessionSheet';
 import { sessionPhase, canStartSession } from '@/lib/sessionPhase';
 import { toast } from 'sonner';
-import { ShieldCheck, MapPin, Calendar, OpenInWindow, User, EditPencil } from 'iconoir-react';
+import { ShieldCheck, MapPin, Calendar, OpenInWindow, User, EditPencil, ShareIos } from 'iconoir-react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Input, Label, Textarea } from '@/components/ui/Input';
@@ -60,6 +61,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [recapOpen, setRecapOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -239,6 +241,15 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
             {isJoined ? 'Leave session' : isFull ? 'Full' : 'RSVP'}
           </Button>
 
+          {!isPast && (
+            <button
+              onClick={() => setShareOpen(true)}
+              className="mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-ink-100 py-2.5 text-sm font-semibold text-ink-700"
+            >
+              <ShareIos width={15} height={15} /> Share / invite cruxmates
+            </button>
+          )}
+
           {/* Lifecycle: manual start / finish only — never the clock. */}
           {isJoined && phase === 'upcoming' && (
             <div className="mt-2">
@@ -326,6 +337,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
         )}
       </Sheet>
       <SessionSummarySheet session={session} open={summaryOpen} onOpenChange={setSummaryOpen} />
+      <ShareSessionSheet session={session} open={shareOpen} onOpenChange={setShareOpen} />
       {/* Finish flow: optional ratings first, then the session card. */}
       <SessionRecapSheet
         session={session}

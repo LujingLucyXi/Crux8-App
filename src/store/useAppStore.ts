@@ -275,6 +275,8 @@ interface Store {
   /** Post a climb call card into a crew's group chat. */
   shareClimbCallToGroup: (callId: string, groupId: string) => void;
   inviteCruxmatesToCall: (callId: string, userIds: string[]) => void;
+  shareSessionToGroup: (sessionId: string, groupId: string) => void;
+  inviteCruxmatesToSession: (sessionId: string, userIds: string[]) => void;
   markThreadRead: (key: string) => void;
   toggleReactionDm: (userId: string, msgId: string, key: ReactionKey) => void;
   toggleReactionSession: (sessionChatId: string, msgId: string, key: ReactionKey) => void;
@@ -1587,6 +1589,50 @@ export const useAppStore = create<Store>()(
           `${when}` +
           (call.note ? `\n"${call.note}"` : '') +
           `\nTap to view and request to pair: https://crux8.app/call/${call.id}`;
+        for (const uid of userIds) {
+          get().sendMessage(uid, text);
+        }
+      },
+
+      shareSessionToGroup: (sessionId, groupId) => {
+        const session = get().sessions.find((s) => s.id === sessionId);
+        const group = get().groups.find((g) => g.id === groupId);
+        if (!session || !group) return;
+        get().openGroupChat(groupId);
+        const when = new Date(session.starts_at).toLocaleString(undefined, {
+          weekday: 'short', month: 'short', day: 'numeric',
+          hour: 'numeric', minute: '2-digit',
+        });
+        const where = session.location_type === 'indoor'
+          ? (get().gyms.find((g) => g.id === session.gym_id)?.short_name ?? 'the gym')
+          : (session.area ?? 'outdoors');
+        const text =
+          `🧗 ${get().me?.display_name ?? 'Someone'} shared a session\n` +
+          `${session.title} · ${where}\n` +
+          `${when}` +
+          (session.subtitle ? `\n${session.subtitle}` : '') +
+          `\nhttps://crux8.app/session/${session.id}`;
+        get().sendSessionMessage(groupId, text);
+      },
+
+      inviteCruxmatesToSession: (sessionId, userIds) => {
+        const session = get().sessions.find((s) => s.id === sessionId);
+        if (!session) return;
+        const when = new Date(session.starts_at).toLocaleString(undefined, {
+          weekday: 'short', month: 'short', day: 'numeric',
+          hour: 'numeric', minute: '2-digit',
+        });
+        const where = session.location_type === 'indoor'
+          ? (get().gyms.find((g) => g.id === session.gym_id)?.short_name ?? 'the gym')
+          : (session.area ?? 'outdoors');
+        const spots = session.capacity - session.participant_ids.length;
+        const text =
+          `🧗 ${get().me?.display_name ?? 'Someone'} invited you to a session\n` +
+          `${session.title} · ${where}\n` +
+          `${when}` +
+          (session.subtitle ? `\n${session.subtitle}` : '') +
+          (spots > 0 ? `\n${spots} spot${spots === 1 ? '' : 's'} open` : '') +
+          `\nTap to view and RSVP: https://crux8.app/session/${session.id}`;
         for (const uid of userIds) {
           get().sendMessage(uid, text);
         }
