@@ -31,9 +31,10 @@ const STEP_META = [
   { n: 6, label: 'Body (private)' },
   { n: 7, label: 'Belay skills' },
   { n: 8, label: 'Invite crew' },
+  { n: 9, label: 'Your DNA' },
 ] as const;
 const TOTAL = STEP_META.length;
-type StepN = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+type StepN = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 const STYLES: { value: Style; label: string }[] = [
   { value: 'top_rope', label: 'Top Rope' },
@@ -616,7 +617,42 @@ export function Onboarding() {
             </div>
             <div className="mt-8 flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => go(climbs ? 7 : hikes ? 5 : 4)}>Back</Button>
-              <Button className="flex-1" onClick={finish}>Finish</Button>
+              {me?.quiz_result_type ? (
+                <Button className="flex-1" onClick={finish}>Finish</Button>
+              ) : (
+                <Button className="flex-1" onClick={() => go(9)}>Next</Button>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ── Step 9 · Discover your Climber DNA (skipped if already claimed) ── */}
+        {step === 9 && (
+          <>
+            <h2 className="text-2xl font-semibold text-ink-900">One last thing: your Climber DNA.</h2>
+            <p className="mt-2 text-sm text-ink-500">
+              Take the 60-second quiz to discover your climbing archetype. You'll get sorted into a house and auto-join your house hangout crew — your first crew, on day one.
+            </p>
+            <div className="mt-6 rounded-2xl p-5 text-white shadow-brand" style={{ background: 'linear-gradient(135deg,#7C3AED,#EC4899)' }}>
+              <p className="text-3xl">🧬</p>
+              <p className="mt-2 font-semibold">What's your climbing personality?</p>
+              <p className="text-sm text-white/80">
+                15 questions. Your result becomes your DNA card — the one other climbers collect when they meet you.
+              </p>
+              <Button
+                variant="punch"
+                className="mt-4 w-full"
+                onClick={() => window.open('https://play.crux8.app', '_blank')}
+              >
+                Take the quiz 🧗
+              </Button>
+              <p className="mt-2 text-center text-[11px] text-white/70">
+                Finish the quiz, then tap "Continue to the Crux8 app" to claim your DNA here.
+              </p>
+            </div>
+            <div className="mt-8 flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => go(8)}>Back</Button>
+              <Button className="flex-1" onClick={finish}>Skip for now</Button>
             </div>
           </>
         )}
