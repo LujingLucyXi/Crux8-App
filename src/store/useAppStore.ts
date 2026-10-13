@@ -274,6 +274,7 @@ interface Store {
   sendSessionMessage: (sessionChatId: string, text: string) => void;
   /** Post a climb call card into a crew's group chat. */
   shareClimbCallToGroup: (callId: string, groupId: string) => void;
+  inviteCruxmatesToCall: (callId: string, userIds: string[]) => void;
   markThreadRead: (key: string) => void;
   toggleReactionDm: (userId: string, msgId: string, key: ReactionKey) => void;
   toggleReactionSession: (sessionChatId: string, msgId: string, key: ReactionKey) => void;
@@ -1568,6 +1569,27 @@ export const useAppStore = create<Store>()(
           (call.note ? `\n"${call.note}"` : '') +
           `\nhttps://crux8.app/call/${call.id}`;
         get().sendSessionMessage(groupId, text);
+      },
+
+      inviteCruxmatesToCall: (callId, userIds) => {
+        const call = get().climbCalls.find((c) => c.id === callId);
+        if (!call) return;
+        const when = new Date(call.starts_at).toLocaleString(undefined, {
+          weekday: 'short', month: 'short', day: 'numeric',
+          hour: 'numeric', minute: '2-digit',
+        });
+        const where = call.location_type === 'indoor'
+          ? (get().gyms.find((g) => g.id === call.gym_id)?.short_name ?? 'the gym')
+          : (call.area ?? 'outdoors');
+        const text =
+          `🧗 ${get().me?.display_name ?? 'Someone'} invited you to climb\n` +
+          `${call.category === 'top_rope' ? 'Top-rope' : 'Lead'} · ${call.grade} · ${where}\n` +
+          `${when}` +
+          (call.note ? `\n"${call.note}"` : '') +
+          `\nTap to view and request to pair: https://crux8.app/call/${call.id}`;
+        for (const uid of userIds) {
+          get().sendMessage(uid, text);
+        }
       },
 
       markThreadRead: (key: string) => {
