@@ -79,15 +79,15 @@ export function StartSessionSheet({ call, open, onOpenChange, onStarted }: Props
                 disabled={isMe}
                 onClick={() => toggle(id)}
                 className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
-                  checked ? 'border-teal-500 bg-teal-50' : 'border-ink-100 bg-paper-100'
-                } ${isMe ? 'opacity-80' : 'hover:border-ink-300'}`}
+                  checked ? 'border-brand-600 bg-brand-600' : 'border-ink-100 bg-paper-100'
+                } ${isMe ? '' : 'hover:border-ink-300'}`}
               >
                 <span className={`flex h-5 w-5 items-center justify-center rounded-md border ${
-                  checked ? 'bg-teal-600 border-teal-600 text-white' : 'border-ink-300'
+                  checked ? 'bg-[#161310] border-[#161310] text-brand-400' : 'border-ink-300'
                 }`}>
                   {checked && '✓'}
                 </span>
-                <span className="font-medium text-ink-900 text-sm">
+                <span className={`font-medium text-sm ${checked ? 'text-[#161310]' : 'text-ink-900'}`}>
                   {u?.display_name ?? 'Someone'}{isMe ? ' (you)' : ''}
                 </span>
               </button>

@@ -246,11 +246,11 @@ export function GroupManage() {
                 key={policy}
                 onClick={() => updateGroup(group.id, { join_policy: policy })}
                 className={`flex-1 rounded-xl border px-3 py-2.5 text-left ${
-                  active ? 'border-teal-500 bg-teal-50' : 'border-ink-200 bg-paper-100'
+                  active ? 'border-brand-600 bg-brand-600' : 'border-ink-200 bg-paper-100'
                 }`}
               >
-                <p className="text-sm font-semibold text-ink-900">{policy === 'open' ? 'Open' : 'Request to join'}</p>
-                <p className="text-[11px] text-ink-500 mt-0.5">
+                <p className={`text-sm font-semibold ${active ? 'text-[#161310]' : 'text-ink-900'}`}>{policy === 'open' ? 'Open' : 'Request to join'}</p>
+                <p className={`text-[11px] mt-0.5 ${active ? 'text-[#161310]/70' : 'text-ink-500'}`}>
                   {policy === 'open' ? 'Anyone can join instantly' : 'Admins review each request'}
                 </p>
               </button>
