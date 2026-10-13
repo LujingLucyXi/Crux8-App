@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { resolveUser } from '@/lib/resolveUser';
+import { sessionPhase } from '@/lib/sessionPhase';
 import type { Session, ClimbCall, EventItem } from '@/seed/types';
 
 type Item =
@@ -35,6 +36,7 @@ export function Sessions() {
   const gyms = useAppStore((s) => s.gyms);
   const groups = useAppStore((s) => s.groups);
   const recaps = useAppStore((s) => s.recaps);
+  const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
   const sessionsLoading = useAppStore((s) => s.sessionsLoading);
 
   const [view, setView] = useState<'upcoming' | 'past'>('upcoming');
@@ -48,10 +50,14 @@ export function Sessions() {
   const { upcoming, past } = useMemo(() => {
     const now = Date.now();
     if (!me) return { upcoming: [] as Item[], past: [] as Item[] };
-    const all: Item[] = [
-      ...sessions
-        .filter((s) => s.participant_ids.includes(me.id))
-        .map((s) => ({ kind: 'session' as const, at: s.starts_at, data: s, end: s.ends_at })),
+    // Sessions partition by lifecycle phase, not the clock: upcoming/live
+    // stay in Upcoming until someone taps Finish; finished and lapsed
+    // (never started) sessions land in Past. Calls and events keep the
+    // clock-based split.
+    const sessionItems: Item[] = sessions
+      .filter((s) => s.participant_ids.includes(me.id))
+      .map((s) => ({ kind: 'session' as const, at: s.starts_at, data: s, end: s.ends_at }));
+    const otherItems: Item[] = [
       ...climbCalls
         .filter((c) => c.participant_ids.includes(me.id))
         .map((c) => ({ kind: 'call' as const, at: c.starts_at, data: c, end: c.ends_at })),
@@ -59,14 +65,20 @@ export function Sessions() {
         .filter((e) => e.attendee_ids.includes(me.id))
         .map((e) => ({ kind: 'event' as const, at: e.starts_at, data: e, end: e.ends_at })),
     ];
+    const isPastSession = (i: Item) => {
+      if (i.kind !== 'session') return new Date(i.end).getTime() <= now;
+      const ph = sessionPhase(i.data as Session, sessionLifecycle[(i.data as Session).id], now);
+      return ph === 'done' || ph === 'expired';
+    };
+    const all = [...sessionItems, ...otherItems];
     const up = all
-      .filter((i) => new Date(i.end).getTime() > now)
+      .filter((i) => !isPastSession(i))
       .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
     const pa = all
-      .filter((i) => new Date(i.end).getTime() <= now)
+      .filter((i) => isPastSession(i))
       .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
     return { upcoming: up, past: pa };
-  }, [me, sessions, climbCalls, events]);
+  }, [me, sessions, climbCalls, events, sessionLifecycle]);
 
   if (!me) return null;
   const list = view === 'upcoming' ? upcoming : past;
@@ -76,6 +88,7 @@ export function Sessions() {
       const s = it.data;
       const grp = s.posted_by_group_id ? groups.find((g) => g.id === s.posted_by_group_id) : undefined;
       const done = !!recaps[s.id];
+      const phase = sessionPhase(s, sessionLifecycle[s.id]);
       return (
         <div key={`session-${s.id}`}>
           <SessionCard
@@ -85,7 +98,10 @@ export function Sessions() {
             groupName={grp?.name}
             onClick={() => setDetailSession(s)}
           />
-          {view === 'past' && (
+          {view === 'past' && phase === 'expired' && (
+            <p className="mt-2 text-center text-xs text-ink-500">This session never started.</p>
+          )}
+          {view === 'past' && phase === 'done' && (
             <Button
               variant={done ? 'outline' : 'primary'}
               size="sm"

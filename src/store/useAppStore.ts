@@ -137,6 +137,8 @@ interface Store {
   gearChecklists: Record<string, Record<string, boolean>>;
   badges: BadgeId[];
   recaps: Record<string, SessionRecap>;       // sessionId -> recap
+  /** Manual start/finish stamps per session (see lib/sessionPhase rules). */
+  sessionLifecycle: Record<string, { started_at?: string; finished_at?: string }>;
   pairRequests: string[];               // callIds we've requested to pair on
   checkin: CheckIn | null;              // my current gym check-in
   gymPresence: Record<string, number>; // gymId -> people here now
@@ -261,6 +263,10 @@ interface Store {
   updateGearChecklist: (sessionId: string, item: string, checked: boolean) => void;
 
   logSessionRecap: (sessionId: string) => void;
+  /** Stamp a session started (manual tap only; never automatic). */
+  startSession: (sessionId: string) => void;
+  /** Stamp a session finished (manual tap only; never automatic). */
+  finishSession: (sessionId: string) => void;
   togglePartnerProp: (sessionId: string, partnerId: string, key: ReactionKey) => void;
   setPartnerCheck: (sessionId: string, partnerId: string, check: PartnerCheck, flag?: PartnerFlag) => void;
   setBelayConfirm: (sessionId: string, partnerId: string, value: BelayConfirm) => void;
@@ -456,6 +462,7 @@ export const useAppStore = create<Store>()(
       gearChecklists: {},
       badges: [],
       recaps: {},
+      sessionLifecycle: {},
       pairRequests: [],
       checkin: null,
       gymPresence: {},
@@ -745,6 +752,7 @@ export const useAppStore = create<Store>()(
           gearChecklists: {},
           badges: [],
           recaps: {},
+          sessionLifecycle: {},
           checkin: null,
           gymPresence: {},
           xp: 0,
@@ -910,7 +918,8 @@ export const useAppStore = create<Store>()(
           requires_attestation: false,
           note: call.note,
         });
-        // Add all present users as participants.
+        // Add all present users as participants. The session is born live:
+        // starting a call session IS the crew tapping Start together.
         set({
           sessions: get().sessions.map((s) =>
             s.id === session.id ? { ...s, participant_ids: present } : s
@@ -918,6 +927,10 @@ export const useAppStore = create<Store>()(
           climbCalls: get().climbCalls.map((c) =>
             c.id === callId ? { ...c, status: 'matched' as const } : c
           ),
+          sessionLifecycle: {
+            ...get().sessionLifecycle,
+            [session.id]: { started_at: now.toISOString() },
+          },
         });
         // Mutual card collection: everyone present collects everyone else.
         const others = present.filter((id) => id !== me.id);
@@ -1564,6 +1577,28 @@ export const useAppStore = create<Store>()(
         get().checkBadges();
       },
 
+      startSession: (sessionId) => {
+        const cur = get().sessionLifecycle[sessionId];
+        if (cur?.started_at) return;
+        set({
+          sessionLifecycle: {
+            ...get().sessionLifecycle,
+            [sessionId]: { ...cur, started_at: new Date().toISOString() },
+          },
+        });
+      },
+
+      finishSession: (sessionId) => {
+        const cur = get().sessionLifecycle[sessionId];
+        if (!cur?.started_at || cur.finished_at) return;
+        set({
+          sessionLifecycle: {
+            ...get().sessionLifecycle,
+            [sessionId]: { ...cur, finished_at: new Date().toISOString() },
+          },
+        });
+      },
+
       togglePartnerProp: (sessionId, partnerId, key) => {
         const cur = get().recaps[sessionId];
         const base: SessionRecap = cur ?? {
@@ -1692,7 +1727,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 21,
+      version: 22,
       /**
        * v16 → v17: sessions + climb calls move to real Supabase tables.
        *   Drop persisted mock sessions/calls (and their chats/pairings/
@@ -1711,6 +1746,12 @@ export const useAppStore = create<Store>()(
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 22) {
+          // v21 → v22: manual session lifecycle (start/finish stamps).
+          if (!s.sessionLifecycle || typeof s.sessionLifecycle !== 'object') {
+            s.sessionLifecycle = {};
+          }
+        }
         if (version < 21) {
           // v20 → v21: gym short names rebranded BP -> SBP in the seed
           // (2b53b03) without a migration, so persisted gyms still said

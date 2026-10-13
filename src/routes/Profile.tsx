@@ -14,6 +14,7 @@ import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
 import { LogSendSheet } from '@/components/sheets/LogSendSheet';
 import { useAppStore, type BadgeId } from '@/store/useAppStore';
+import { sessionPhase } from '@/lib/sessionPhase';
 import type { VerificationCategory } from '@/seed/types';
 import { cn } from '@/lib/utils';
 import { cmToFtIn, kgToLbs, lbsToKg, ftInToCm } from '@/lib/weight';
@@ -58,6 +59,7 @@ export function Profile() {
   const verifications = useAppStore((s) => s.verifications);
   const badges = useAppStore((s) => s.badges);
   const recaps = useAppStore((s) => s.recaps);
+  const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
   const xp = useAppStore((s) => s.xp);
   const sends = useAppStore((s) => s.sends);
   const updateProfile = useAppStore((s) => s.updateProfile);
@@ -87,8 +89,18 @@ export function Profile() {
     ? [...sends].sort((a, b) => sendXp(b.grade) - sendXp(a.grade))[0].grade
     : null;
   const now = Date.now();
-  const upcoming = sessions.filter((s) => s.participant_ids.includes(me.id) && new Date(s.ends_at).getTime() > now);
-  const past = sessions.filter((s) => s.participant_ids.includes(me.id) && new Date(s.ends_at).getTime() <= now);
+  // Same lifecycle split as the Sessions tab: finished/lapsed are "past";
+  // upcoming and live (even past end time, until finished) are not.
+  const upcoming = sessions.filter((s) => {
+    if (!s.participant_ids.includes(me.id)) return false;
+    const ph = sessionPhase(s, sessionLifecycle[s.id], now);
+    return ph === 'upcoming' || ph === 'live';
+  });
+  const past = sessions.filter((s) => {
+    if (!s.participant_ids.includes(me.id)) return false;
+    const ph = sessionPhase(s, sessionLifecycle[s.id], now);
+    return ph === 'done' || ph === 'expired';
+  });
 
   const openCert = (cat: VerificationCategory) => {
     setCertPreset(cat);

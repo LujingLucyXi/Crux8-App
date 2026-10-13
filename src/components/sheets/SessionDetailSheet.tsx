@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { SessionSummarySheet } from '@/components/sheets/SessionSummarySheet';
+import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
+import { sessionPhase, canStartSession } from '@/lib/sessionPhase';
 import { toast } from 'sonner';
 import { ShieldCheck, MapPin, Calendar, OpenInWindow, User, EditPencil } from 'iconoir-react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
@@ -44,6 +46,9 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const routes = useAppStore((s) => s.routes);
   const verifications = useAppStore((s) => s.verifications);
   const me = useAppStore((s) => s.me);
+  const lifecycle = useAppStore((s) => (session ? s.sessionLifecycle[session.id] : undefined));
+  const startSession = useAppStore((s) => s.startSession);
+  const finishSession = useAppStore((s) => s.finishSession);
 
   const [gearOpen, setGearOpen] = useState(false);
   const [certOpen, setCertOpen] = useState(false);
@@ -52,12 +57,16 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const [attested, setAttested] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [recapOpen, setRecapOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
 
   if (!session || !me) return null;
-  const isPast = new Date(session.ends_at).getTime() < Date.now();
+  // Lifecycle is manual (see lib/sessionPhase): the clock never starts or
+  // finishes a session. isPast here means "finished by a participant".
+  const phase = sessionPhase(session, lifecycle);
+  const isPast = phase === 'done';
   const isHost = session.host_id === me.id;
   const isJoined = session.participant_ids.includes(me.id);
   const isFull = session.participant_ids.length >= session.capacity;
@@ -199,6 +208,53 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
           >
             {isJoined ? 'Leave session' : isFull ? 'Full' : 'RSVP'}
           </Button>
+
+          {/* Lifecycle: manual start / finish only — never the clock. */}
+          {isJoined && phase === 'upcoming' && (
+            <div className="mt-2">
+              <Button
+                className="w-full"
+                disabled={!canStartSession(session)}
+                onClick={() => {
+                  startSession(session.id);
+                  toast.success('Session started — have a good climb! 🧗');
+                }}
+              >
+                ▶ Start session
+              </Button>
+              {!canStartSession(session) && (
+                <p className="text-xs text-ink-500 text-center mt-2">
+                  Starting opens 30 min before the session. If nobody starts it within
+                  1 hr of the start time, it lapses.
+                </p>
+              )}
+            </div>
+          )}
+          {isJoined && phase === 'live' && (
+            <div className="mt-2">
+              <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-coral-500">
+                ● Live now
+              </p>
+              <Button
+                className="w-full"
+                onClick={() => {
+                  finishSession(session.id);
+                  setRecapOpen(true);
+                }}
+              >
+                Finish session
+              </Button>
+              <p className="text-xs text-ink-500 text-center mt-2">
+                Finishing leads to optional partner ratings, then your session card.
+                Sessions never auto-finish.
+              </p>
+            </div>
+          )}
+          {phase === 'expired' && (
+            <p className="mt-2 text-center text-xs text-ink-500">
+              This session never started.
+            </p>
+          )}
           {canEdit && !editing && (
             <Button variant="outline" className="w-full mt-2" onClick={() => setEditing(true)}>
               <EditPencil width={14} height={14} className="mr-1" /> Edit session
@@ -244,6 +300,15 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
         )}
       </Sheet>
       <SessionSummarySheet session={session} open={summaryOpen} onOpenChange={setSummaryOpen} />
+      {/* Finish flow: optional ratings first, then the session card. */}
+      <SessionRecapSheet
+        session={session}
+        open={recapOpen}
+        onOpenChange={(o) => {
+          setRecapOpen(o);
+          if (!o) setSummaryOpen(true);
+        }}
+      />
 
       {/* Attestation dialog */}
       <Dialog open={attestOpen} onOpenChange={setAttestOpen}>

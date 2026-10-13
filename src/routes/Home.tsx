@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
+import { sessionPhase } from '@/lib/sessionPhase';
 import { CarouselSection, StackSection } from '@/components/home/Section';
 import {
   UpNextCard, MiniScheduleCard, ChallengeCard, BadgeProgressCard, EmptyNudge,
@@ -55,6 +56,7 @@ export function Home() {
   const verifications = useAppStore((s) => s.verifications);
   const badges = useAppStore((s) => s.badges);
   const recaps = useAppStore((s) => s.recaps);
+  const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
   const checkin = useAppStore((s) => s.checkin);
   const gymPresence = useAppStore((s) => s.gymPresence);
   const xp = useAppStore((s) => s.xp);
@@ -84,7 +86,13 @@ export function Home() {
     const now = Date.now();
     const items: AgendaItem[] = [
       ...sessions
-        .filter((s) => s.participant_ids.includes(me.id) && new Date(s.ends_at).getTime() > now)
+        .filter((s) => {
+          if (!s.participant_ids.includes(me.id)) return false;
+          // Sessions leave the agenda only when finished or lapsed —
+          // a live session past its end time stays until someone finishes it.
+          const ph = sessionPhase(s, sessionLifecycle[s.id], now);
+          return ph === 'upcoming' || ph === 'live';
+        })
         .map((s) => ({ kind: 'session' as const, at: s.starts_at, data: s })),
       ...climbCalls
         .filter((c) => c.participant_ids.includes(me.id) && new Date(c.ends_at).getTime() > now)
@@ -94,7 +102,7 @@ export function Home() {
         .map((e) => ({ kind: 'event' as const, at: e.starts_at, data: e })),
     ];
     return items.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-  }, [me, sessions, climbCalls, events]);
+  }, [me, sessions, climbCalls, events, sessionLifecycle]);
 
   const upNext = agenda[0];
   const restOfWeek = agenda.slice(1, 9);
@@ -104,11 +112,11 @@ export function Home() {
     const now = Date.now();
     return sessions
       .filter((s) => s.participant_ids.includes(me.id)
-        && new Date(s.ends_at).getTime() <= now
+        && sessionPhase(s, sessionLifecycle[s.id], now) === 'done'
         && !recaps[s.id])
       .sort((a, b) => new Date(b.ends_at).getTime() - new Date(a.ends_at).getTime())
       .slice(0, 4);
-  }, [me, sessions, recaps]);
+  }, [me, sessions, recaps, sessionLifecycle]);
 
   /* ── Suggested (AI-ranked things I'm NOT already on) ── */
   const suggestedSessions = useMemo(() => {
