@@ -86,6 +86,9 @@ export function ShareCallSheet({ call, open, onOpenChange }: Props) {
         <p className="text-sm text-ink-500 mt-1">
           Invite a cruxmate directly, post it to a crew chat, or send the link — anyone with it can view the call and request to pair.
         </p>
+        <Button className="mt-4 w-full" onClick={() => onOpenChange(false)}>
+          ← Done — back to the call
+        </Button>
 
         {invitable.length > 0 && (
           <>
@@ -147,9 +150,6 @@ export function ShareCallSheet({ call, open, onOpenChange }: Props) {
           </Button>
         </div>
         <p className="mt-3 text-[11px] text-ink-400 break-all">{link}</p>
-        <Button className="mt-5 w-full" onClick={() => onOpenChange(false)}>
-          Done
-        </Button>
       </SheetContent>
     </Sheet>
   );
