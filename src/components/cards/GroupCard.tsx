@@ -17,6 +17,10 @@ export function GroupCard({ group }: GroupCardProps) {
   const requestPolicy = (group.join_policy ?? 'open') === 'request';
   const requested = (group.pending ?? []).some((r) => r.user_id === 'me');
   const house = group.house_id ? getHouse(group.house_id) : undefined;
+  // Hangouts created before house covers existed have an empty cover_url —
+  // resolve the designed per-house cover from the house id.
+  const coverSrc =
+    group.cover_url || (group.house_id ? `/covers/house-${group.house_id}.jpg` : '');
   // House hangouts track their real roster in member_ids; prefer the deduped
   // roster size (repairs counts inflated by the old double-join bug).
   const displayCount =
@@ -30,9 +34,9 @@ export function GroupCard({ group }: GroupCardProps) {
       className="rounded-2xl bg-paper-100 border border-ink-100 overflow-hidden cursor-pointer hover:border-ink-300 transition-colors"
     >
       <div className="h-24 w-full overflow-hidden" aria-hidden>
-        {group.cover_url ? (
+        {coverSrc ? (
           <img
-            src={group.cover_url}
+            src={coverSrc}
             alt=""
             className="h-full w-full object-cover"
             loading="lazy"

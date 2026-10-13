@@ -1258,7 +1258,7 @@ export const useAppStore = create<Store>()(
             // joinGroup below adds the creator — start empty so she isn't
             // counted twice (member_count 1 + join increment = "2 members").
             member_count: 0,
-            cover_url: '',
+            cover_url: `/covers/house-${houseId}.jpg`,
             description:
               `Your house, your city. Everyone here got sorted into ${house.name} ` +
               `by the Crux8 quiz. Say hi, find partners who match your vibe, and plan your first hangout.`,

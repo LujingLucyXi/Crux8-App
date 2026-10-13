@@ -77,8 +77,12 @@ export function GroupDetail() {
         <NavArrowLeft width={18} height={18} className="text-white" />
       </button>
 
-      {group.cover_url ? (
-        <img src={group.cover_url} alt="" className="w-full h-40 object-cover" />
+      {group.cover_url || group.house_id ? (
+        <img
+          src={group.cover_url || `/covers/house-${group.house_id}.jpg`}
+          alt=""
+          className="w-full h-40 object-cover"
+        />
       ) : (
         <div
           className="flex h-40 w-full items-center justify-center"
