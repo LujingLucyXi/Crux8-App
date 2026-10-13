@@ -13,7 +13,6 @@ type Key = 'gym' | 'area' | 'date' | 'time' | 'level' | 'role' | 'all';
 const DATE_OPTS = [
   { value: 'today', label: 'Today' },
   { value: 'tomorrow', label: 'Tomorrow' },
-  { value: 'this_week', label: 'This week' },
 ] as const;
 
 const TIME_OPTS = [

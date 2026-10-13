@@ -84,7 +84,7 @@ export interface Filters {
   weight_safe_only: boolean;
   gym_id?: string;
   area?: string;
-  date?: 'today' | 'tomorrow' | 'this_week';
+  date?: 'today' | 'tomorrow';
   date_specific?: string;
   time?: 'morning' | 'afternoon' | 'evening';
   grade_band?: string;

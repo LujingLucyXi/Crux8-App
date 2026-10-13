@@ -61,7 +61,7 @@ function withinTime(iso: string, time?: 'morning' | 'afternoon' | 'evening'): bo
   return true;
 }
 
-function withinDate(iso: string, date?: 'today' | 'tomorrow' | 'this_week', dateSpecific?: string): boolean {
+function withinDate(iso: string, date?: 'today' | 'tomorrow', dateSpecific?: string): boolean {
   const d = new Date(iso);
   if (dateSpecific) return d.toISOString().slice(0, 10) === dateSpecific;
   if (!date) return true;
@@ -71,11 +71,6 @@ function withinDate(iso: string, date?: 'today' | 'tomorrow' | 'this_week', date
     const tm = new Date();
     tm.setDate(now.getDate() + 1);
     return d.toDateString() === tm.toDateString();
-  }
-  if (date === 'this_week') {
-    const w = new Date();
-    w.setDate(now.getDate() + 7);
-    return d.getTime() >= now.getTime() && d.getTime() <= w.getTime();
   }
   return true;
 }
