@@ -36,6 +36,14 @@ export function GroupCard({ group }: GroupCardProps) {
               <span>{group.member_count.toLocaleString()} members</span>
               <span>·</span>
               <span className="capitalize">{group.category}</span>
+              {group.kind === 'house_hangout' && (
+                <>
+                  <span>·</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-100 text-brand-700 text-[10px] font-semibold px-2 py-0.5">
+                    🏠 Auto-matched
+                  </span>
+                </>
+              )}
             </div>
             <p className="text-[11px] text-teal-600 mt-1.5 font-medium">{group.recent_activity}</p>
           </div>

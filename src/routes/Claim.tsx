@@ -80,6 +80,7 @@ export function Claim() {
   const [searchParams] = useSearchParams();
   const me = useAppStore((s) => s.me);
   const updateProfile = useAppStore((s) => s.updateProfile);
+  const ensureHouseHangout = useAppStore((s) => s.ensureHouseHangout);
 
   const claim = useMemo(() => parseClaim(searchParams), [searchParams]);
 
@@ -96,6 +97,8 @@ export function Claim() {
     const trimmed = name.trim();
     if (trimmed) patch.display_name = trimmed;
     updateProfile(patch);
+    // First crew, zero effort: drop them into their house hangout.
+    ensureHouseHangout(claim.houseId);
     nav(me.onboarded === false ? '/onboarding' : '/home');
   };
 

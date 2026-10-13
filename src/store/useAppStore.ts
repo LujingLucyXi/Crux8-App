@@ -31,6 +31,7 @@ import {
 } from '@/seed';
 import { uid } from '@/lib/utils';
 import { avatarFromSeed } from '@/lib/avatar';
+import { getHouse } from '@/lib/quizMeta';
 import {
   supabase,
   fetchMyProfile,
@@ -218,6 +219,8 @@ interface Store {
   removeGroupMember: (groupId: string, userId: string) => void;
   updateGroup: (groupId: string, patch: Partial<Group>) => void;
   openGroupChat: (groupId: string) => void;
+  /** Find or create the house hangout crew for (house × user's city); joins it. Returns group id. */
+  ensureHouseHangout: (houseId: string) => string | null;
 
   addCruxMate: (userId: string) => void;
   removeCruxMate: (userId: string) => void;
@@ -324,6 +327,14 @@ export function countUnreadThreads(s: {
     if (isUnread(scKey(sc.id), sc.messages[sc.messages.length - 1])) count++;
   }
   return count;
+}
+
+/** Short display label for a launch-city slug, e.g. 'greater-seattle' → 'Seattle'. */
+function cityShortLabel(slug: string): string {
+  const map: Record<string, string> = {
+    'greater-seattle': 'Seattle',
+  };
+  return map[slug] ?? slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 const initialVerifications: Record<VerificationCategory, Verification> = {
@@ -1127,6 +1138,48 @@ export const useAppStore = create<Store>()(
         if (!g) return;
         const members = Array.from(new Set([...(g.member_ids ?? []), ...g.admin_ids]));
         get().ensureSessionChat(groupId, 'group', g.name, `${g.member_count.toLocaleString()} members`, members);
+      },
+
+      ensureHouseHangout: (houseId) => {
+        const me = get().me;
+        if (!me) return null;
+        const house = getHouse(houseId);
+        if (!house) return null;
+        // One hangout per house (city-scoped later when multi-city launches; for now
+        // the launch city is implicit in the crew name).
+        const existing = get().groups.find(
+          (g) => g.kind === 'house_hangout' && g.house_id === houseId
+        );
+        let hangoutId: string;
+        if (existing) {
+          hangoutId = existing.id;
+        } else {
+          const cityLabel = cityShortLabel(me.location ?? 'greater-seattle');
+          const hangout: Group = {
+            id: uid('grp'),
+            name: `${house.emoji} ${house.name} Hangout`,
+            tagline: `${cityLabel} · auto-grouped by Climber DNA`,
+            category: 'general',
+            member_count: 1,
+            cover_url: '',
+            description:
+              `Your house, your city. Everyone here got sorted into ${house.name} ` +
+              `by the Crux8 quiz. Say hi, find partners who match your vibe, and plan your first hangout.`,
+            admin_ids: [],
+            recent_activity: 'Hangout created 🏠',
+            owner_id: undefined,
+            member_ids: [me.id],
+            join_policy: 'open',
+            kind: 'house_hangout',
+            house_id: houseId,
+          };
+          set({ groups: [hangout, ...get().groups] });
+          hangoutId = hangout.id;
+        }
+        if (!get().myGroupMemberships.includes(hangoutId)) {
+          get().joinGroup(hangoutId);
+        }
+        return hangoutId;
       },
 
       addCruxMate: (userId) => {

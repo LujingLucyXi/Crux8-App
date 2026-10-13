@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { CarouselSection, StackSection } from '@/components/home/Section';
@@ -69,6 +69,12 @@ export function Home() {
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [logSendOpen, setLogSendOpen] = useState(false);
   const [recapSession, setRecapSession] = useState<Session | null>(null);
+
+  // Backfill: users who claimed DNA before house hangouts existed get auto-joined.
+  const ensureHouseHangout = useAppStore((s) => s.ensureHouseHangout);
+  useEffect(() => {
+    if (me?.quiz_house_id) ensureHouseHangout(me.quiz_house_id);
+  }, [me?.quiz_house_id, ensureHouseHangout]);
 
   const gymName = (id?: string) => gyms.find((g) => g.id === id)?.short_name ?? '';
 

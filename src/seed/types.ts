@@ -169,6 +169,9 @@ export interface Group {
   join_policy?: 'open' | 'request';    // open = instant; request = admin approval
   survey_questions?: string[];         // questions shown on a join request
   pending?: GroupJoinRequest[];        // awaiting admin review
+  // ── house hangout (auto-created crew per house × city) ──
+  kind?: 'standard' | 'house_hangout'; // default 'standard'
+  house_id?: string;                   // set when kind === 'house_hangout'
 }
 
 export interface NpcUser {
