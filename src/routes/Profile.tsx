@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { cmToFtIn, kgToLbs, lbsToKg, ftInToCm } from '@/lib/weight';
 import { levelFromXp, sendXp } from '@/lib/rewards';
 import { getArchetype, getHouse, getHouseForArchetype } from '@/lib/quizMeta';
+import { CollectionBook } from '@/components/CollectionBook';
 import { format } from 'date-fns';
 
 const BADGE_META: Record<BadgeId, { label: string; emoji: string; grad: string }> = {
@@ -243,6 +244,9 @@ export function Profile() {
           </button>
         </section>
       )}
+
+      {/* ── Card collection ── */}
+      <CollectionBook />
 
       {/* ── Level / XP power-up ── */}
       <div className="mt-4 rounded-3xl bg-brand-gradient text-white p-5 shadow-brand">

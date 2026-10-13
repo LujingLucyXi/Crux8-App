@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SessionSummarySheet } from '@/components/sheets/SessionSummarySheet';
 import { toast } from 'sonner';
 import { ShieldCheck, MapPin, Calendar, OpenInWindow, User, EditPencil } from 'iconoir-react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
@@ -50,11 +51,13 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const [gateOpen, setGateOpen] = useState(false);
   const [attested, setAttested] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
 
   if (!session || !me) return null;
+  const isPast = new Date(session.ends_at).getTime() < Date.now();
   const isHost = session.host_id === me.id;
   const isJoined = session.participant_ids.includes(me.id);
   const isFull = session.participant_ids.length >= session.capacity;
@@ -232,7 +235,15 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
             />
           )}
         </SheetContent>
+        {isPast && (
+          <div className="px-6 pb-6">
+            <Button variant="outline" className="w-full" onClick={() => setSummaryOpen(true)}>
+              🃏 View session card
+            </Button>
+          </div>
+        )}
       </Sheet>
+      <SessionSummarySheet session={session} open={summaryOpen} onOpenChange={setSummaryOpen} />
 
       {/* Attestation dialog */}
       <Dialog open={attestOpen} onOpenChange={setAttestOpen}>

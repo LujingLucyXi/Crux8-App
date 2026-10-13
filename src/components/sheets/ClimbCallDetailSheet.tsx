@@ -6,6 +6,7 @@ import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ShareCallSheet } from '@/components/sheets/ShareCallSheet';
+import { StartSessionSheet } from '@/components/sheets/StartSessionSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { isWeightSafe } from '@/lib/weight';
 import { LOOKING_FOR_LABEL } from '@/components/cards/ClimbCallCard';
@@ -41,6 +42,8 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
 
   const isRequested = pairRequests.includes(call.id);  const isFriend = cruxmates.includes(caller.id);
   const [shareOpen, setShareOpen] = useState(false);
+  const [startOpen, setStartOpen] = useState(false);
+  const canStart = call.participant_ids.length >= 2 && call.status === 'live';
   const weightSafe = isWeightSafe(me.weight_kg, call.weight_kg);
   const isMyCall = caller.id === me.id;
 
@@ -149,9 +152,23 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
           <Button variant="outline" onClick={() => setShareOpen(true)}>
             <ShareIos width={16} height={16} /> Share
           </Button>
+          {canStart && (
+            <Button
+              className="bg-teal-600 hover:bg-teal-500 border-teal-600"
+              onClick={() => setStartOpen(true)}
+            >
+              🧗 Start session
+            </Button>
+          )}
         </div>
       </SheetContent>
       <ShareCallSheet call={call} open={shareOpen} onOpenChange={setShareOpen} />
+      <StartSessionSheet
+        call={call}
+        open={startOpen}
+        onOpenChange={setStartOpen}
+        onStarted={() => onOpenChange(false)}
+      />
     </Sheet>
   );
 }

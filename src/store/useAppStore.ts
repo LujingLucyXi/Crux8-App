@@ -20,6 +20,7 @@ import type {
   VerificationCategory,
   VerificationStatus,
   Style,
+  CollectedCard,
 } from '@/seed/types';
 import {
   SEED_GYMS,
@@ -32,6 +33,7 @@ import {
 import { uid } from '@/lib/utils';
 import { avatarFromSeed } from '@/lib/avatar';
 import { getHouse } from '@/lib/quizMeta';
+import { QUIZ_ARCHETYPES, getHouseForArchetype } from '@/lib/quizMeta';
 import {
   supabase,
   fetchMyProfile,
@@ -126,6 +128,8 @@ interface Store {
   ticketRedemptions: Record<string, Record<string, string>>; // eventId -> gymId -> redeemed_at ISO
   mysteryMemberUntil: string | null;    // ISO expiry of the $15/mo Mystery Crew pass (null = not a member)
   cruxmates: string[];
+  collectedCards: CollectedCard[];              // DNA cards collected from people I've connected with
+  lastCollectedCard: CollectedCard | null;      // most recent collection (drives the reveal UI)
   chats: Record<string, ChatMessage[]>;                 // 1:1 DMs, keyed by userId
   sessionChats: Record<string, SessionChat>;            // group chats, keyed by session/event/call id
   chatReads: Record<string, string>;                    // thread key -> ISO of last time I read it
@@ -189,6 +193,12 @@ interface Store {
   subscribeMysteryPass: () => void;
 
   postSession: (session: Omit<Session, 'id' | 'host_id' | 'participant_ids'>) => Promise<Session>;
+  /**
+   * Start a live session from a climb call. Creates the Session, collects cards
+   * mutually for everyone present, and marks the call matched.
+   * Returns the new session id.
+   */
+  startCallSession: (callId: string, presentUserIds: string[]) => Promise<string | null>;
   updateSession: (id: string, patch: Partial<Session>) => Promise<void>;
   postEvent: (event: Omit<EventItem, 'id' | 'attendee_ids' | 'waitlist_ids'>) => EventItem;
   postClimbCall: (call: Omit<ClimbCall, 'id' | 'user_id' | 'status' | 'participant_ids'>) => Promise<ClimbCall>;
@@ -223,6 +233,12 @@ interface Store {
   ensureHouseHangout: (houseId: string) => string | null;
 
   addCruxMate: (userId: string) => void;
+  /**
+   * Collect someone's DNA card. Returns the card (new or updated), or null if
+   * they have no DNA to collect. Repeat collections bump sessions_together.
+   */
+  collectCard: (userId: string, source: 'cruxmate' | 'session') => CollectedCard | null;
+  clearLastCollectedCard: () => void;
   removeCruxMate: (userId: string) => void;
 
   sendMessage: (userId: string, text: string) => void;
@@ -406,6 +422,8 @@ export const useAppStore = create<Store>()(
       ticketRedemptions: {},
       mysteryMemberUntil: null,
       cruxmates: [],
+      collectedCards: [],
+      lastCollectedCard: null,
       chats: {},
       sessionChats: {},
       chatReads: {},
@@ -817,10 +835,51 @@ export const useAppStore = create<Store>()(
       postSession: async (session) => {
         const me = get().me!;
         // Errors throw to the caller (the sheet shows a toast).
-        const created = await dbCreateSession({ ...session, host_id: me.id });
-        set({ sessions: [created, ...get().sessions] });
+        const created = await dbCreateSession({ ...session, host_id: me.id });        set({ sessions: [created, ...get().sessions] });
         void get().ensureDirectoryProfiles([created.host_id]);
         return created;
+      },
+
+      startCallSession: async (callId, presentUserIds) => {
+        const me = get().me;
+        const call = get().climbCalls.find((c) => c.id === callId);
+        if (!me || !call) return null;
+        const present = presentUserIds.filter((id) => call.participant_ids.includes(id));
+        if (!present.includes(me.id)) present.push(me.id);
+        if (present.length < 2) return null;
+
+        const now = new Date();
+        const endsAt = new Date(now.getTime() + 3 * 3600_000);
+        const session = await get().postSession({
+          category: 'boulder',
+          title: `${call.category === 'top_rope' ? 'Top-rope' : 'Lead'} session`,
+          subtitle: call.grade,
+          starts_at: now.toISOString(),
+          ends_at: endsAt.toISOString(),
+          gym_id: call.gym_id,
+          area: call.area,
+          capacity: present.length,
+          vibe: 'chill',
+          location_type: call.location_type,
+          is_verified_only: false,
+          requires_attestation: false,
+          note: call.note,
+        });
+        // Add all present users as participants.
+        set({
+          sessions: get().sessions.map((s) =>
+            s.id === session.id ? { ...s, participant_ids: present } : s
+          ),
+          climbCalls: get().climbCalls.map((c) =>
+            c.id === callId ? { ...c, status: 'matched' as const } : c
+          ),
+        });
+        // Mutual card collection: everyone present collects everyone else.
+        const others = present.filter((id) => id !== me.id);
+        for (const otherId of others) {
+          get().collectCard(otherId, 'session');
+        }
+        return session.id;
       },
 
       updateSession: async (id, patch) => {
@@ -1188,7 +1247,66 @@ export const useAppStore = create<Store>()(
         if (get().cruxmates.includes(userId)) return;
         set({ cruxmates: [...get().cruxmates, userId] });
         get().checkBadges();
+        // Collect their DNA card — the moment of connection.
+        get().collectCard(userId, 'cruxmate');
       },
+
+      collectCard: (userId, source) => {
+        const me = get().me;
+        // Resolve DNA: real profile first, then NPC, then deterministic fallback.
+        let archetypeId: string | undefined;
+        let houseId: string | undefined;
+        if (me && userId === me.id) {
+          archetypeId = me.quiz_result_type;
+          houseId = me.quiz_house_id;
+        }
+        const dirProfile = get().directory[userId];
+        if (!archetypeId && dirProfile) {
+          archetypeId = (dirProfile as any).quiz_result_type;
+          houseId = (dirProfile as any).quiz_house_id;
+        }
+        const npc = get().users.find((u) => u.id === userId);
+        if (!archetypeId && npc) {
+          archetypeId = (npc as any).quiz_result_type;
+          houseId = (npc as any).quiz_house_id;
+        }
+        // Deterministic fallback so everyone has a collectible card.
+        if (!archetypeId) {
+          let h = 0;
+          for (let i = 0; i < userId.length; i++) h = (h * 31 + userId.charCodeAt(i)) >>> 0;
+          const arch = QUIZ_ARCHETYPES[h % QUIZ_ARCHETYPES.length];
+          archetypeId = arch.id;
+          houseId = getHouseForArchetype(arch.id).id;
+        }
+        const existing = get().collectedCards.find((c) => c.user_id === userId);
+        const now = new Date().toISOString();
+        if (existing) {
+          const updated: CollectedCard = {
+            ...existing,
+            sessions_together: existing.sessions_together + (source === 'session' ? 1 : 0),
+          };
+          set({
+            collectedCards: get().collectedCards.map((c) => (c.user_id === userId ? updated : c)),
+            lastCollectedCard: updated,
+          });
+          return updated;
+        }
+        const card: CollectedCard = {
+          user_id: userId,
+          archetype_id: archetypeId,
+          house_id: houseId!,
+          collected_at: now,
+          sessions_together: 1,
+          source,
+        };
+        set({
+          collectedCards: [card, ...get().collectedCards],
+          lastCollectedCard: card,
+        });
+        return card;
+      },
+
+      clearLastCollectedCard: () => set({ lastCollectedCard: null }),
 
       removeCruxMate: (userId) => {
         set({ cruxmates: get().cruxmates.filter((id) => id !== userId) });
@@ -1527,7 +1645,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 19,
+      version: 20,
       /**
        * v16 → v17: sessions + climb calls move to real Supabase tables.
        *   Drop persisted mock sessions/calls (and their chats/pairings/
@@ -1546,6 +1664,12 @@ export const useAppStore = create<Store>()(
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 20) {
+          // v19 → v20: card collection system. Initialize empty; existing
+          // cruxmates don't retro-collect (their moment passed).
+          if (!Array.isArray(s.collectedCards)) s.collectedCards = [];
+          s.lastCollectedCard = null;
+        }
         if (version < 19) {
           // v18 → v19: drop the old mock DM threads (Lilly/Marcus/Priya),
           // replaced by the Cruxy onboarding bot in 3a3082f. Removes them

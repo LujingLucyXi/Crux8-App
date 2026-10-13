@@ -275,6 +275,19 @@ export interface ChatMessage {
 }
 
 /**
+ * A collected DNA card — someone's climber identity captured at the moment you connected.
+ * Earned by adding a cruxmate or by starting a session together.
+ */
+export interface CollectedCard {
+  user_id: string;           // whose card it is
+  archetype_id: string;      // their archetype when collected
+  house_id: string;          // their house when collected
+  collected_at: string;      // ISO of first collection
+  sessions_together: number; // increments each session you climb together (1 = the collection moment)
+  source: 'cruxmate' | 'session';
+}
+
+/**
  * Post-session recap. Replaces the old 1–5 peer star rating, which suffered
  * from grade inflation (everyone rates 5) and social friction (rating a
  * friend low is awkward). Instead:

@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';
 import { NewSessionSheet } from '@/components/sheets/NewSessionSheet';
+import { CardRevealSheet } from '@/components/sheets/CardRevealSheet';
 import { CelebrationHost } from '@/components/fx/CelebrationHost';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -16,6 +17,7 @@ export function AppShell() {
       </main>
       <BottomNav onFabClick={() => setNewSheetOpen(true)} />
       <NewSessionSheet open={newSheetOpen} onOpenChange={setNewSheetOpen} />
+      <CardRevealSheet />
       <CelebrationHost />
     </div>
   );
