@@ -178,7 +178,7 @@ export function AuthSheet({
       <SheetContent title={title}>
         {/* method switcher */}
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-paper-50 p-1 text-sm font-semibold">
-          {(['code', 'password'] as Tab[]).map((t) => (
+          {(['password', 'code'] as Tab[]).map((t) => (
             <button
               key={t}
               type="button"
