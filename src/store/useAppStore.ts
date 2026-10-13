@@ -274,7 +274,9 @@ interface Store {
   /** "Your session" summary fields — every one optional (Strava-style recap). */
   setRecapSummary: (
     sessionId: string,
-    patch: Partial<Pick<SessionRecap, 'felt' | 'vibe_pick' | 'duration_bucket' | 'sends_count'>>,
+    patch: Partial<
+      Pick<SessionRecap, 'felt' | 'vibe_pick' | 'duration_bucket' | 'sends_count' | 'sends_log' | 'gym_rating'>
+    >,
   ) => void;
 
   setFilter: (patch: Partial<Filters>) => void;

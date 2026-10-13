@@ -46,6 +46,9 @@ const DURATION_OPTIONS: { v: NonNullable<SessionRecap['duration_bucket']>; label
   { v: 'gt3h', label: '3h+' },
 ] as const;
 
+const BOULDER_GRADES = ['V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8+'];
+const ROPE_GRADES = ['5.8', '5.9', '5.10', '5.11', '5.12', '5.13+'];
+
 /**
  * Post-session recap. NOT a 1–5 rating.
  *  - Props: positive-only climbing-emoji kudos (public).
@@ -72,6 +75,19 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
 
   const gym = session.gym_id ? gyms.find((g) => g.id === session.gym_id) : undefined;
   const recap = recaps[session.id];
+  const gradeSet =
+    session.category === 'boulder' || session.category === 'outdoor_boulder'
+      ? BOULDER_GRADES
+      : ROPE_GRADES;
+  const sendsLog = recap?.sends_log ?? {};
+  const sendsTotal = Object.values(sendsLog).reduce((a, b) => a + b, 0);
+  const bumpSend = (grade: string, delta: number) => {
+    const next = { ...sendsLog };
+    const v = (next[grade] ?? 0) + delta;
+    if (v <= 0) delete next[grade];
+    else next[grade] = v;
+    setRecapSummary(session.id, { sends_log: next });
+  };
   const partners = session.participant_ids
     .filter((id) => id !== me.id)
     .map((id) => resolveUser(id, me, users, directory))
@@ -174,60 +190,107 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
             })}
           </div>
 
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <p className="text-[11px] font-semibold text-ink-700 mb-1.5">How long</p>
-              <div className="flex flex-wrap gap-1.5">
-                {DURATION_OPTIONS.map((o) => {
-                  const active = recap?.duration_bucket === o.v;
-                  return (
-                    <button
-                      key={o.v}
-                      onClick={() =>
-                        setRecapSummary(session.id, {
-                          duration_bucket: active ? undefined : o.v,
-                        })
-                      }
-                      className={cn(
-                        'rounded-full border px-2.5 py-1.5 text-xs font-semibold transition-colors',
-                        active
-                          ? 'bg-brand-600 text-[#161310] border-brand-600'
-                          : 'bg-paper-100 text-ink-600 border-ink-100 hover:border-ink-300',
-                      )}
-                    >
-                      {o.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="flex-1">
-              <p className="text-[11px] font-semibold text-ink-700 mb-1.5">Sends</p>
-              <div className="flex flex-wrap gap-1.5">
-                {[0, 1, 2, 3, 4, 5].map((n) => {
-                  const active = recap?.sends_count === n;
-                  return (
-                    <button
-                      key={n}
-                      onClick={() =>
-                        setRecapSummary(session.id, {
-                          sends_count: active ? undefined : n,
-                        })
-                      }
-                      className={cn(
-                        'h-8 w-8 rounded-full border text-xs font-semibold transition-colors',
-                        active
-                          ? 'bg-brand-600 text-[#161310] border-brand-600'
-                          : 'bg-paper-100 text-ink-600 border-ink-100 hover:border-ink-300',
-                      )}
-                    >
-                      {n === 5 ? '5+' : n}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+          <p className="text-[11px] font-semibold text-ink-700 mb-1.5">How long</p>
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {DURATION_OPTIONS.map((o) => {
+              const active = recap?.duration_bucket === o.v;
+              return (
+                <button
+                  key={o.v}
+                  onClick={() =>
+                    setRecapSummary(session.id, {
+                      duration_bucket: active ? undefined : o.v,
+                    })
+                  }
+                  className={cn(
+                    'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                    active
+                      ? 'bg-brand-600 text-[#161310] border-brand-600'
+                      : 'bg-paper-100 text-ink-600 border-ink-100 hover:border-ink-300',
+                  )}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
           </div>
+
+          {/* Sends logger — per grade */}
+          <p className="text-[11px] font-semibold text-ink-700 mb-1.5">
+            Sends{' '}
+            {sendsTotal > 0 && (
+              <span className="text-brand-600">· {sendsTotal} total</span>
+            )}
+          </p>
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {gradeSet.map((g) => {
+              const count = sendsLog[g] ?? 0;
+              return (
+                <button
+                  key={g}
+                  onClick={() => bumpSend(g, 1)}
+                  className={cn(
+                    'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                    count > 0
+                      ? 'bg-brand-600 text-[#161310] border-brand-600'
+                      : 'bg-paper-100 text-ink-600 border-ink-100 hover:border-ink-300',
+                  )}
+                >
+                  {g}
+                  {count > 0 ? ` ×${count}` : ''}
+                </button>
+              );
+            })}
+          </div>
+          {gradeSet
+            .filter((g) => (sendsLog[g] ?? 0) > 0)
+            .map((g) => (
+              <div key={g} className="flex items-center gap-3 py-1">
+                <span className="w-10 text-sm font-semibold text-ink-900">{g}</span>
+                <button
+                  onClick={() => bumpSend(g, -1)}
+                  className="h-7 w-7 rounded-full border border-ink-100 text-sm text-ink-700"
+                  aria-label={`One fewer ${g}`}
+                >
+                  −
+                </button>
+                <span className="w-5 text-center text-sm font-semibold text-ink-900">
+                  {sendsLog[g]}
+                </span>
+                <button
+                  onClick={() => bumpSend(g, 1)}
+                  className="h-7 w-7 rounded-full border border-ink-100 text-sm text-ink-700"
+                  aria-label={`One more ${g}`}
+                >
+                  +
+                </button>
+              </div>
+            ))}
+
+          {/* Gym rating — indoor sessions only */}
+          {gym && (
+            <>
+              <p className="text-[11px] font-semibold text-ink-700 mt-4 mb-1.5">
+                Rate {gym.short_name}
+              </p>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() =>
+                      setRecapSummary(session.id, {
+                        gym_rating: recap?.gym_rating === n ? undefined : n,
+                      })
+                    }
+                    className="p-0.5 text-[22px] leading-none"
+                    aria-label={`${n} star${n === 1 ? '' : 's'}`}
+                  >
+                    {recap?.gym_rating && recap.gym_rating >= n ? '⭐' : '☆'}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
           {partners.length === 0 && (
             <p className="mt-4 text-sm text-ink-500">
               Solo mission — just you and the wall. 🧗

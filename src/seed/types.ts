@@ -319,7 +319,9 @@ export interface SessionRecap {
   felt?: number;              // 1–5 stoke scale: how it felt
   vibe_pick?: Vibe;           // the vibe YOU felt (vs the host's planned vibe)
   duration_bucket?: 'lt1h' | '1to2h' | '2to3h' | 'gt3h';
-  sends_count?: number;       // 0–5, where 5 means 5+
+  sends_count?: number;       // 0–5, where 5 means 5+ (quick count; sends_log wins when present)
+  sends_log?: Record<string, number>; // grade -> sends, e.g. { V5: 3, V4: 2, V6: 1 }
+  gym_rating?: number;        // 1–5 stars for the gym (indoor sessions)
 }
 
 // Helper: date offset from "now" so the seed always feels fresh.

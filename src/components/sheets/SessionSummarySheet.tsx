@@ -26,6 +26,12 @@ const DURATION_LABELS: Record<string, string> = {
   '2to3h': '2–3h',
   gt3h: '3h+',
 };
+const ROPE_ORDER = ['5.8', '5.9', '5.10', '5.11', '5.12', '5.13+'];
+function gradeRank(g: string): number {
+  if (g.startsWith('V')) return parseInt(g.slice(1), 10) || 0;
+  const i = ROPE_ORDER.indexOf(g);
+  return i === -1 ? 0 : i;
+}
 
 /**
  * Collectible session summary card: numbered, house-themed, shareable.
@@ -58,6 +64,19 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
   // Cards collected from this session's participants
   const sessionCards = collectedCards.filter((c) => participants.includes(c.user_id));
   const recap = recaps[session.id];
+
+  // Sends: the per-grade log wins over the quick count when present.
+  const sendsLogEntries = recap?.sends_log
+    ? Object.entries(recap.sends_log).filter(([, n]) => n > 0)
+    : [];
+  const sendsTotal =
+    sendsLogEntries.length > 0
+      ? sendsLogEntries.reduce((a, [, n]) => a + n, 0)
+      : recap?.sends_count;
+  const sendsBreakdown = sendsLogEntries
+    .sort((a, b) => gradeRank(b[0]) - gradeRank(a[0]))
+    .map(([g, n]) => `${n}×${g}`)
+    .join(' · ');
 
   // Dominant house among participants for theming
   const houseCounts = new Map<string, number>();
@@ -155,23 +174,35 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
           </div>
 
           {/* Your session stats — only what they answered (all optional) */}
-          {(recap?.felt || recap?.duration_bucket || recap?.sends_count !== undefined) && (
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {recap?.felt && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
-                  {FELT_FACES[recap.felt]} {FELT_LABELS[recap.felt]}
-                </span>
-              )}
-              {recap?.duration_bucket && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
-                  ⏱ {DURATION_LABELS[recap.duration_bucket]}
-                </span>
-              )}
-              {recap?.sends_count !== undefined && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
-                  🔥 {recap.sends_count === 5 ? '5+' : recap.sends_count}{' '}
-                  {recap.sends_count === 1 ? 'send' : 'sends'}
-                </span>
+          {(recap?.felt ||
+            recap?.duration_bucket ||
+            sendsTotal !== undefined ||
+            recap?.gym_rating) && (
+            <div className="mt-4">
+              <div className="flex flex-wrap gap-1.5">
+                {recap?.felt && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
+                    {FELT_FACES[recap.felt]} {FELT_LABELS[recap.felt]}
+                  </span>
+                )}
+                {recap?.duration_bucket && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
+                    ⏱ {DURATION_LABELS[recap.duration_bucket]}
+                  </span>
+                )}
+                {sendsTotal !== undefined && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
+                    🔥 {sendsTotal} {sendsTotal === 1 ? 'send' : 'sends'}
+                  </span>
+                )}
+                {recap?.gym_rating && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
+                    ⭐ {recap.gym_rating}/5 gym
+                  </span>
+                )}
+              </div>
+              {sendsBreakdown && (
+                <p className="mt-2 text-xs font-medium text-ink-600">{sendsBreakdown}</p>
               )}
             </div>
           )}
