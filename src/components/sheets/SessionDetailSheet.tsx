@@ -108,8 +108,11 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
 
   const handleRsvp = async () => {
     if (isJoined) {
-      await unrsvp(session.id);
+      // One click: leave, close the sheet, gone from my lists (it stays
+      // reachable in Past history via the store's leftSessions record).
+      void unrsvp(session.id);
       toast('Left session');
+      onOpenChange(false);
       return;
     }
     if (isFull) return;
@@ -261,7 +264,10 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
               )}
             </div>
           )}
-          {isJoined && phase === 'live' && (
+          {/* Once a session has started (and isn't finished), ending it is
+              always one tap away for anyone in it — independent of the
+              phase/ends_at edges, so the option can never vanish. */}
+          {isJoined && (session.started_at || lifecycle?.started_at) && !(session.finished_at || lifecycle?.finished_at) && (
             <div className="mt-2">
               <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-coral-500">
                 ● Live now
@@ -273,7 +279,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
                   setRecapOpen(true);
                 }}
               >
-                Finish session
+                End session
               </Button>
             </div>
           )}

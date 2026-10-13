@@ -162,6 +162,9 @@ interface Store {
   /** Gyms I've suggested that aren't listed yet (kept locally as well). */
   gymSuggestions: { name: string; city?: string; note?: string; at: string }[];
   suggestGym: (name: string, city: string, note: string) => Promise<void>;
+  /** Sessions I've left. The server forgets my RSVP, so this local record
+   *  is what keeps them in my Past history. */
+  leftSessions: string[];
   pairRequests: string[];               // callIds we've requested to pair on
   checkin: CheckIn | null;              // my current gym check-in
   gymPresence: Record<string, number>; // gymId -> people here now
@@ -505,6 +508,7 @@ export const useAppStore = create<Store>()(
       cruxySessions: [],
       cruxyCalls: [],
       gymSuggestions: [],
+      leftSessions: [],
       pairRequests: [],
       checkin: null,
       gymPresence: {},
@@ -864,6 +868,7 @@ export const useAppStore = create<Store>()(
           cruxySessions: [],
           cruxyCalls: [],
           gymSuggestions: [],
+          leftSessions: [],
           checkin: null,
           gymPresence: {},
           xp: 0,
@@ -879,6 +884,8 @@ export const useAppStore = create<Store>()(
         if (!me) return;
         const already = get().sessions.find((s) => s.id === sessionId)?.participant_ids.includes(me.id);
         set({
+          // Rejoining clears any "left" record for this session.
+          leftSessions: get().leftSessions.filter((id) => id !== sessionId),
           sessions: get().sessions.map((s) =>
             s.id === sessionId && !s.participant_ids.includes(me.id)
               ? { ...s, participant_ids: [...s.participant_ids, me.id] }
@@ -910,6 +917,11 @@ export const useAppStore = create<Store>()(
         const me = get().me;
         if (!me) return;
         set({
+          // Remember the leave locally so the session lands in Past
+          // history even though the server drops my RSVP entirely.
+          leftSessions: get().leftSessions.includes(sessionId)
+            ? get().leftSessions
+            : [...get().leftSessions, sessionId],
           sessions: get().sessions.map((s) =>
             s.id === sessionId
               ? { ...s, participant_ids: s.participant_ids.filter((id) => id !== me.id) }
@@ -1054,6 +1066,9 @@ export const useAppStore = create<Store>()(
             ? [...get().cruxySessions, session.id]
             : get().cruxySessions,
         });
+        // Persist the call's retirement on the server too — otherwise the
+        // next fetch resurrects it as 'live' in everyone else's Find.
+        void updateClimbCallRemote(callId, { status: 'matched' });
         void dbSetSessionLifecycle(session.id, { started_at: now.toISOString() });
         // Mutual card collection: everyone present collects everyone else.
         const others = present.filter((id) => id !== me.id);

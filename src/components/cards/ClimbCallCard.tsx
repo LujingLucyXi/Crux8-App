@@ -146,7 +146,7 @@ export function ClimbCallCard({
           <>
             <button
               onClick={() => setShareOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-white text-ink-900 text-xs font-bold px-4 py-2.5 active:scale-[0.97] transition"
+              className="inline-flex items-center gap-1.5 rounded-2xl bg-white text-[#161310] text-xs font-bold px-4 py-2.5 active:scale-[0.97] transition"
             >
               <ShareIos width={13} height={13} />
               Share to fill it

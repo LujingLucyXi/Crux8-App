@@ -439,6 +439,7 @@ export interface ClimbCallPatch {
   ends_at?: string;
   note?: string | null;
   capacity?: number;
+  status?: ClimbCall['status'];
 }
 
 /**

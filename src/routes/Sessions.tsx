@@ -29,6 +29,7 @@ export function Sessions() {
   const nav = useNavigate();
   const me = useAppStore((s) => s.me);
   const sessions = useAppStore((s) => s.sessions);
+  const leftSessions = useAppStore((s) => s.leftSessions);
   const climbCalls = useAppStore((s) => s.climbCalls);
   const events = useAppStore((s) => s.events);
   const users = useAppStore((s) => s.users);
@@ -55,7 +56,7 @@ export function Sessions() {
     // (never started) sessions land in Past. Calls and events keep the
     // clock-based split.
     const sessionItems: Item[] = sessions
-      .filter((s) => s.participant_ids.includes(me.id))
+      .filter((s) => s.participant_ids.includes(me.id) || leftSessions.includes(s.id))
       .map((s) => ({ kind: 'session' as const, at: s.starts_at, data: s, end: s.ends_at }));
     const otherItems: Item[] = [
       ...climbCalls
@@ -67,7 +68,11 @@ export function Sessions() {
     ];
     const isPastSession = (i: Item) => {
       if (i.kind !== 'session') return new Date(i.end).getTime() <= now;
-      const ph = sessionPhase(i.data as Session, sessionLifecycle[(i.data as Session).id], now);
+      const s = i.data as Session;
+      // A session I left (and haven't rejoined) is history, even if it
+      // hasn't happened yet — it's out of my Upcoming, kept in Past.
+      if (leftSessions.includes(s.id) && !s.participant_ids.includes(me.id)) return true;
+      const ph = sessionPhase(s, sessionLifecycle[s.id], now);
       return ph === 'done' || ph === 'expired';
     };
     const all = [...sessionItems, ...otherItems];
@@ -78,7 +83,7 @@ export function Sessions() {
       .filter((i) => isPastSession(i))
       .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
     return { upcoming: up, past: pa };
-  }, [me, sessions, climbCalls, events, sessionLifecycle]);
+  }, [me, sessions, climbCalls, events, sessionLifecycle, leftSessions]);
 
   if (!me) return null;
   const list = view === 'upcoming' ? upcoming : past;

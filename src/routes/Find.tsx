@@ -332,7 +332,14 @@ export function Find() {
               <>
             {l1 === 'climb' && (
               <>
-                {climbCallsFiltered.map(renderCall)}
+                {/* Calls are capped at 10 visible (soonest first) so a busy
+                    Find stays scannable; filters narrow the rest. */}
+                {climbCallsFiltered.slice(0, 10).map(renderCall)}
+                {climbCallsFiltered.length > 10 && (
+                  <p className="text-center text-xs text-ink-500 py-1">
+                    Showing 10 of {climbCallsFiltered.length} calls — use filters to narrow it down
+                  </p>
+                )}
                 {climbSessionsFiltered.map(renderSession)}
                 {climbEmpty && <EmptyState nothingPosted={!hasAnyClimb} />}
               </>
