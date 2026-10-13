@@ -162,7 +162,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
                                 active
                                   ? o.v === 'no_cert'
                                     ? 'bg-coral-500 text-white border-coral-500'
-                                    : 'bg-teal-600 text-white border-teal-600'
+                                    : 'bg-brand-600 text-[#161310] border-brand-600'
                                   : 'bg-paper-100 text-ink-600 border-ink-100 hover:border-ink-300',
                               )}
                             >
@@ -187,7 +187,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
                               className={cn(
                                 'text-left rounded-lg px-3 py-2 text-sm border',
                                 flagReason === fr.value
-                                  ? 'bg-ink-900 text-white border-ink-900'
+                                  ? 'bg-brand-600 text-[#161310] border-brand-600'
                                   : 'bg-paper-100 text-ink-700 border-ink-100',
                               )}
                             >

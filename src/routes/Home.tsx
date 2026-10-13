@@ -278,7 +278,7 @@ export function Home() {
                 >
                   {/* body */}
                   <div className="flex-1 p-4 min-w-0">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-ink-900 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 text-[#161310] text-[10px] font-bold uppercase tracking-wider px-2 py-0.5">
                       Crux8 Pass
                     </span>
                     <h3 className="mt-2 font-extrabold text-ink-900 text-base leading-tight truncate">{e.title}</h3>
@@ -431,7 +431,7 @@ export function Home() {
             if (it.kind === 'session')
               return (
                 <MiniScheduleCard
-                  key={key} accent="bg-ink-900 text-white" emoji="🧗"
+                  key={key} accent="bg-brand-600 text-[#161310]" emoji="🧗"
                   title={it.data.title} subtitle={it.data.subtitle}
                   startsAt={it.data.starts_at}
                   where={gymName(it.data.gym_id) || it.data.area || 'TBD'}

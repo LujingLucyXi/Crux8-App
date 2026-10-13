@@ -105,7 +105,7 @@ export function ChallengeCard({ c }: { c: Challenge }) {
       <div className="mt-2.5">
         <div className="h-1.5 rounded-full bg-ink-100 overflow-hidden">
           <div
-            className={cn('h-full rounded-full transition-all', done ? 'bg-teal-600' : 'bg-ink-900')}
+            className={cn('h-full rounded-full transition-all', done ? 'bg-teal-600' : 'bg-brand-600')}
             style={{ width: `${pct}%` }}
           />
         </div>

@@ -510,7 +510,7 @@ export function Lab() {
               </div>
               <p className="mt-3 text-lg font-bold text-ink-900">5.10c Lead</p>
               <p className="text-xs text-ink-500">Stone Gardens · in 30 min</p>
-              <button className="mt-3 w-full rounded-xl bg-ink-900 text-white text-sm font-medium py-2.5 active:scale-[0.97] transition">
+              <button className="mt-3 w-full rounded-xl bg-brand-600 text-[#161310] text-sm font-medium py-2.5 active:scale-[0.97] transition">
                 Request to pair
               </button>
             </div>
@@ -559,7 +559,7 @@ export function Lab() {
                   key={c}
                   className={
                     i === 0
-                      ? 'rounded-full bg-ink-900 text-white text-xs font-semibold px-3 py-1.5'
+                      ? 'rounded-full bg-brand-600 text-[#161310] text-xs font-semibold px-3 py-1.5'
                       : 'rounded-full bg-paper-100 border border-ink-100 text-ink-700 text-xs font-medium px-3 py-1.5'
                   }
                 >

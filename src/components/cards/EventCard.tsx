@@ -7,7 +7,7 @@ const typeColor: Record<EventItem['type'], { bg: string; text: string }> = {
   community_night: { bg: 'bg-teal-600', text: 'text-teal-600' },
   identity: { bg: 'bg-coral-500', text: 'text-coral-500' },
   education: { bg: 'bg-gold-500', text: 'text-gold-500' },
-  mountaineering: { bg: 'bg-ink-900', text: 'text-ink-900' },
+  mountaineering: { bg: 'bg-brand-600', text: 'text-ink-900' },
   backcountry: { bg: 'bg-teal-600', text: 'text-teal-600' },
   comp: { bg: 'bg-coral-500', text: 'text-coral-500' },
   social: { bg: 'bg-teal-600', text: 'text-teal-600' },

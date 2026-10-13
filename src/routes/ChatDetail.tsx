@@ -97,7 +97,7 @@ export function ChatDetail() {
                       className={cn(
                         'max-w-[80%] rounded-2xl px-3.5 py-2 text-sm',
                         isMe
-                          ? 'bg-ink-900 text-white rounded-tr-md'
+                          ? 'bg-brand-600 text-[#161310] rounded-tr-md'
                           : 'bg-paper-100 border border-ink-100 text-ink-900 rounded-tl-md',
                       )}
                     >

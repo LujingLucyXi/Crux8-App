@@ -294,7 +294,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
             onClick={() => setCallWhen(w.v)}
             className={cn(
               'rounded-xl border py-2 text-xs',
-              callWhen === w.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
+              callWhen === w.v ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
             )}
           >
             {w.l}
@@ -351,7 +351,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               onClick={() => setMode(m.v)}
               className={cn(
                 'flex-1 rounded-xl border py-2 text-xs font-semibold transition-colors',
-                mode === m.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-500 border-ink-100',
+                mode === m.v ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-500 border-ink-100',
               )}
             >
               {m.l}
@@ -378,7 +378,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 onClick={() => setDiscipline(d.v)}
                 className={cn(
                   'flex-1 rounded-full border py-2 text-xs font-medium transition-colors',
-                  discipline === d.v ? 'bg-teal-600 text-white border-teal-600' : 'bg-paper-100 text-ink-500 border-ink-100',
+                  discipline === d.v ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-500 border-ink-100',
                 )}
               >
                 {d.l}
@@ -406,7 +406,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                     onClick={() => setCallLookingFor(r.v)}
                     className={cn(
                       'rounded-xl border py-2.5 text-xs font-semibold',
-                      callLookingFor === r.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
+                      callLookingFor === r.v ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
                     )}
                   >
                     {r.l}
@@ -423,7 +423,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                     onClick={() => setCallCategory(c)}
                     className={cn(
                       'rounded-xl border py-2.5 text-sm',
-                      callCategory === c ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
+                      callCategory === c ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
                     )}
                   >
                     {c === 'top_rope' ? 'Top rope' : 'Lead'}
@@ -508,7 +508,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                       onClick={() => setHikeType(h.v)}
                       className={cn(
                         'rounded-xl border py-2 text-xs font-medium',
-                        hikeType === h.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
+                        hikeType === h.v ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
                       )}
                     >
                       {h.l}
@@ -525,7 +525,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                           onClick={() => setTripDays(d)}
                           className={cn(
                             'rounded-xl border py-2 text-xs font-medium',
-                            tripDays === d ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
+                            tripDays === d ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
                           )}
                         >
                           {d} days
@@ -573,7 +573,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               <Label>Vibe</Label>
               <RadioGroup.Root value={vibe} onValueChange={(v) => setVibe(v as Vibe)} className="flex gap-2 flex-wrap">
                 {VIBES.map((v) => (
-                  <RadioGroup.Item key={v} value={v} className={cn('rounded-full border px-3 py-1 text-xs font-medium capitalize', 'data-[state=checked]:bg-ink-900 data-[state=checked]:text-white data-[state=checked]:border-ink-900', 'bg-paper-100 text-ink-700 border-ink-100')}>
+                  <RadioGroup.Item key={v} value={v} className={cn('rounded-full border px-3 py-1 text-xs font-medium capitalize', 'data-[state=checked]:bg-brand-600 data-[state=checked]:text-[#161310] data-[state=checked]:border-brand-600', 'bg-paper-100 text-ink-700 border-ink-100')}>
                     {v}
                   </RadioGroup.Item>
                 ))}

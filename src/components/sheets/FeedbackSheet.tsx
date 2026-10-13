@@ -64,7 +64,7 @@ export function FeedbackSheet({ open, onOpenChange }: Props) {
                   className={cn(
                     'flex-1 rounded-xl border px-3 py-2 text-xs font-medium transition-colors',
                     kind === k.value
-                      ? 'bg-ink-900 text-white border-ink-900'
+                      ? 'bg-brand-600 text-[#161310] border-brand-600'
                       : 'bg-paper-100 text-ink-700 border-ink-100',
                   )}
                 >

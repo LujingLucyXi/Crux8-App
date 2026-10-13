@@ -38,7 +38,7 @@ export function ErrorScreen({ error }: { error?: unknown }) {
       <div className="mt-8 w-full max-w-xs flex flex-col gap-2">
         <button
           onClick={reload}
-          className="w-full rounded-xl bg-ink-900 text-white text-sm font-semibold py-3 active:scale-[0.98] transition-transform"
+          className="w-full rounded-xl bg-brand-600 text-[#161310] text-sm font-semibold py-3 active:scale-[0.98] transition-transform"
         >
           Reload app
         </button>

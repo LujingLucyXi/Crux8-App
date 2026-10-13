@@ -139,7 +139,7 @@ export function Sessions() {
             onClick={() => setView(seg.v)}
             className={cn(
               'flex-1 rounded-full border py-2.5 px-3 text-xs font-semibold transition-colors',
-              view === seg.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-500 border-ink-100',
+              view === seg.v ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-500 border-ink-100',
             )}
           >
             {seg.l}

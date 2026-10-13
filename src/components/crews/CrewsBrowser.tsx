@@ -51,7 +51,7 @@ export function CrewsBrowser() {
             onClick={() => setCat(f.value)}
             className={cn(
               'shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-              cat === f.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
+              cat === f.value ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
             )}
           >
             {f.label}

@@ -81,7 +81,7 @@ export function MysteryCrewSheet({ open, onOpenChange }: Props) {
             </div>
             {/* Monthly pass */}
             <div className="relative rounded-2xl border-2 border-brand-500 bg-brand-100/40 p-4 flex flex-col">
-              <span className="absolute -top-2 right-3 rounded-full bg-brand-600 text-white text-[9px] font-bold uppercase tracking-wide px-2 py-0.5">Best value</span>
+              <span className="absolute -top-2 right-3 rounded-full bg-brand-600 text-[#161310] text-[9px] font-bold uppercase tracking-wide px-2 py-0.5">Best value</span>
               <p className="text-[11px] uppercase tracking-wider text-brand-600 font-semibold">Monthly pass</p>
               <p className="text-2xl font-extrabold text-ink-900 mt-1">$15<span className="text-sm font-semibold text-ink-500"> /mo</span></p>
               <p className="text-[11px] text-ink-600 mt-1">Unlimited nights — never climb alone.</p>

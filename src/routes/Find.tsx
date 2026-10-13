@@ -267,7 +267,7 @@ export function Find() {
                   onClick={() => setFilter({ env: e, climb_styles: [] })}
                   className={cn(
                     'flex-1 rounded-full border py-2 text-xs font-semibold capitalize transition-colors',
-                    env === e ? 'bg-brand-600 text-white border-brand-600' : 'bg-paper-100 text-ink-500 border-ink-100',
+                    env === e ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-500 border-ink-100',
                   )}
                 >
                   {e}

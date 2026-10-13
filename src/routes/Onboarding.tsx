@@ -466,7 +466,7 @@ export function Onboarding() {
                               onClick={() => setTopGrade(band.value)}
                               className={cn(
                                 'rounded-xl border py-2.5 text-sm text-center',
-                                topGrade === band.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
+                                topGrade === band.value ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
                               )}
                             >
                               {band.label}
@@ -483,7 +483,7 @@ export function Onboarding() {
                               onClick={() => toggleStyle(s.value)}
                               className={cn(
                                 'rounded-full border px-3 py-1.5 text-xs font-medium',
-                                preferredStyles.includes(s.value) ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
+                                preferredStyles.includes(s.value) ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
                               )}
                             >
                               {s.label}
@@ -525,7 +525,7 @@ export function Onboarding() {
                               onClick={() => setHikeDistance(d.value)}
                               className={cn(
                                 'rounded-xl border py-2.5 text-sm text-center',
-                                hikeDistance === d.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
+                                hikeDistance === d.value ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
                               )}
                             >
                               {d.label}
@@ -542,7 +542,7 @@ export function Onboarding() {
                               onClick={() => setHikePace(p.value)}
                               className={cn(
                                 'rounded-full border px-3 py-1.5 text-xs font-medium',
-                                hikePace === p.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
+                                hikePace === p.value ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
                               )}
                             >
                               {p.label}

@@ -148,7 +148,7 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
                     className={cn(
                       'rounded-full border px-2.5 py-1 text-xs font-medium',
                       topGrade === g
-                        ? 'bg-ink-900 text-white border-ink-900'
+                        ? 'bg-brand-600 text-[#161310] border-brand-600'
                         : 'bg-paper-100 text-ink-700 border-ink-100',
                     )}
                   >
@@ -169,7 +169,7 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
                     className={cn(
                       'rounded-full border px-2.5 py-1 text-xs font-medium',
                       tags.includes(t)
-                        ? 'bg-ink-900 text-white border-ink-900'
+                        ? 'bg-brand-600 text-[#161310] border-brand-600'
                         : 'bg-paper-100 text-ink-700 border-ink-100',
                     )}
                   >

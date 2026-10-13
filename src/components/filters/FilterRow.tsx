@@ -130,7 +130,7 @@ export function FilterRow() {
               {gyms.map((g) => (
                 <button
                   key={g.id}
-                  className={cn('text-left px-3 py-3 rounded-xl', filters.gym_id === g.id ? 'bg-ink-900 text-white' : 'text-ink-900 hover:bg-paper-50')}
+                  className={cn('text-left px-3 py-3 rounded-xl', filters.gym_id === g.id ? 'bg-brand-600 text-[#161310]' : 'text-ink-900 hover:bg-paper-50')}
                   onClick={() => { setFilter({ gym_id: g.id }); setOpen(null); }}
                 >
                   {g.name}
@@ -147,7 +147,7 @@ export function FilterRow() {
               {AREAS.map((a) => (
                 <button
                   key={a}
-                  className={cn('text-left px-3 py-3 rounded-xl', filters.area === a ? 'bg-ink-900 text-white' : 'text-ink-900 hover:bg-paper-50')}
+                  className={cn('text-left px-3 py-3 rounded-xl', filters.area === a ? 'bg-brand-600 text-[#161310]' : 'text-ink-900 hover:bg-paper-50')}
                   onClick={() => { setFilter({ area: a }); setOpen(null); }}
                 >
                   {a}
@@ -160,7 +160,7 @@ export function FilterRow() {
             <div className="flex flex-col gap-4">
               <div className="flex gap-2">
                 <button
-                  className={cn('flex-1 rounded-xl border py-2 text-xs font-medium', !filters.date && !filters.date_specific ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100')}
+                  className={cn('flex-1 rounded-xl border py-2 text-xs font-medium', !filters.date && !filters.date_specific ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100')}
                   onClick={() => setFilter({ date: undefined, date_specific: undefined })}
                 >
                   Anytime
@@ -168,7 +168,7 @@ export function FilterRow() {
                 {DATE_OPTS.map((d) => (
                   <button
                     key={d.value}
-                    className={cn('flex-1 rounded-xl border py-2 text-xs font-medium', filters.date === d.value && !filters.date_specific ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100')}
+                    className={cn('flex-1 rounded-xl border py-2 text-xs font-medium', filters.date === d.value && !filters.date_specific ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100')}
                     onClick={() => setFilter({ date: d.value, date_specific: undefined })}
                   >
                     {d.label}
@@ -196,7 +196,7 @@ export function FilterRow() {
               {TIME_OPTS.map((t) => (
                 <button
                   key={t.value}
-                  className={cn('text-left px-3 py-3 rounded-xl', filters.time === t.value ? 'bg-ink-900 text-white' : 'text-ink-900 hover:bg-paper-50')}
+                  className={cn('text-left px-3 py-3 rounded-xl', filters.time === t.value ? 'bg-brand-600 text-[#161310]' : 'text-ink-900 hover:bg-paper-50')}
                   onClick={() => { setFilter({ time: t.value }); setOpen(null); }}
                 >
                   {t.label}
@@ -212,7 +212,7 @@ export function FilterRow() {
                 return (
                   <button
                     key={b}
-                    className={cn('rounded-xl border py-3 text-sm', active ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100')}
+                    className={cn('rounded-xl border py-3 text-sm', active ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100')}
                     onClick={() => { setFilter({ grade_band: active ? undefined : b }); setOpen(null); }}
                   >
                     {b}
@@ -225,7 +225,7 @@ export function FilterRow() {
           {open === 'role' && (
             <div className="flex flex-col gap-1">
               <button
-                className={cn('text-left px-3 py-3 rounded-xl', !filters.looking_for ? 'bg-ink-900 text-white' : 'text-ink-900 hover:bg-paper-50')}
+                className={cn('text-left px-3 py-3 rounded-xl', !filters.looking_for ? 'bg-brand-600 text-[#161310]' : 'text-ink-900 hover:bg-paper-50')}
                 onClick={() => { setFilter({ looking_for: undefined }); setOpen(null); }}
               >
                 Any role
@@ -233,7 +233,7 @@ export function FilterRow() {
               {ROLE_OPTS.map((r) => (
                 <button
                   key={r.value}
-                  className={cn('text-left px-3 py-3 rounded-xl', filters.looking_for === r.value ? 'bg-ink-900 text-white' : 'text-ink-900 hover:bg-paper-50')}
+                  className={cn('text-left px-3 py-3 rounded-xl', filters.looking_for === r.value ? 'bg-brand-600 text-[#161310]' : 'text-ink-900 hover:bg-paper-50')}
                   onClick={() => { setFilter({ looking_for: r.value }); setOpen(null); }}
                 >
                   {r.label}

@@ -74,7 +74,7 @@ export function LogSendSheet({ open, onOpenChange }: Props) {
                   onClick={() => setGrade(g)}
                   className={cn(
                     'rounded-full border px-3.5 py-1.5 text-sm font-bold transition',
-                    grade === g ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100 hover:border-brand-400',
+                    grade === g ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100 hover:border-brand-400',
                   )}
                 >
                   {g}
