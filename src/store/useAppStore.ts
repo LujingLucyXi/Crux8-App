@@ -227,6 +227,8 @@ interface Store {
 
   sendMessage: (userId: string, text: string) => void;
   sendSessionMessage: (sessionChatId: string, text: string) => void;
+  /** Post a climb call card into a crew's group chat. */
+  shareClimbCallToGroup: (callId: string, groupId: string) => void;
   markThreadRead: (key: string) => void;
   toggleReactionDm: (userId: string, msgId: string, key: ReactionKey) => void;
   toggleReactionSession: (sessionChatId: string, msgId: string, key: ReactionKey) => void;
@@ -1223,6 +1225,28 @@ export const useAppStore = create<Store>()(
           },
           chatReads: { ...get().chatReads, [scKey(sessionChatId)]: now },
         });
+      },
+
+      shareClimbCallToGroup: (callId, groupId) => {
+        const call = get().climbCalls.find((c) => c.id === callId);
+        const group = get().groups.find((g) => g.id === groupId);
+        if (!call || !group) return;
+        // Make sure the group chat thread exists before posting.
+        get().openGroupChat(groupId);
+        const when = new Date(call.starts_at).toLocaleString(undefined, {
+          weekday: 'short', month: 'short', day: 'numeric',
+          hour: 'numeric', minute: '2-digit',
+        });
+        const where = call.location_type === 'indoor'
+          ? (get().gyms.find((g) => g.id === call.gym_id)?.short_name ?? 'the gym')
+          : (call.area ?? 'outdoors');
+        const text =
+          `🧗 ${get().me?.display_name ?? 'Someone'} shared a climb call\n` +
+          `${call.category === 'top_rope' ? 'Top-rope' : 'Lead'} · ${call.grade} · ${where}\n` +
+          `${when}` +
+          (call.note ? `\n"${call.note}"` : '') +
+          `\nhttps://crux8.app/call/${call.id}`;
+        get().sendSessionMessage(groupId, text);
       },
 
       markThreadRead: (key: string) => {

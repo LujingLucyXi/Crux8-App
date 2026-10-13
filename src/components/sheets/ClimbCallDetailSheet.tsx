@@ -1,9 +1,11 @@
 import { toast } from 'sonner';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Clock, ShieldCheck, Xmark } from 'iconoir-react';
+import { MapPin, Clock, ShieldCheck, Xmark, ShareIos } from 'iconoir-react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
+import { ShareCallSheet } from '@/components/sheets/ShareCallSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { isWeightSafe } from '@/lib/weight';
 import { LOOKING_FOR_LABEL } from '@/components/cards/ClimbCallCard';
@@ -37,8 +39,8 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
   // NPC-only fields (verifications, pronouns) aren't on resolved directory users.
   const callerNpc = users.find((u) => u.id === call.user_id);
 
-  const isRequested = pairRequests.includes(call.id);
-  const isFriend = cruxmates.includes(caller.id);
+  const isRequested = pairRequests.includes(call.id);  const isFriend = cruxmates.includes(caller.id);
+  const [shareOpen, setShareOpen] = useState(false);
   const weightSafe = isWeightSafe(me.weight_kg, call.weight_kg);
   const isMyCall = caller.id === me.id;
 
@@ -144,8 +146,12 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
               {isRequested ? 'Cancel pair request' : 'Request to pair'}
             </Button>
           )}
+          <Button variant="outline" onClick={() => setShareOpen(true)}>
+            <ShareIos width={16} height={16} /> Share
+          </Button>
         </div>
       </SheetContent>
+      <ShareCallSheet call={call} open={shareOpen} onOpenChange={setShareOpen} />
     </Sheet>
   );
 }
