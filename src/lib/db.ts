@@ -291,6 +291,27 @@ export async function submitBelayConfirmRemote(
   return !error;
 }
 
+/**
+ * Save a "gym not listed" suggestion for review. Insert-only table; the
+ * review side reads it from the dashboard. False pre-migration / signed out.
+ */
+export async function submitGymSuggestion(
+  name: string,
+  city: string,
+  note: string,
+): Promise<boolean> {
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth?.user?.id;
+  if (!uid) return false;
+  const { error } = await supabase.from('gym_suggestions').insert({
+    name,
+    city: city || null,
+    note: note || null,
+    suggested_by: uid,
+  });
+  return !error;
+}
+
 /** Public verification statuses for a batch of real users (directory). */
 export async function fetchPublicVerifications(
   ids: string[],

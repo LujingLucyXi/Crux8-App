@@ -59,6 +59,7 @@ import {
   setSessionLifecycle as dbSetSessionLifecycle,
   setMyVerifications as dbSetMyVerifications,
   submitBelayConfirmRemote,
+  submitGymSuggestion,
   fetchPublicVerifications,
   fetchBelayConfirmCounts,
   setSessionRsvp,
@@ -153,6 +154,9 @@ interface Store {
    *  every sessions fetch. */
   cruxySessions: string[];
   inviteCruxy: (sessionId: string) => void;
+  /** Gyms I've suggested that aren't listed yet (kept locally as well). */
+  gymSuggestions: { name: string; city?: string; note?: string; at: string }[];
+  suggestGym: (name: string, city: string, note: string) => Promise<void>;
   pairRequests: string[];               // callIds we've requested to pair on
   checkin: CheckIn | null;              // my current gym check-in
   gymPresence: Record<string, number>; // gymId -> people here now
@@ -490,6 +494,7 @@ export const useAppStore = create<Store>()(
       recaps: {},
       sessionLifecycle: {},
       cruxySessions: [],
+      gymSuggestions: [],
       pairRequests: [],
       checkin: null,
       gymPresence: {},
@@ -842,6 +847,7 @@ export const useAppStore = create<Store>()(
           recaps: {},
           sessionLifecycle: {},
           cruxySessions: [],
+          gymSuggestions: [],
           checkin: null,
           gymPresence: {},
           xp: 0,
@@ -1711,6 +1717,23 @@ export const useAppStore = create<Store>()(
               : s,
           ),
         });
+      },
+
+      suggestGym: async (name, city, note) => {
+        set({
+          gymSuggestions: [
+            ...get().gymSuggestions,
+            {
+              name,
+              city: city || undefined,
+              note: note || undefined,
+              at: new Date().toISOString(),
+            },
+          ],
+        });
+        // Remote insert is best-effort (table may not exist pre-migration);
+        // the local copy above means the suggestion is never lost.
+        await submitGymSuggestion(name, city, note);
       },
 
       startSession: (sessionId) => {

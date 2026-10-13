@@ -5,6 +5,7 @@ import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
+import { SuggestGymSheet } from './SuggestGymSheet';
 
 interface Props {
   open: boolean;
@@ -28,6 +29,7 @@ export function CheckInSheet({ open, onOpenChange }: Props) {
   const checkOut = useAppStore((s) => s.checkOut);
 
   const [scanning, setScanning] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const nearGym = gyms.find((g) => g.id === me?.home_gym_id) ?? gyms[0];
 
   const doCheckIn = (gymId: string, name: string) => {
@@ -46,6 +48,7 @@ export function CheckInSheet({ open, onOpenChange }: Props) {
   };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent title={checkin ? 'You’re checked in' : 'Check in'}>
         {checkin ? (
@@ -121,11 +124,19 @@ export function CheckInSheet({ open, onOpenChange }: Props) {
                     <span className="text-xs text-ink-500 shrink-0">{gymPresence[g.id] ?? g.here_now} here</span>
                   </button>
                 ))}
+                <button
+                  onClick={() => setSuggestOpen(true)}
+                  className="px-3 py-3 rounded-xl text-left text-sm font-semibold text-brand-600 hover:bg-paper-50"
+                >
+                  + Don&apos;t see your gym? Suggest it
+                </button>
               </div>
             </div>
           </div>
         )}
       </SheetContent>
     </Sheet>
+    <SuggestGymSheet open={suggestOpen} onOpenChange={setSuggestOpen} />
+    </>
   );
 }

@@ -9,6 +9,8 @@ import { useAppStore } from '@/store/useAppStore';
 import type { Category, EventType, LocationType, Vibe, ClimbCall, HikeType } from '@/seed/types';
 import { plusHours, UNCAPPED_CAPACITY } from '@/seed/types';
 import { cn } from '@/lib/utils';
+import { gymsForCategory } from '@/lib/gymFilter';
+import { SuggestGymSheet } from './SuggestGymSheet';
 
 interface Props {
   open: boolean;
@@ -83,6 +85,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const [sessionTitle, setSessionTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [gymId, setGymId] = useState<string>(me?.home_gym_id ?? gyms[0]?.id ?? '');
+  const [suggestGymOpen, setSuggestGymOpen] = useState(false);
   const [area, setArea] = useState<string>('Index');
   const [durationHours, setDurationHours] = useState(2);
   const [capacity, setCapacity] = useState(4);
@@ -100,20 +103,29 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const [evtDesc, setEvtDesc] = useState('');
   const [evtGroupId, setEvtGroupId] = useState<string>(defaultGroupId ?? '');
 
-  // Belay = roped climbing, so only gyms with top-rope/lead walls qualify
-  // (drops boulder-only gyms like SBP / BlocHaus).
-  const ropeGyms = useMemo(
-    () => gyms.filter((g) => g.disciplines.some((d) => d === 'top_rope' || d === 'lead')),
-    [gyms],
+  // Gym lists are category-scoped: a top-rope call/session lists only gyms
+  // with top-rope walls, lead only lead gyms, bouldering only boulder gyms.
+  const callGyms = useMemo(
+    () => gymsForCategory(gyms, callCategory),
+    [gyms, callCategory],
+  );
+  const sessionGyms = useMemo(
+    () => gymsForCategory(gyms, category),
+    [gyms, category],
   );
   useEffect(() => {
     if (mode === 'indoor' && discipline === 'hike') setDiscipline('belay');
   }, [mode, discipline]);
   useEffect(() => {
-    if (discipline === 'belay' && !ropeGyms.some((g) => g.id === callGymId)) {
-      setCallGymId(ropeGyms[0]?.id ?? '');
+    if (!callGyms.some((g) => g.id === callGymId)) {
+      setCallGymId(callGyms[0]?.id ?? '');
     }
-  }, [discipline, ropeGyms, callGymId]);
+  }, [callGyms, callGymId]);
+  useEffect(() => {
+    if (mode === 'indoor' && !sessionGyms.some((g) => g.id === gymId)) {
+      setGymId(sessionGyms[0]?.id ?? '');
+    }
+  }, [sessionGyms, gymId, mode]);
 
   const resolveStart = (): string => {
     if (callWhen === 'now') return new Date().toISOString();
@@ -267,6 +279,13 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
             <option key={g.id} value={g.id}>{g.name}</option>
           ))}
         </select>
+        <button
+          type="button"
+          onClick={() => setSuggestGymOpen(true)}
+          className="mt-1.5 text-xs font-semibold text-brand-600"
+        >
+          + Don't see your gym? Suggest it
+        </button>
       </div>
     ) : (
       <div>
@@ -331,6 +350,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   );
 
   return (
+    <>
     <Sheet
       open={open}
       onOpenChange={(o) => {
@@ -447,8 +467,8 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               <Label>Call name (optional)</Label>
               <Input value={callTitle} onChange={(e) => setCallTitle(e.target.value.slice(0, 48))} placeholder="e.g. Sunset lead sesh" />
             </div>
-            {/* Belay is roped → only rope-capable gyms */}
-            {locationField(callGymId, setCallGymId, ropeGyms)}
+            {/* Roped calls list only gyms with that rope discipline */}
+            {locationField(callGymId, setCallGymId, callGyms)}
             {whenField()}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -552,7 +572,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 placeholder={discipline === 'hike' ? 'e.g. 6 mi · moderate · 1,800 ft gain' : "e.g. V3 – V6, or 'All levels welcome'"}
               />
             </div>
-            {locationField(gymId, setGymId)}
+            {locationField(gymId, setGymId, sessionGyms)}
             {whenField()}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -634,5 +654,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
         )}
       </SheetContent>
     </Sheet>
+    <SuggestGymSheet open={suggestGymOpen} onOpenChange={setSuggestGymOpen} />
+    </>
   );
 }
