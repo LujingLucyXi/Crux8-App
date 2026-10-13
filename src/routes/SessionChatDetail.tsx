@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { ReactionPicker } from '@/components/chat/ReactionPicker';
+import { ShareCard, parseShareLink } from '@/components/chat/ShareCard';
 import { useAppStore, scKey } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
@@ -14,6 +15,8 @@ export function SessionChatDetail() {
   const { sessionChatId } = useParams<{ sessionChatId: string }>();
   const nav = useNavigate();
   const sessionChats = useAppStore((s) => s.sessionChats);
+  const climbCalls = useAppStore((s) => s.climbCalls);
+  const sessions = useAppStore((s) => s.sessions);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
   const me = useAppStore((s) => s.me);
@@ -138,16 +141,28 @@ export function SessionChatDetail() {
                         {userName(m.from)}
                       </p>
                     )}
-                    <div
-                      className={cn(
-                        'rounded-2xl px-3.5 py-2 text-sm',
-                        isMe
-                          ? 'bg-brand-600 text-[#161310] rounded-tr-md'
-                          : 'bg-paper-100 border border-ink-100 text-ink-900 rounded-tl-md',
-                      )}
-                    >
-                      {m.text}
-                    </div>
+                    {(() => {
+                      // Shared calls/sessions render as joinable cards, not
+                      // raw link text, when this client knows the entity.
+                      const share = parseShareLink(m.text);
+                      const sharedCall = share?.kind === 'call' ? climbCalls.find((c) => c.id === share.id) : undefined;
+                      const sharedSession = share?.kind === 'session' ? sessions.find((s) => s.id === share.id) : undefined;
+                      if (sharedCall || sharedSession) {
+                        return <ShareCard call={sharedCall} session={sharedSession} />;
+                      }
+                      return (
+                        <div
+                          className={cn(
+                            'rounded-2xl px-3.5 py-2 text-sm',
+                            isMe
+                              ? 'bg-brand-600 text-[#161310] rounded-tr-md'
+                              : 'bg-paper-100 border border-ink-100 text-ink-900 rounded-tl-md',
+                          )}
+                        >
+                          {m.text}
+                        </div>
+                      );
+                    })()}
                     <ReactionPicker
                       reactions={m.reactions}
                       meId={me?.id ?? 'me'}

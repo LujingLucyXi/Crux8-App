@@ -225,16 +225,22 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
             </div>
           </div>
 
-          <Button
-            variant={isJoined ? 'outline' : 'primary'}
-            className="w-full"
-            disabled={!isJoined && isFull}
-            onClick={handleRsvp}
-          >
-            {isJoined ? 'Leave session' : isFull ? 'Full' : 'RSVP'}
-          </Button>
+          {phase === 'live' && !isJoined ? (
+            <Button className="w-full" disabled>
+              Session already started — closed to new joins
+            </Button>
+          ) : (
+            <Button
+              variant={isJoined ? 'outline' : 'primary'}
+              className="w-full"
+              disabled={!isJoined && isFull}
+              onClick={handleRsvp}
+            >
+              {isJoined ? 'Leave session' : isFull ? 'Full' : 'RSVP'}
+            </Button>
+          )}
 
-          {!isPast && (
+          {!isPast && phase !== 'live' && (
             <button
               onClick={() => setShareOpen(true)}
               className="mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-ink-100 py-2.5 text-sm font-semibold text-ink-700"

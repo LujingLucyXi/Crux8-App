@@ -12,6 +12,7 @@ import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet
 import { ProfileEditSheet } from '@/components/sheets/ProfileEditSheet';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
+import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
 import { LogSendSheet } from '@/components/sheets/LogSendSheet';
 import { useAppStore, type BadgeId } from '@/store/useAppStore';
 import { sessionPhase } from '@/lib/sessionPhase';
@@ -69,6 +70,7 @@ export function Profile() {
   const [certOpen, setCertOpen] = useState(false);
   const [certPreset, setCertPreset] = useState<VerificationCategory | undefined>(undefined);
   const [recapSessionId, setRecapSessionId] = useState<string | null>(null);
+  const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
   const [about, setAbout] = useState(me?.about ?? '');
   const [editingAbout, setEditingAbout] = useState(false);
   const [hwOpen, setHwOpen] = useState(false);
@@ -500,6 +502,7 @@ export function Profile() {
                   session={s}
                   users={users}
                   gymName={gymForCard?.short_name}
+                  onClick={() => setDetailSessionId(s.id)}
                 />
               );
             })
@@ -519,7 +522,7 @@ export function Profile() {
               const done = !!recaps[s.id];
               return (
                 <div key={s.id}>
-                  <SessionCard session={s} users={users} gymName={gymForCard?.short_name} />
+                  <SessionCard session={s} users={users} gymName={gymForCard?.short_name} onClick={() => setDetailSessionId(s.id)} />
                   <Button
                     variant={done ? 'outline' : 'primary'}
                     size="sm"
@@ -670,6 +673,12 @@ export function Profile() {
         session={sessions.find((s) => s.id === recapSessionId) ?? null}
         open={!!recapSessionId}
         onOpenChange={(o) => !o && setRecapSessionId(null)}
+      />
+
+      <SessionDetailSheet
+        session={sessions.find((s) => s.id === detailSessionId) ?? null}
+        open={!!detailSessionId}
+        onOpenChange={(o) => !o && setDetailSessionId(null)}
       />
 
       <LogSendSheet open={logSendOpen} onOpenChange={setLogSendOpen} />

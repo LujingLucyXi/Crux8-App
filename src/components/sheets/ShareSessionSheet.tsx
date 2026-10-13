@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
-import { Avatar } from '@/components/ui/Avatar';
 import { useAppStore } from '@/store/useAppStore';
 import { resolveUser } from '@/lib/resolveUser';
+import { CruxmatePicker } from '@/components/sheets/CruxmatePicker';
 import { toast } from 'sonner';
 import type { Session } from '@/seed/types';
 
@@ -96,24 +96,7 @@ export function ShareSessionSheet({ session, open, onOpenChange }: Props) {
             <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mt-5 mb-2">
               Invite a cruxmate
             </h3>
-            <div className="space-y-2 max-h-56 overflow-y-auto">
-              {invitable.map((u) => (
-                <div
-                  key={u.id}
-                  className="w-full flex items-center gap-3 rounded-xl border border-ink-100 bg-paper-100 px-4 py-2.5"
-                >
-                  <Avatar photoUrl={u.photo_url ?? undefined} config={u.avatar} alt={u.display_name} size={32} fallback={u.display_name} />
-                  <span className="font-medium text-ink-900 text-sm truncate flex-1">{u.display_name}</span>
-                  <button
-                    onClick={() => handleInvite(u.id, u.display_name)}
-                    disabled={invited.includes(u.id)}
-                    className="text-xs font-semibold text-teal-600 shrink-0 disabled:text-ink-400"
-                  >
-                    {invited.includes(u.id) ? (u.id === 'cruxy' ? '✓ Joined' : '✓ Invited') : 'Invite'}
-                  </button>
-                </div>
-              ))}
-            </div>
+            <CruxmatePicker invitable={invitable} invited={invited} onInvite={handleInvite} />
           </>
         )}
 

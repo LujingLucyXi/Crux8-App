@@ -72,6 +72,7 @@ import {
   type DirectoryProfile,
 } from '@/lib/db';
 import { resolveUser } from '@/lib/resolveUser';
+import { hasStarted } from '@/lib/sessionPhase';
 
 export type Verification = { status: VerificationStatus; photo_url?: string; verified_at?: string; attested_at?: string };
 
@@ -610,10 +611,24 @@ export const useAppStore = create<Store>()(
       fetchClimbCalls: async () => {
         try {
           const cruxyCalls = get().cruxyCalls;
-          const climbCalls = (await dbFetchClimbCalls()).map((c) =>
+          const fetched = (await dbFetchClimbCalls()).map((c) =>
             cruxyCalls.includes(c.id) && !c.participant_ids.includes('cruxy')
               ? { ...c, participant_ids: [...c.participant_ids, 'cruxy'] }
               : c,
+          );
+          // Union-merge: a created call returned a real server row, so a
+          // fetch that omits a still-live, in-window local call must not
+          // delete it — hosts watched their previous call vanish on every
+          // refresh. Server rows win on fields; local-only live calls ride
+          // along until their window passes. (Locally-matched calls are
+          // not 'live', so started calls still retire correctly.)
+          const fetchedIds = new Set(fetched.map((c) => c.id));
+          const nowIso = new Date().toISOString();
+          const localOnly = get().climbCalls.filter(
+            (c) => !fetchedIds.has(c.id) && c.status === 'live' && c.ends_at > nowIso,
+          );
+          const climbCalls = [...fetched, ...localOnly].sort((a, b) =>
+            a.starts_at.localeCompare(b.starts_at),
           );
           set({ climbCalls });
           await get().ensureDirectoryProfiles(
@@ -882,6 +897,16 @@ export const useAppStore = create<Store>()(
       rsvp: async (sessionId) => {
         const me = get().me;
         if (!me) return;
+        // Started sessions are closed to new joins (backstop for every
+        // surface — cards, deep links, chat shares).
+        const target = get().sessions.find((s) => s.id === sessionId);
+        if (
+          target &&
+          !target.participant_ids.includes(me.id) &&
+          hasStarted(target, get().sessionLifecycle[sessionId])
+        ) {
+          return;
+        }
         const already = get().sessions.find((s) => s.id === sessionId)?.participant_ids.includes(me.id);
         set({
           // Rejoining clears any "left" record for this session.

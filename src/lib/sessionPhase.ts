@@ -43,3 +43,14 @@ export function canStartSession(session: Session, now: number = Date.now()): boo
   const start = new Date(session.starts_at).getTime();
   return now >= start - START_EARLY_MS && now <= start + START_LATE_MS;
 }
+
+/**
+ * A session that has started (and not finished) is closed: invisible to
+ * non-participants in discovery, and nobody new can join it. (Lucy's rule,
+ * 2026-10-13 — once it starts, the call/session leaves public view.)
+ */
+export function hasStarted(session: Session, lc?: SessionLifecycle): boolean {
+  const startedAt = session.started_at ?? lc?.started_at;
+  const finishedAt = session.finished_at ?? lc?.finished_at;
+  return !!startedAt && !finishedAt;
+}

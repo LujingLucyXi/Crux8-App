@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Sparks as SparksIcon, SearchEngine } from 'iconoir-react';
+import { hasStarted } from '@/lib/sessionPhase';
 import { SessionCard } from '@/components/cards/SessionCard';
 import { EventCard } from '@/components/cards/EventCard';
 import { ClimbCallCard } from '@/components/cards/ClimbCallCard';
@@ -80,6 +81,7 @@ export function Find() {
   const setFilter = useAppStore((s) => s.setFilter);
   const setL1 = useAppStore((s) => s.setL1);
   const sessions = useAppStore((s) => s.sessions);
+  const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
   const events = useAppStore((s) => s.events);
   const climbCalls = useAppStore((s) => s.climbCalls);
   const users = useAppStore((s) => s.users);
@@ -129,6 +131,8 @@ export function Find() {
     const envCats = env === 'indoor' ? ['boulder'] : ['outdoor_sport', 'trad', 'multi_pitch', 'outdoor_boulder'];
     return sessions
       .filter((s) => s.participant_ids.length > 0)
+      // Started sessions are closed: only participants still see them.
+      .filter((s) => !hasStarted(s, sessionLifecycle[s.id]) || (me ? s.participant_ids.includes(me.id) : false))
       .filter((s) => s.location_type === env && envCats.includes(s.category))
       .filter((s) => {
         if (styles.length > 0 && !styles.includes(s.category)) return false;
@@ -137,7 +141,7 @@ export function Find() {
         return dateOk(s.starts_at);
       })
       .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
-  }, [l1, env, filters, sessions]);
+  }, [l1, env, filters, sessions, sessionLifecycle, me]);
 
   /* ── Hike ── */
   const hikesFiltered = useMemo(() => {
@@ -145,6 +149,7 @@ export function Find() {
     const types = filters.hike_types;
     return sessions
       .filter((s) => s.participant_ids.length > 0)
+      .filter((s) => !hasStarted(s, sessionLifecycle[s.id]) || (me ? s.participant_ids.includes(me.id) : false))
       .filter((s) => s.category === 'hiking')
       .filter((s) => {
         if (types.length > 0 && !(s.hike_type && types.includes(s.hike_type))) return false;
@@ -152,7 +157,7 @@ export function Find() {
         return dateOk(s.starts_at);
       })
       .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
-  }, [l1, filters, sessions]);
+  }, [l1, filters, sessions, sessionLifecycle, me]);
 
   /* ── Events ── */
   const mysteryEvents = useMemo(

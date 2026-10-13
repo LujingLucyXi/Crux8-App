@@ -425,6 +425,17 @@ export async function createClimbCall(
   if (error) throw new Error(`createClimbCall: ${error.message}`);
   const row = asRow<ClimbCallRow>(data);
   if (!row) throw new Error('createClimbCall: no row returned');
+  // The host is the first participant — write their pairing too, so the
+  // server-side participant list is complete for every client (fetches
+  // build participants from pairings). Best-effort: never block creation.
+  try {
+    await supabase.from('call_pairings').upsert(
+      { call_id: row.id, user_id: input.user_id, status: 'confirmed' },
+      { onConflict: 'call_id,user_id' },
+    );
+  } catch {
+    /* host pairing is belt-and-braces; mapCallRow unions the host anyway */
+  }
   return mapCallRow(row, [input.user_id]);
 }
 
