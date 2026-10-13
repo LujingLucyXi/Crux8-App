@@ -1,9 +1,11 @@
-import { Calendar, MapPin, SquareWave, TriangleFlag, ShieldCheck } from 'iconoir-react';
+import { useState } from 'react';
+import { Calendar, MapPin, SquareWave, TriangleFlag, ShieldCheck, ShareIos } from 'iconoir-react';
 import { format } from 'date-fns';
 import type { ClimbCall, NpcUser } from '@/seed/types';
 import { formatSessionWhen } from '@/lib/date';
 import { AvatarStack } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { ShareCallSheet } from '@/components/sheets/ShareCallSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { isWeightSafe } from '@/lib/weight';
 import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
@@ -44,6 +46,7 @@ export function ClimbCallCard({
   const directory = useAppStore((s) => s.directory);
   const pairRequests = useAppStore((s) => s.pairRequests);
   const cancelPairRequest = useAppStore((s) => s.cancelPairRequest);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const style = categoryStyle[call.category];
   const { Icon } = style;
@@ -140,9 +143,24 @@ export function ClimbCallCard({
       {/* CTAs */}
       <div className="mt-3.5 flex gap-2">
         {isMyCall ? (
-          <span className="inline-flex items-center rounded-xl bg-white/15 ring-1 ring-white/25 text-white text-xs font-semibold px-3 py-2">
-            Your call — live
-          </span>
+          <>
+            <button
+              onClick={() => setShareOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-2xl bg-white text-ink-900 text-xs font-bold px-4 py-2.5 active:scale-[0.97] transition"
+            >
+              <ShareIos width={13} height={13} />
+              Share to fill it
+            </button>
+            <button
+              onClick={onViewCard}
+              className="rounded-2xl bg-white/15 ring-1 ring-white/30 text-white text-xs font-bold px-4 py-2.5 hover:bg-white/25 active:scale-[0.97] transition"
+            >
+              Details
+            </button>
+            <span className="inline-flex items-center rounded-xl bg-white/15 ring-1 ring-white/25 text-white text-xs font-semibold px-3 py-2">
+              Your call — live
+            </span>
+          </>
         ) : (
           <>
             {isRequested ? (
@@ -166,6 +184,9 @@ export function ClimbCallCard({
           </>
         )}
       </div>
+      {isMyCall && (
+        <ShareCallSheet call={call} open={shareOpen} onOpenChange={setShareOpen} />
+      )}
     </article>
   );
 }
