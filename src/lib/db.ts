@@ -36,6 +36,8 @@ interface SessionRow {
   subtitle: string | null;
   starts_at: string;
   ends_at: string;
+  started_at: string | null;
+  finished_at: string | null;
   gym_id: string | null;
   area: string | null;
   route_id: string | null;
@@ -100,6 +102,8 @@ function mapSessionRow(row: SessionRow, participantIds: string[]): Session {
     subtitle: row.subtitle ?? '',
     starts_at: row.starts_at,
     ends_at: row.ends_at,
+    started_at: row.started_at ?? undefined,
+    finished_at: row.finished_at ?? undefined,
     gym_id: row.gym_id ?? undefined,
     area: row.area ?? undefined,
     route_id: row.route_id ?? undefined,
@@ -227,6 +231,24 @@ export async function updateSession(
   if (Object.keys(row).length === 0) return;
   const { error } = await supabase.from('sessions').update(row).eq('id', id);
   if (error) throw new Error(`updateSession: ${error.message}`);
+}
+
+/**
+ * Stamp a session started/finished via the set_session_lifecycle RPC
+ * (any participant may call it; first stamp wins server-side).
+ * Returns false when the RPC isn't available yet (SQL not run) — callers
+ * keep the local stamp as the fallback, so nothing breaks pre-migration.
+ */
+export async function setSessionLifecycle(
+  id: string,
+  patch: { started_at?: string; finished_at?: string },
+): Promise<boolean> {
+  const { error } = await supabase.rpc('set_session_lifecycle', {
+    p_session_id: id,
+    p_started_at: patch.started_at ?? null,
+    p_finished_at: patch.finished_at ?? null,
+  });
+  return !error;
 }
 
 /** going=true upserts a 'going' RSVP; going=false deletes the row. */

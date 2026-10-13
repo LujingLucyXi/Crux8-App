@@ -56,6 +56,7 @@ import {
   fetchSessions as dbFetchSessions,
   createSession as dbCreateSession,
   updateSession as dbUpdateSession,
+  setSessionLifecycle as dbSetSessionLifecycle,
   setSessionRsvp,
   fetchClimbCalls as dbFetchClimbCalls,
   createClimbCall as dbCreateClimbCall,
@@ -922,7 +923,9 @@ export const useAppStore = create<Store>()(
         // starting a call session IS the crew tapping Start together.
         set({
           sessions: get().sessions.map((s) =>
-            s.id === session.id ? { ...s, participant_ids: present } : s
+            s.id === session.id
+              ? { ...s, participant_ids: present, started_at: s.started_at ?? now.toISOString() }
+              : s
           ),
           climbCalls: get().climbCalls.map((c) =>
             c.id === callId ? { ...c, status: 'matched' as const } : c
@@ -932,6 +935,7 @@ export const useAppStore = create<Store>()(
             [session.id]: { started_at: now.toISOString() },
           },
         });
+        void dbSetSessionLifecycle(session.id, { started_at: now.toISOString() });
         // Mutual card collection: everyone present collects everyone else.
         const others = present.filter((id) => id !== me.id);
         for (const otherId of others) {
@@ -1578,25 +1582,40 @@ export const useAppStore = create<Store>()(
       },
 
       startSession: (sessionId) => {
+        const session = get().sessions.find((s) => s.id === sessionId);
         const cur = get().sessionLifecycle[sessionId];
-        if (cur?.started_at) return;
+        if (session?.started_at || cur?.started_at) return;
+        const stamp = new Date().toISOString();
         set({
           sessionLifecycle: {
             ...get().sessionLifecycle,
-            [sessionId]: { ...cur, started_at: new Date().toISOString() },
+            [sessionId]: { ...cur, started_at: stamp },
           },
+          sessions: get().sessions.map((s) =>
+            s.id === sessionId ? { ...s, started_at: s.started_at ?? stamp } : s,
+          ),
         });
+        // Sync to Supabase so every participant sees it live; the local
+        // stamp above is the fallback until the lifecycle SQL has run.
+        void dbSetSessionLifecycle(sessionId, { started_at: stamp });
       },
 
       finishSession: (sessionId) => {
+        const session = get().sessions.find((s) => s.id === sessionId);
         const cur = get().sessionLifecycle[sessionId];
-        if (!cur?.started_at || cur.finished_at) return;
+        const startedAt = session?.started_at ?? cur?.started_at;
+        if (!startedAt || session?.finished_at || cur?.finished_at) return;
+        const stamp = new Date().toISOString();
         set({
           sessionLifecycle: {
             ...get().sessionLifecycle,
-            [sessionId]: { ...cur, finished_at: new Date().toISOString() },
+            [sessionId]: { ...cur, finished_at: stamp },
           },
+          sessions: get().sessions.map((s) =>
+            s.id === sessionId ? { ...s, finished_at: s.finished_at ?? stamp } : s,
+          ),
         });
+        void dbSetSessionLifecycle(sessionId, { finished_at: stamp });
       },
 
       togglePartnerProp: (sessionId, partnerId, key) => {

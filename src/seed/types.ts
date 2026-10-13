@@ -94,6 +94,8 @@ export interface Session {
   subtitle: string;          // grade range or level text
   starts_at: string;         // ISO
   ends_at: string;           // ISO
+  started_at?: string;       // ISO — manual Start tap (Supabase row, synced)
+  finished_at?: string;      // ISO — manual Finish tap (Supabase row, synced)
   gym_id?: string;           // indoor
   area?: string;             // outdoor
   route_id?: string;         // outdoor optional

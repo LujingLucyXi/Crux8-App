@@ -9,9 +9,11 @@ import type { Session } from '@/seed/types';
  *   Finish, however far past ends_at it runs.
  * - Finishing leads to the optional rating (recap) and the summary card.
  *
- * Lifecycle lives in the local store (same layer as recaps), keyed by
- * session id. Call-created sessions are born 'live' (startCallSession
- * stamps started_at when the crew confirms who's here).
+ * Lifecycle stamps live on the Supabase session row (started_at /
+ * finished_at) so every participant's phone agrees; the local store map
+ * is the pre-migration fallback (and covers the instant before the next
+ * fetch). Call-created sessions are born 'live' (startCallSession stamps
+ * started_at when the crew confirms who's here).
  */
 export interface SessionLifecycle {
   started_at?: string;
@@ -28,8 +30,11 @@ export function sessionPhase(
   lc: SessionLifecycle | undefined,
   now: number = Date.now(),
 ): SessionPhase {
-  if (lc?.finished_at) return 'done';
-  if (lc?.started_at) return 'live';
+  // Row stamps (synced) win; local stamps are the fallback.
+  const finishedAt = session.finished_at ?? lc?.finished_at;
+  const startedAt = session.started_at ?? lc?.started_at;
+  if (finishedAt) return 'done';
+  if (startedAt) return 'live';
   if (now > new Date(session.starts_at).getTime() + START_LATE_MS) return 'expired';
   return 'upcoming';
 }
