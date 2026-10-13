@@ -65,6 +65,8 @@ import {
   setSessionRsvp,
   fetchClimbCalls as dbFetchClimbCalls,
   createClimbCall as dbCreateClimbCall,
+  updateClimbCallRemote,
+  type ClimbCallPatch,
   setCallPairing,
   fetchDirectoryProfiles,
   type DirectoryProfile,
@@ -225,6 +227,7 @@ interface Store {
   updateSession: (id: string, patch: Partial<Session>) => Promise<void>;
   postEvent: (event: Omit<EventItem, 'id' | 'attendee_ids' | 'waitlist_ids'>) => EventItem;
   postClimbCall: (call: Omit<ClimbCall, 'id' | 'user_id' | 'status' | 'participant_ids'>) => Promise<ClimbCall>;
+  updateClimbCall: (id: string, patch: ClimbCallPatch) => Promise<void>;
   requestPair: (callId: string) => Promise<void>;
   cancelPairRequest: (callId: string) => Promise<void>;
 
@@ -1073,6 +1076,29 @@ export const useAppStore = create<Store>()(
         set({ climbCalls: [created, ...get().climbCalls] });
         void get().ensureDirectoryProfiles([created.user_id]);
         return created;
+      },
+
+      updateClimbCall: async (id, patch) => {
+        // Optimistic local apply (nulls mean "clear the field").
+        set({
+          climbCalls: get().climbCalls.map((c) => {
+            if (c.id !== id) return c;
+            const next = { ...c };
+            if (patch.title !== undefined) next.title = patch.title ?? undefined;
+            if (patch.looking_for !== undefined) next.looking_for = patch.looking_for;
+            if (patch.category !== undefined) next.category = patch.category;
+            if (patch.grade !== undefined) next.grade = patch.grade;
+            if (patch.gym_id !== undefined) next.gym_id = patch.gym_id ?? undefined;
+            if (patch.area !== undefined) next.area = patch.area ?? undefined;
+            if (patch.starts_at !== undefined) next.starts_at = patch.starts_at;
+            if (patch.ends_at !== undefined) next.ends_at = patch.ends_at;
+            if (patch.note !== undefined) next.note = patch.note ?? undefined;
+            if (patch.capacity !== undefined) next.capacity = patch.capacity;
+            return next;
+          }),
+        });
+        // Remote persist for real calls; seed calls live locally only.
+        await updateClimbCallRemote(id, patch);
       },
 
       checkIn: (gymId) => {

@@ -428,6 +428,37 @@ export async function createClimbCall(
   return mapCallRow(row, [input.user_id]);
 }
 
+export interface ClimbCallPatch {
+  title?: string | null;
+  looking_for?: ClimbCall['looking_for'];
+  category?: ClimbCall['category'];
+  grade?: string;
+  gym_id?: string | null;
+  area?: string | null;
+  starts_at?: string;
+  ends_at?: string;
+  note?: string | null;
+  capacity?: number;
+}
+
+/**
+ * Update the signed-in host's own climb call. True when a row actually
+ * changed (RLS silently filters out rows the user may not update, which
+ * surfaces as an empty result). False for seed/uuid-less calls.
+ */
+export async function updateClimbCallRemote(
+  id: string,
+  patch: ClimbCallPatch,
+): Promise<boolean> {
+  if (!isUuid(id)) return false;
+  const { data, error } = await supabase
+    .from('climb_calls')
+    .update(patch)
+    .eq('id', id)
+    .select('id');
+  return !error && Array.isArray(data) && data.length > 0;
+}
+
 /** paired=true upserts a 'requested' pairing; paired=false deletes the row. */
 export async function setCallPairing(
   callId: string,

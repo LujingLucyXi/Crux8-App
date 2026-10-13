@@ -1,14 +1,17 @@
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Clock, ShieldCheck, Xmark, ShareIos } from 'iconoir-react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
+import { Input, Label } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
 import { ShareCallSheet } from '@/components/sheets/ShareCallSheet';
 import { StartSessionSheet } from '@/components/sheets/StartSessionSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { isWeightSafe } from '@/lib/weight';
+import { gymsForCategory } from '@/lib/gymFilter';
+import { cn } from '@/lib/utils';
 import { LOOKING_FOR_LABEL } from '@/components/cards/ClimbCallCard';
 import { resolveUser } from '@/lib/resolveUser';
 import type { ClimbCall } from '@/seed/types';
@@ -33,6 +36,7 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
   const sendMessage = useAppStore((s) => s.sendMessage);
   const [shareOpen, setShareOpen] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   if (!call || !me) return null;
   const caller = resolveUser(call.user_id, me, users, directory);
@@ -111,6 +115,10 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
           </div>
         </div>
 
+        {editing ? (
+          <EditCallForm call={call} onDone={() => setEditing(false)} />
+        ) : (
+        <>
         <div className="space-y-2 mb-4">
           <div className="flex items-center gap-2 text-sm text-ink-700">
             <MapPin width={16} height={16} className="text-ink-500" />
@@ -139,7 +147,12 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
 
         <div className="flex flex-col gap-2">
           {isMyCall ? (
-            <p className="text-sm text-ink-500 text-center">This is your call — it's visible to others.</p>
+            <>
+              <p className="text-sm text-ink-500 text-center">This is your call — it's visible to others.</p>
+              <Button variant="outline" onClick={() => setEditing(true)}>
+                Edit call
+              </Button>
+            </>
           ) : (
             <Button
               variant={isRequested ? 'outline' : 'primary'}
@@ -161,6 +174,8 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
             </Button>
           )}
         </div>
+        </>
+        )}
       </SheetContent>
       <ShareCallSheet call={call} open={shareOpen} onOpenChange={setShareOpen} />
       <StartSessionSheet
@@ -170,5 +185,179 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
         onStarted={() => onOpenChange(false)}
       />
     </Sheet>
+  );
+}
+
+const GRADE_RANGES = [
+  'All levels',
+  '5.6–5.8',
+  '5.8–5.10a',
+  '5.10a–5.10d',
+  '5.10d–5.11b',
+  '5.11a–5.11d',
+  '5.11c–5.12b',
+  '5.12c+',
+];
+const DURATIONS = [0.5, 1, 1.5, 2, 2.5, 3, 4];
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const toDateStr = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const toTimeStr = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+
+/** Host-only edit form for a climb call (rendered inside the detail sheet). */
+function EditCallForm({ call, onDone }: { call: ClimbCall; onDone: () => void }) {
+  const gyms = useAppStore((s) => s.gyms);
+  const updateClimbCall = useAppStore((s) => s.updateClimbCall);
+  const start = new Date(call.starts_at);
+  const end = new Date(call.ends_at);
+  const [title, setTitle] = useState(call.title ?? '');
+  const [lookingFor, setLookingFor] = useState<ClimbCall['looking_for']>(call.looking_for);
+  const [category, setCategory] = useState<ClimbCall['category']>(call.category);
+  const [grade, setGrade] = useState(call.grade);
+  const [gymId, setGymId] = useState(call.gym_id ?? '');
+  const [area, setArea] = useState(call.area ?? '');
+  const [date, setDate] = useState(toDateStr(start));
+  const [time, setTime] = useState(toTimeStr(start));
+  const [duration, setDuration] = useState(
+    Math.max(0.5, Math.round(((end.getTime() - start.getTime()) / 3600000) * 2) / 2),
+  );
+  const [note, setNote] = useState(call.note ?? '');
+  const [capacity, setCapacity] = useState(call.capacity);
+  const [saving, setSaving] = useState(false);
+
+  // The gym list follows the category: top-rope calls list top-rope gyms,
+  // lead calls list lead gyms (same rule as call creation).
+  const gymOptions = useMemo(() => gymsForCategory(gyms, category), [gyms, category]);
+  useEffect(() => {
+    if (call.location_type === 'indoor' && !gymOptions.some((g) => g.id === gymId)) {
+      setGymId(gymOptions[0]?.id ?? '');
+    }
+  }, [gymOptions, gymId, call.location_type]);
+
+  const save = async () => {
+    const starts = new Date(`${date}T${time || '18:00'}`);
+    if (isNaN(starts.getTime())) {
+      toast.error('Pick a valid date and time');
+      return;
+    }
+    setSaving(true);
+    await updateClimbCall(call.id, {
+      title: title.trim() || null,
+      looking_for: lookingFor,
+      category,
+      grade,
+      gym_id: call.location_type === 'indoor' ? gymId || null : null,
+      area: call.location_type === 'outdoor' ? area.trim() || null : null,
+      starts_at: starts.toISOString(),
+      ends_at: new Date(starts.getTime() + duration * 3600000).toISOString(),
+      note: note.trim() || null,
+      capacity,
+    });
+    setSaving(false);
+    toast.success('Call updated');
+    onDone();
+  };
+
+  const toggleCls = (active: boolean) =>
+    cn(
+      'rounded-xl border py-2.5 text-sm flex-1',
+      active
+        ? 'bg-brand-600 text-[#161310] border-brand-600 font-semibold'
+        : 'bg-paper-100 text-ink-700 border-ink-100',
+    );
+  const selectCls =
+    'w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900';
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <Label>Call name (optional)</Label>
+        <Input value={title} onChange={(e) => setTitle(e.target.value.slice(0, 48))} placeholder="e.g. Sunset lead sesh" />
+      </div>
+      <div>
+        <Label>Looking for</Label>
+        <div className="flex gap-2">
+          {(Object.keys(LOOKING_FOR_LABEL) as ClimbCall['looking_for'][]).map((k) => (
+            <button key={k} type="button" onClick={() => setLookingFor(k)} className={toggleCls(lookingFor === k)}>
+              {LOOKING_FOR_LABEL[k].replace('Needs ', '')}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <Label>Type</Label>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setCategory('top_rope')} className={toggleCls(category === 'top_rope')}>
+            Top rope
+          </button>
+          <button type="button" onClick={() => setCategory('lead')} className={toggleCls(category === 'lead')}>
+            Lead
+          </button>
+        </div>
+      </div>
+      <div>
+        <Label>Grade or range</Label>
+        <select value={grade} onChange={(e) => setGrade(e.target.value)} className={selectCls}>
+          {GRADE_RANGES.map((g) => (
+            <option key={g} value={g}>{g}</option>
+          ))}
+        </select>
+      </div>
+      {call.location_type === 'indoor' ? (
+        <div>
+          <Label>Gym</Label>
+          <select value={gymId} onChange={(e) => setGymId(e.target.value)} className={selectCls}>
+            {gymOptions.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <div>
+          <Label>Exact location</Label>
+          <Input value={area} onChange={(e) => setArea(e.target.value.slice(0, 80))} placeholder="e.g. Index — Lower Town Wall" />
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Date</Label>
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <div>
+          <Label>Start time</Label>
+          <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Duration (hours)</Label>
+          <select value={duration} onChange={(e) => setDuration(Number(e.target.value))} className={selectCls}>
+            {DURATIONS.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label>Group size (incl. you)</Label>
+          <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className={selectCls}>
+            {[2, 3, 4, 5, 6].map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div>
+        <Label>Note (optional)</Label>
+        <Input value={note} onChange={(e) => setNote(e.target.value.slice(0, 140))} placeholder="e.g. Projecting 5.11a — soft catches please" />
+      </div>
+      <div className="flex gap-2">
+        <Button variant="outline" className="flex-1" onClick={onDone} disabled={saving}>
+          Cancel
+        </Button>
+        <Button className="flex-1" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save changes'}
+        </Button>
+      </div>
+    </div>
   );
 }
