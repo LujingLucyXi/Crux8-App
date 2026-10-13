@@ -175,6 +175,9 @@ interface Store {
   seedIfEmpty: () => void;
   /** Make sure every signed-in user has Cruxy's welcome thread. Idempotent. */
   ensureCruxyThread: () => void;
+  /** Keep the gym list in lockstep with the shipped seed (gyms are
+   *  reference data — new/renamed gyms must reach existing installs). */
+  syncSeedGyms: () => void;
   /** Load sessions / climb calls from Supabase (real backend). */
   fetchSessions: () => Promise<void>;
   fetchClimbCalls: () => Promise<void>;
@@ -498,6 +501,24 @@ export const useAppStore = create<Store>()(
       sessionsLoading: false,
       newSessionOpen: false,
       setNewSessionOpen: (open: boolean) => set({ newSessionOpen: open }),
+
+      syncSeedGyms: () => {
+        const cur = get().gyms;
+        const inSync =
+          cur.length === SEED_GYMS.length &&
+          cur.every((g, i) => {
+            const s = SEED_GYMS[i];
+            return (
+              g.id === s.id && g.name === s.name && g.short_name === s.short_name
+            );
+          });
+        if (inSync) return;
+        const gymPresence = { ...get().gymPresence };
+        for (const g of SEED_GYMS) {
+          if (gymPresence[g.id] === undefined) gymPresence[g.id] = g.here_now;
+        }
+        set({ gyms: SEED_GYMS, gymPresence });
+      },
 
       /** Make sure every signed-in user has Cruxy's welcome thread. Idempotent. */
       ensureCruxyThread: () => {

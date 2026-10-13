@@ -148,6 +148,30 @@ export const SEED_GYMS: Gym[] = [
     disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
     here_now: 14,
   },
+  {
+    id: 'gym_edgeworks_belred',
+    name: 'Edgeworks Bel-Red',
+    short_name: 'Edgeworks Bel-Red',
+    address: '1645 140th Ave NE',
+    city: 'Bellevue, WA',
+    neighborhood: 'Bel-Red',
+    lat: 47.6253,
+    lng: -122.1546,
+    disciplines: ['boulder'],
+    here_now: 18,
+  },
+  {
+    id: 'gym_vw_north',
+    name: 'Vertical World North',
+    short_name: 'VW North',
+    address: '12300 Beverly Park Rd',
+    city: 'Lynnwood, WA',
+    neighborhood: 'Lynnwood',
+    lat: 47.8867,
+    lng: -122.2794,
+    disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
+    here_now: 12,
+  },
 ];
 
 export const GYM_BY_ID = Object.fromEntries(SEED_GYMS.map((g) => [g.id, g] as const));

@@ -7,10 +7,12 @@ import { useAppStore } from '@/store/useAppStore';
 
 export default function App() {
   const seedIfEmpty = useAppStore((s) => s.seedIfEmpty);
+  const syncSeedGyms = useAppStore((s) => s.syncSeedGyms);
   const initAuth = useAppStore((s) => s.initAuth);
 
   useEffect(() => {
     seedIfEmpty();
+    syncSeedGyms();
     void initAuth();
     // Universal links (e.g. play.crux8.app/claim?...): when iOS hands the
     // URL to the native shell, route it into the React router. No-op on web.
@@ -32,7 +34,7 @@ export default function App() {
     return () => {
       if (listener) void listener.then((s) => s.remove().catch(() => {}));
     };
-  }, [seedIfEmpty, initAuth]);
+  }, [seedIfEmpty, syncSeedGyms, initAuth]);
 
   return (
     <>
