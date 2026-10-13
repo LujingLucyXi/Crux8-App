@@ -18,6 +18,7 @@ import type { VerificationCategory } from '@/seed/types';
 import { cn } from '@/lib/utils';
 import { cmToFtIn, kgToLbs, lbsToKg, ftInToCm } from '@/lib/weight';
 import { levelFromXp, sendXp } from '@/lib/rewards';
+import { getArchetype, getHouse, getHouseForArchetype } from '@/lib/quizMeta';
 import { format } from 'date-fns';
 
 const BADGE_META: Record<BadgeId, { label: string; emoji: string; grad: string }> = {
@@ -173,6 +174,75 @@ export function Profile() {
           </Button>
         </div>
       </div>
+
+      {/* ── Climber DNA (from the quiz) ── */}
+      {me.quiz_result_type && me.quiz_dna ? (
+        <section className="mt-6">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
+            Climber DNA 🧬
+          </h2>
+          <div className="rounded-2xl bg-white border border-ink-100 p-5">
+            {(() => {
+              const arch = getArchetype(me.quiz_result_type);
+              const house = getHouse(me.quiz_house_id) ?? (arch ? getHouseForArchetype(arch.id) : null);
+              return (
+                <>
+                  <div className="flex items-center gap-3">
+                    <span className="text-4xl">{arch?.emoji ?? '🧬'}</span>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-ink-900">{arch?.name_en ?? 'Climber'}</h3>
+                      {arch?.tagline_en && (
+                        <p className="text-xs text-ink-500 italic">“{arch.tagline_en}”</p>
+                      )}
+                    </div>
+                  </div>
+                  {house && (
+                    <span
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white"
+                      style={{ background: house.color }}
+                    >
+                      {house.emoji} {house.name}
+                    </span>
+                  )}
+                  <div className="mt-4 space-y-2.5">
+                    {me.quiz_dna.map((axis) => (
+                      <div key={axis.key}>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="font-semibold text-ink-700">
+                            {axis.emoji} {axis.label}
+                          </span>
+                          <span className="text-ink-400 font-medium">{axis.value}%</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-ink-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-brand-gradient"
+                            style={{ width: `${axis.value}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </section>
+      ) : (
+        <section className="mt-6">
+          <button
+            onClick={() => window.open('https://play.crux8.app', '_blank')}
+            className="w-full text-left rounded-2xl border border-dashed border-ink-200 p-5 hover:border-ink-400 transition-colors"
+          >
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-1">
+              Climber DNA 🧬
+            </h2>
+            <p className="text-sm text-ink-700 font-medium">Discover your climbing archetype</p>
+            <p className="text-xs text-ink-500 mt-1">
+              Take the 60-second quiz to reveal your Climber DNA on your profile.
+            </p>
+          </button>
+        </section>
+      )}
 
       {/* ── Level / XP power-up ── */}
       <div className="mt-4 rounded-3xl bg-brand-gradient text-white p-5 shadow-brand">
