@@ -244,10 +244,6 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
               >
                 Finish session
               </Button>
-              <p className="text-xs text-ink-500 text-center mt-2">
-                Finishing leads to optional partner ratings, then your session card.
-                Sessions never auto-finish.
-              </p>
             </div>
           )}
           {phase === 'expired' && (

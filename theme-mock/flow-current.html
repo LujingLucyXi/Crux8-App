@@ -1,0 +1,137 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,'Segoe UI',Roboto,sans-serif; }
+  body { background:#08080A; color:#F7F3EA; padding:36px 28px 44px; width:1420px; }
+  .flow { display:flex; gap:26px; align-items:flex-start; }
+  .step { flex:1; }
+  .steplabel { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .num { background:#C9A24B; color:#161310; font-weight:800; width:26px; height:26px; border-radius:50%;
+         display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .steplabel h2 { font-size:16px; font-weight:700; }
+  .steplabel p { font-size:12px; color:#948F82; margin-left:auto; text-align:right; }
+  .phone { background:#0B0B0D; border:1px solid #26262C; border-radius:28px; padding:20px 18px 24px; min-height:640px; }
+  .sheet-title { font-size:17px; font-weight:700; text-align:center; margin-bottom:16px; }
+  h3.st { font-size:19px; font-weight:700; line-height:1.25; }
+  .sub { color:#B8B2A1; font-size:13px; margin-top:2px; }
+  .meta { margin:16px 0; display:flex; flex-direction:column; gap:8px; font-size:14px; color:#DED8C9; }
+  .sect { font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#948F82; margin:18px 0 10px; }
+  .person { display:flex; align-items:center; gap:10px; padding:6px 0; font-size:14px; }
+  .ava { width:32px; height:32px; border-radius:50%; background:#2A2210; border:1px solid #C9A24B55;
+         display:flex; align-items:center; justify-content:center; font-size:15px; }
+  .tag { margin-left:auto; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#948F82; }
+  .tag.you { color:#A5823A; }
+  .btn { display:block; width:100%; text-align:center; padding:13px; border-radius:14px; font-size:15px; font-weight:700; margin-top:12px; }
+  .btn.gold { background:linear-gradient(180deg,#E8C766,#C9A24B); color:#161310; }
+  .btn.outline { border:1px solid #55534D; color:#F7F3EA; background:transparent; }
+  .live { text-align:center; color:#F26D6D; font-size:12px; font-weight:700; letter-spacing:.1em; margin-top:18px; }
+  .hint { text-align:center; color:#948F82; font-size:12px; margin-top:8px; line-height:1.5; }
+  .hint.redundant { outline:1px dashed #F26D6D88; border-radius:8px; padding:6px 8px; }
+  .card { background:#16161A; border:1px solid #26262C; border-radius:16px; padding:14px; }
+  .card h4 { font-size:15px; font-weight:700; }
+  .props { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .chip { border:1px solid #55534D; border-radius:999px; padding:4px 9px; font-size:14px; }
+  .chip.on { background:#2A2210; border-color:#C9A24B; }
+  .belay { background:#101013; border:1px solid #26262C; border-radius:12px; padding:10px; margin-top:12px; }
+  .belay p { font-size:11px; font-weight:700; color:#DED8C9; margin-bottom:8px; }
+  .seg { display:flex; gap:6px; }
+  .seg span { flex:1; text-align:center; font-size:12px; font-weight:700; padding:7px 0; border-radius:9px; border:1px solid #55534D; color:#B8B2A1; }
+  .seg span.on { background:#C9A24B; color:#161310; border-color:#C9A24B; }
+  .safety { display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; }
+  .safety .ok { color:#A5823A; font-weight:700; }
+  .safety .off { color:#948F82; text-decoration:underline; }
+  .bigcard { border-radius:22px; padding:20px; margin-top:16px; text-align:left;
+             background:linear-gradient(135deg,#FF6B6B30,#FF6B6B70); border:2px solid #FF6B6B; }
+  .crew { display:flex; align-items:center; gap:8px; margin-top:14px; }
+  .crew .ava { background:#16161A; border-color:#F7F3EA; }
+  .arrow { align-self:center; font-size:26px; color:#C9A24B; padding-top:340px; }
+  .collect { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#DED8C9; margin-top:14px; }
+</style></head>
+<body>
+<div class="flow">
+
+  <div class="step">
+    <div class="steplabel"><span class="num">1</span><h2>Session detail (live)</h2><p>tap Finish</p></div>
+    <div class="phone">
+      <h3 class="st">Top-rope session</h3>
+      <p class="sub">V3–V5 · Take turns</p>
+      <div class="meta">
+        <span>📅 &nbsp;Today · 8:00 PM</span>
+        <span>📍 &nbsp;Bouldering Project — Poplar</span>
+      </div>
+      <p class="sect">Who's going · 2 / 4</p>
+      <div class="person"><span class="ava">🦊</span> Lucy <span class="tag you">You</span></div>
+      <div class="person"><span class="ava">🧗</span> Marcus <span class="tag">Host</span></div>
+      <a class="btn outline">Leave session</a>
+      <p class="live">● LIVE NOW</p>
+      <a class="btn gold">Finish session</a>
+      <p class="hint redundant">Finishing leads to optional partner ratings, then your session card. Sessions never auto-finish.</p>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <div class="step">
+    <div class="steplabel"><span class="num">2</span><h2>Session recap</h2><p>the "rating" today</p></div>
+    <div class="phone">
+      <p class="sheet-title">Session recap</p>
+      <div class="card">
+        <h4>Top-rope session</h4>
+        <p class="sub">V3–V5</p>
+        <div class="meta" style="margin:8px 0 0; font-size:12px;">
+          <span>📅 Today · 8:00 PM &nbsp;&nbsp; 📍 SBP Poplar</span>
+        </div>
+      </div>
+      <p style="font-size:13px; color:#B8B2A1; margin:16px 0 4px; line-height:1.5;">
+        Give props to who you climbed with. All optional — no scores, no averages.
+      </p>
+      <div class="card" style="margin-top:10px;">
+        <div class="person" style="padding:0;">
+          <span class="ava">🧗</span>
+          <span><b>Marcus</b><br><span style="font-size:11px; color:#948F82;">Climbed together</span></span>
+        </div>
+        <div class="props">
+          <span class="chip on">🧂</span><span class="chip">👟</span><span class="chip">🪢</span>
+          <span class="chip on">🪨</span><span class="chip">🧵</span><span class="chip on">🔥</span>
+          <span class="chip">🤏</span><span class="chip">💪</span>
+        </div>
+        <div class="belay">
+          <p>Does Marcus have a belay cert / belay safely?</p>
+          <div class="seg"><span class="on">✓ Yes</span><span>Not sure</span><span>No</span></div>
+        </div>
+        <div class="safety">
+          <span class="ok">✓ All good</span>
+          <span class="off">Something felt off</span>
+        </div>
+      </div>
+      <a class="btn gold">Done</a>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <div class="step">
+    <div class="steplabel"><span class="num">3</span><h2>Session summary card</h2><p>opens after Done</p></div>
+    <div class="phone" style="text-align:center;">
+      <p style="font-size:11px; font-weight:700; letter-spacing:.18em; color:#948F82; margin-top:6px;">SESSION #12</p>
+      <div class="bigcard">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h4 style="font-size:17px; font-weight:800;">Top-rope session</h4>
+            <p style="font-size:12px; color:#DED8C9;">SBP Poplar · Oct 13</p>
+          </div>
+          <span style="font-size:28px;">🧗</span>
+        </div>
+        <div class="crew">
+          <span class="ava">🔥</span>
+          <span style="font-size:12px; font-weight:600;">1 climbing partner</span>
+        </div>
+        <p class="collect">🃏 1 card collected</p>
+        <div style="font-size:22px; margin-top:6px;">🔥</div>
+      </div>
+      <a class="btn gold">Share</a>
+      <a class="btn outline">Copy link</a>
+    </div>
+  </div>
+
+</div>
+</body></html>
