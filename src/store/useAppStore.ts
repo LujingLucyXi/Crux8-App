@@ -470,11 +470,22 @@ export const useAppStore = create<Store>()(
 
       /** Make sure every signed-in user has Cruxy's welcome thread. Idempotent. */
       ensureCruxyThread: () => {
-        const { chats, cruxmates } = get();
-        const patch: Partial<{ chats: Record<string, ChatMessage[]>; cruxmates: string[] }> = {};
+        const { chats, cruxmates, users } = get();
+        const patch: Partial<{
+          chats: Record<string, ChatMessage[]>;
+          cruxmates: string[];
+          users: NpcUser[];
+        }> = {};
         if (!cruxmates.includes('cruxy')) patch.cruxmates = [...cruxmates, 'cruxy'];
         if (!chats['cruxy'] || chats['cruxy'].length === 0) {
           patch.chats = { ...chats, cruxy: cruxyWelcomeMessages() };
+        }
+        // States persisted before Cruxy joined the seed roster have the
+        // cruxmate + thread but no user record — the Chats list then renders
+        // an invisible row (count + unread badge, no thread). Backfill it.
+        if (!users.some((u) => u.id === 'cruxy')) {
+          const cruxyUser = SEED_USERS.find((u) => u.id === 'cruxy');
+          if (cruxyUser) patch.users = [cruxyUser, ...users];
         }
         if (Object.keys(patch).length > 0) set(patch);
       },
