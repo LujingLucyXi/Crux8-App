@@ -281,33 +281,58 @@ export const scKey = (sessionChatId: string) => `sc:${sessionChatId}`;
  * so new users get a living chat thread instead of mocked-up conversations.
  */
 function cruxyReply(input: string): string {
-  const t = input.toLowerCase();
-  const has = (...words: string[]) => words.some((w) => t.includes(w));
-  if (has('hi', 'hello', 'hey', 'yo', 'sup')) {
+  const t = ` ${input.toLowerCase()} `;
+  // Word-boundary matching: 'hi' should not fire on 'this' or 'which'.
+  const has = (...words: string[]) =>
+    words.some((w) => t.includes(` ${w} `) || t.includes(` ${w}?`) || t.includes(` ${w}!`) || t.includes(` ${w}.`) || t.includes(` ${w},`));
+  const hasPhrase = (...phrases: string[]) => phrases.some((p) => t.includes(p));
+
+  if (has('hi', 'hello', 'hey', 'yo', 'sup', 'hiya', 'howdy')) {
     return 'Hey hey! 🧗 Great to see you here. Want help posting your first session, or finding partners to climb with?';
   }
-  if (has('post', 'create', 'session', 'host')) {
+  if (has('post', 'create', 'host') || hasPhrase('new session')) {
     return 'Posting a session is easy: tap the + button, pick indoor or outdoor, set the time and vibe, and hit post. Partners in your area will see it on the Find tab!';
   }
-  if (has('find', 'partner', 'belay', 'buddy', 'mate')) {
+  if (has('find', 'partner', 'partners', 'belay', 'buddy', 'buddies', 'mate', 'mates')) {
     return 'Head to the Find tab — you\'ll see open sessions and climb calls near you. Tap one to RSVP or message the host. That\'s how partners happen here. 🤝';
   }
-  if (has('grade', 'level', 'beginner', 'new')) {
+  if (has('call', 'calls') || hasPhrase('climb call')) {
+    return 'A climb call is a shout for a rope partner: post when and where you want to climb, and others request to pair. When you\'re actually meeting up, hit "Start session" to log it and collect each other\'s cards! 🃏';
+  }
+  if (has('card', 'cards', 'collect', 'collection')) {
+    return 'Your card collection lives on your profile! You collect someone\'s DNA card when you add them as a cruxmate or climb a session together. Rarer archetypes = rarer cards. 🃏';
+  }
+  if (has('quiz', 'dna', 'archetype', 'house')) {
+    return 'Your Climber DNA comes from the quiz at play.crux8.app — it sorts you into an archetype and a house. Claim it from the link, and you\'ll auto-join your house hangout crew! 🧬';
+  }
+  if (has('crew', 'crews', 'group', 'groups', 'hangout')) {
+    return 'Crews are where the community lives. Your house hangout is auto-created from your quiz — same house, same city. You can also browse and join crews on the Community tab. 💬';
+  }
+  if (has('share', 'invite', 'link')) {
+    return 'You can share any climb call or session: open it, tap Share, and post it to a crew chat or send the link anywhere. Anyone with the link can view it and request to pair! 🔗';
+  }
+  if (has('session', 'sessions') || hasPhrase('start session')) {
+    return 'Sessions are group climbs with a time and place. RSVP on the Find tab, or start one from a climb call once you\'ve paired up. Afterward you\'ll get a shareable session card! 🧗';
+  }
+  if (has('grade', 'grades', 'level', 'beginner', 'newbie')) {
     return 'All levels are welcome here! When you post, set the grade range so partners know what to expect. There\'s a crew for every level. 💪';
   }
-  if (has('event', 'crew')) {
-    return 'Events and crews are coming soon — right now the action is in sessions and climb calls. Post one and start the stoke! 🔥';
+  if (has('event', 'events')) {
+    return 'Events are ticketed happenings — check the Events tab for what\'s coming up near you. 🎟️';
   }
-  if (has('help', 'how', 'what can you', 'stuck')) {
-    return 'I can help with the basics: posting sessions, finding partners, and getting around the app. Real humans show up once you RSVP to a session — I\'m just the warm-up act. 😄';
+  if (has('help', 'stuck') || hasPhrase('how do', 'how can', 'what can you', 'how to')) {
+    return 'I can help with the basics: posting sessions, climb calls, finding partners, crews, cards, and getting around the app. What are you trying to do? 😄';
   }
-  if (has('thank', 'thanks', 'thx')) {
+  if (has('thank', 'thanks', 'thx', 'ty')) {
     return 'Anytime! Now go touch some plastic (or real rock). 🪨';
   }
-  if (has('bye')) {
+  if (has('bye', 'later', 'cya', 'goodnight')) {
     return 'See you at the crag! 👋';
   }
-  return 'Good question! I\'m still learning — but here\'s a tip: the fastest way to meet partners is posting a session from the + button. Give it a try! 🧗';
+  if (has('who', 'what') && has('you', 'cruxy')) {
+    return 'I\'m Cruxy, your climbing buddy bot! I\'m still learning, but I can point you around the app. Try asking about sessions, partners, or cards. 🧗';
+  }
+  return 'Hmm, I\'m still learning that one! Try asking about posting a session, finding partners, crews, or your card collection — or tap around, the app is pretty explorable. 🧗';
 }
 
 /** Cruxy's welcome thread for a brand-new user. */
