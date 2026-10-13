@@ -44,7 +44,7 @@ export function ReactionPicker({ reactions, meId, onToggle, align = 'left' }: Pr
               'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors',
               mine
                 ? 'bg-teal-100 border-teal-600 text-teal-600'
-                : 'bg-white border-ink-100 text-ink-700 hover:border-ink-300',
+                : 'bg-paper-100 border-ink-100 text-ink-700 hover:border-ink-300',
             )}
             title={meta.label}
           >
@@ -63,7 +63,7 @@ export function ReactionPicker({ reactions, meId, onToggle, align = 'left' }: Pr
       {pickerOpen && (
         <div
           className={cn(
-            'absolute -top-11 z-10 flex gap-1 rounded-full bg-white border border-ink-100 shadow-sm px-2 py-1.5',
+            'absolute -top-11 z-10 flex gap-1 rounded-full bg-paper-100 border border-ink-100 shadow-sm px-2 py-1.5',
             align === 'right' ? 'right-0' : 'left-0',
           )}
         >

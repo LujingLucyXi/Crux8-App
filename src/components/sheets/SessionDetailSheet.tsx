@@ -146,7 +146,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
           {route && (
             <button
               onClick={() => void openExternal(route.mp_url)}
-              className="mb-5 flex w-full items-center justify-between rounded-xl border border-ink-100 bg-paper-50 px-4 py-3 text-left hover:bg-white"
+              className="mb-5 flex w-full items-center justify-between rounded-xl border border-ink-100 bg-paper-50 px-4 py-3 text-left hover:bg-paper-100"
             >
               <div>
                 <p className="text-sm font-semibold text-ink-900">{route.name}</p>
@@ -390,7 +390,7 @@ function EditSessionForm({
         <select
           value={gymId}
           onChange={(e) => setGymId(e.target.value)}
-          className="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900"
+          className="w-full rounded-xl border border-ink-200 bg-paper-100 px-3 py-2.5 text-sm text-ink-900"
         >
           <option value="">No gym</option>
           {gyms.map((g) => (
@@ -406,7 +406,7 @@ function EditSessionForm({
           <select
             value={capacity}
             onChange={(e) => setCapacity(Number(e.target.value))}
-            className="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900"
+            className="w-full rounded-xl border border-ink-200 bg-paper-100 px-3 py-2.5 text-sm text-ink-900"
           >
             {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((c) => (
               <option key={c} value={c}>
@@ -421,7 +421,7 @@ function EditSessionForm({
           <select
             value={vibe}
             onChange={(e) => setVibe(e.target.value as Vibe)}
-            className="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900 capitalize"
+            className="w-full rounded-xl border border-ink-200 bg-paper-100 px-3 py-2.5 text-sm text-ink-900 capitalize"
           >
             {EDIT_VIBES.map((v) => (
               <option key={v} value={v} className="capitalize">

@@ -139,7 +139,7 @@ export function Sessions() {
             onClick={() => setView(seg.v)}
             className={cn(
               'flex-1 rounded-full border py-2.5 px-3 text-xs font-semibold transition-colors',
-              view === seg.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-500 border-ink-100',
+              view === seg.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-500 border-ink-100',
             )}
           >
             {seg.l}
@@ -150,7 +150,7 @@ export function Sessions() {
       {sessionsLoading && list.length === 0 ? (
         <div className="flex flex-col gap-3" aria-label="Loading climbs">
           {[0, 1].map((i) => (
-            <div key={i} className="rounded-2xl bg-white border border-ink-100 p-4 animate-pulse">
+            <div key={i} className="rounded-2xl bg-paper-100 border border-ink-100 p-4 animate-pulse">
               <div className="h-4 w-2/3 rounded bg-ink-100" />
               <div className="mt-2 h-3 w-1/2 rounded bg-ink-100" />
             </div>
@@ -159,7 +159,7 @@ export function Sessions() {
       ) : list.length > 0 ? (
         <div className="flex flex-col gap-3">{list.map(renderItem)}</div>
       ) : (
-        <div className="rounded-2xl bg-white border border-dashed border-ink-100 p-10 flex flex-col items-center text-center">
+        <div className="rounded-2xl bg-paper-100 border border-dashed border-ink-100 p-10 flex flex-col items-center text-center">
           <Calendar width={30} height={30} className="text-ink-300" />
           <p className="mt-3 text-sm text-ink-500">
             {view === 'upcoming' ? 'Nothing booked yet.' : 'No past climbs yet.'}

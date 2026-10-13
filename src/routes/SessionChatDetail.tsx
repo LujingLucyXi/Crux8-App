@@ -74,7 +74,7 @@ export function SessionChatDetail() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] -mx-4">
-      <div className="px-4 py-3 border-b border-ink-100 bg-white flex items-center gap-3">
+      <div className="px-4 py-3 border-b border-ink-100 bg-paper-100 flex items-center gap-3">
         <button onClick={() => nav('/chat')} aria-label="Back">
           <NavArrowLeft width={22} height={22} className="text-ink-700" />
         </button>
@@ -143,7 +143,7 @@ export function SessionChatDetail() {
                         'rounded-2xl px-3.5 py-2 text-sm',
                         isMe
                           ? 'bg-ink-900 text-white rounded-tr-md'
-                          : 'bg-white border border-ink-100 text-ink-900 rounded-tl-md',
+                          : 'bg-paper-100 border border-ink-100 text-ink-900 rounded-tl-md',
                       )}
                     >
                       {m.text}
@@ -167,7 +167,7 @@ export function SessionChatDetail() {
           e.preventDefault();
           handleSend();
         }}
-        className="px-4 py-3 border-t border-ink-100 bg-white flex gap-2"
+        className="px-4 py-3 border-t border-ink-100 bg-paper-100 flex gap-2"
       >
         <Input
           value={text}

@@ -41,7 +41,7 @@ export function Landing() {
           {PILLARS.map(({ Icon, name, desc }) => (
             <div
               key={name}
-              className="rounded-2xl bg-white border border-ink-100 p-4 text-left"
+              className="rounded-2xl bg-paper-100 border border-ink-100 p-4 text-left"
             >
               <Icon width={22} height={22} className="text-ink-900" />
               <h3 className="mt-2 text-sm font-semibold uppercase tracking-wider text-ink-900">

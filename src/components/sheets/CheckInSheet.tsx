@@ -87,7 +87,7 @@ export function CheckInSheet({ open, onOpenChange }: Props) {
                 onClick={() => doCheckIn(nearGym.id, nearGym.short_name)}
                 className="rounded-2xl bg-sky-200 border border-ink-100 p-4 flex items-center gap-3 text-left hover:brightness-95"
               >
-                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-full bg-paper-100 flex items-center justify-center shrink-0">
                   <Position width={20} height={20} className="text-teal-600" />
                 </div>
                 <div className="min-w-0">

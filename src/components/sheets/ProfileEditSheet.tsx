@@ -37,7 +37,7 @@ const MAX_TAGS = 5;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-ink-100 bg-white p-4">
+    <div className="rounded-2xl border border-ink-100 bg-paper-100 p-4">
       <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-3">{title}</h3>
       <div className="flex flex-col gap-3">{children}</div>
     </div>
@@ -113,7 +113,7 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
             <select
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              className="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900"
+              className="w-full rounded-xl border border-ink-200 bg-paper-100 px-3 py-2.5 text-sm text-ink-900"
             >
               {CITIES.map((c) => (
                 <option key={c.value} value={c.value}>
@@ -126,7 +126,7 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
               <select
                 value={homeGymId}
                 onChange={(e) => setHomeGymId(e.target.value)}
-                className="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900"
+                className="w-full rounded-xl border border-ink-200 bg-paper-100 px-3 py-2.5 text-sm text-ink-900"
               >
                 {gyms.map((g) => (
                   <option key={g.id} value={g.id}>
@@ -149,7 +149,7 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
                       'rounded-full border px-2.5 py-1 text-xs font-medium',
                       topGrade === g
                         ? 'bg-ink-900 text-white border-ink-900'
-                        : 'bg-white text-ink-700 border-ink-100',
+                        : 'bg-paper-100 text-ink-700 border-ink-100',
                     )}
                   >
                     {g}
@@ -170,7 +170,7 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
                       'rounded-full border px-2.5 py-1 text-xs font-medium',
                       tags.includes(t)
                         ? 'bg-ink-900 text-white border-ink-900'
-                        : 'bg-white text-ink-700 border-ink-100',
+                        : 'bg-paper-100 text-ink-700 border-ink-100',
                     )}
                   >
                     {t}

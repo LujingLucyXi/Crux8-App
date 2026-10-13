@@ -230,7 +230,7 @@ function Pill({
       onClick={onClick}
       className={cn(
         'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-        active ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100 hover:border-ink-300',
+        active ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100 hover:border-ink-300',
       )}
     >
       {children}

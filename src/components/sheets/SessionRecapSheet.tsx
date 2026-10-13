@@ -132,7 +132,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
                               'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs transition-colors',
                               active
                                 ? 'bg-teal-100 border-teal-600 text-teal-600'
-                                : 'bg-white border-ink-100 text-ink-500 hover:border-ink-300',
+                                : 'bg-paper-100 border-ink-100 text-ink-500 hover:border-ink-300',
                             )}
                           >
                             <span className="text-sm">{r.emoji}</span>
@@ -163,7 +163,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
                                   ? o.v === 'no_cert'
                                     ? 'bg-coral-500 text-white border-coral-500'
                                     : 'bg-teal-600 text-white border-teal-600'
-                                  : 'bg-white text-ink-600 border-ink-100 hover:border-ink-300',
+                                  : 'bg-paper-100 text-ink-600 border-ink-100 hover:border-ink-300',
                               )}
                             >
                               {o.label}
@@ -188,7 +188,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
                                 'text-left rounded-lg px-3 py-2 text-sm border',
                                 flagReason === fr.value
                                   ? 'bg-ink-900 text-white border-ink-900'
-                                  : 'bg-white text-ink-700 border-ink-100',
+                                  : 'bg-paper-100 text-ink-700 border-ink-100',
                               )}
                             >
                               {fr.label}

@@ -8,11 +8,12 @@ import { useAppStore } from '@/store/useAppStore';
 import { isWeightSafe } from '@/lib/weight';
 import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
 
-/* Full-color gradient surfaces — each category gets its own energy so a list
-   of belay calls reads as a vivid, varied stack, not a wall of white cards. */
+/* Gold-family gradient surfaces — categories vary within the black + gold
+   language (bright gold vs deep bronze) so a list of belay calls still reads
+   as a varied stack, not a wall of identical cards. */
 const categoryStyle: Record<ClimbCall['category'], { gradient: string; Icon: React.ComponentType<{ width: number; height: number; color: string }> }> = {
-  top_rope: { gradient: 'linear-gradient(140deg, #7C3AED 0%, #EC4899 100%)', Icon: SquareWave },
-  lead: { gradient: 'linear-gradient(140deg, #F4478A 0%, #F4B942 100%)', Icon: TriangleFlag },
+  top_rope: { gradient: 'linear-gradient(140deg, #7A5F24 0%, #B08D3E 100%)', Icon: SquareWave },
+  lead: { gradient: 'linear-gradient(140deg, #4A3A14 0%, #8A6D2F 100%)', Icon: TriangleFlag },
 };
 
 const CATEGORY_LABEL: Record<ClimbCall['category'], string> = {

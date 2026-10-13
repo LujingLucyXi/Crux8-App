@@ -261,7 +261,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
         <select
           value={gymValue}
           onChange={(e) => onGym(e.target.value)}
-          className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900"
+          className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
         >
           {gymList.map((g) => (
             <option key={g.id} value={g.id}>{g.name}</option>
@@ -294,7 +294,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
             onClick={() => setCallWhen(w.v)}
             className={cn(
               'rounded-xl border py-2 text-xs',
-              callWhen === w.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+              callWhen === w.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
             )}
           >
             {w.l}
@@ -351,7 +351,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               onClick={() => setMode(m.v)}
               className={cn(
                 'flex-1 rounded-xl border py-2 text-xs font-semibold transition-colors',
-                mode === m.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-500 border-ink-100',
+                mode === m.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-500 border-ink-100',
               )}
             >
               {m.l}
@@ -378,7 +378,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 onClick={() => setDiscipline(d.v)}
                 className={cn(
                   'flex-1 rounded-full border py-2 text-xs font-medium transition-colors',
-                  discipline === d.v ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-ink-500 border-ink-100',
+                  discipline === d.v ? 'bg-teal-600 text-white border-teal-600' : 'bg-paper-100 text-ink-500 border-ink-100',
                 )}
               >
                 {d.l}
@@ -406,7 +406,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                     onClick={() => setCallLookingFor(r.v)}
                     className={cn(
                       'rounded-xl border py-2.5 text-xs font-semibold',
-                      callLookingFor === r.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                      callLookingFor === r.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
                     )}
                   >
                     {r.l}
@@ -423,7 +423,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                     onClick={() => setCallCategory(c)}
                     className={cn(
                       'rounded-xl border py-2.5 text-sm',
-                      callCategory === c ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                      callCategory === c ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
                     )}
                   >
                     {c === 'top_rope' ? 'Top rope' : 'Lead'}
@@ -436,7 +436,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               <select
                 value={callGrade}
                 onChange={(e) => setCallGrade(e.target.value)}
-                className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900"
+                className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
               >
                 {GRADE_RANGES.map((g) => (
                   <option key={g} value={g}>{g}</option>
@@ -508,7 +508,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                       onClick={() => setHikeType(h.v)}
                       className={cn(
                         'rounded-xl border py-2 text-xs font-medium',
-                        hikeType === h.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                        hikeType === h.v ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
                       )}
                     >
                       {h.l}
@@ -525,7 +525,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                           onClick={() => setTripDays(d)}
                           className={cn(
                             'rounded-xl border py-2 text-xs font-medium',
-                            tripDays === d ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                            tripDays === d ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
                           )}
                         >
                           {d} days
@@ -557,13 +557,13 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Duration</Label>
-                <select value={durationHours} onChange={(e) => setDurationHours(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900">
+                <select value={durationHours} onChange={(e) => setDurationHours(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
                   {[1, 2, 3, 4, 6, 8].map((h) => (<option key={h} value={h}>{h}h</option>))}
                 </select>
               </div>
               <div>
                 <Label>Capacity</Label>
-                <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900">
+                <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
                   {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((c) => (<option key={c} value={c}>{c} people</option>))}
                   <option value={UNCAPPED_CAPACITY}>10+ (uncapped)</option>
                 </select>
@@ -573,7 +573,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               <Label>Vibe</Label>
               <RadioGroup.Root value={vibe} onValueChange={(v) => setVibe(v as Vibe)} className="flex gap-2 flex-wrap">
                 {VIBES.map((v) => (
-                  <RadioGroup.Item key={v} value={v} className={cn('rounded-full border px-3 py-1 text-xs font-medium capitalize', 'data-[state=checked]:bg-ink-900 data-[state=checked]:text-white data-[state=checked]:border-ink-900', 'bg-white text-ink-700 border-ink-100')}>
+                  <RadioGroup.Item key={v} value={v} className={cn('rounded-full border px-3 py-1 text-xs font-medium capitalize', 'data-[state=checked]:bg-ink-900 data-[state=checked]:text-white data-[state=checked]:border-ink-900', 'bg-paper-100 text-ink-700 border-ink-100')}>
                     {v}
                   </RadioGroup.Item>
                 ))}
@@ -597,7 +597,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
             </div>
             <div>
               <Label>Type</Label>
-              <select value={evtType} onChange={(e) => setEvtType(e.target.value as EventType)} className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900">
+              <select value={evtType} onChange={(e) => setEvtType(e.target.value as EventType)} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
                 {EVENT_TYPES.map((t2) => (<option key={t2} value={t2}>{t2.replace('_', ' ')}</option>))}
               </select>
             </div>
@@ -618,7 +618,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
             {adminGroups.length > 0 && (
               <div>
                 <Label>Post as group (optional)</Label>
-                <select value={evtGroupId} onChange={(e) => setEvtGroupId(e.target.value)} className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900">
+                <select value={evtGroupId} onChange={(e) => setEvtGroupId(e.target.value)} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
                   <option value="">— just me —</option>
                   {adminGroups.map((g) => (<option key={g.id} value={g.id}>{g.name}</option>))}
                 </select>

@@ -19,7 +19,7 @@ export function GroupCard({ group }: GroupCardProps) {
   return (
     <div
       onClick={() => nav(`/community/${group.id}`)}
-      className="rounded-2xl bg-white border border-ink-100 overflow-hidden cursor-pointer hover:border-ink-300 transition-colors"
+      className="rounded-2xl bg-paper-100 border border-ink-100 overflow-hidden cursor-pointer hover:border-ink-300 transition-colors"
     >
       <img
         src={group.cover_url}

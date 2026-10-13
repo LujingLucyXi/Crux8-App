@@ -254,7 +254,7 @@ export function Onboarding() {
                 <select
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900"
+                  className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
                 >
                   <option value="">Select a city</option>
                   {CITIES.map((c) => (
@@ -335,7 +335,7 @@ export function Onboarding() {
                         disabled={full}
                         className={cn(
                           'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                          on ? 'enamel text-white border-transparent' : 'bg-white text-ink-700 border-ink-100',
+                          on ? 'enamel text-white border-transparent' : 'bg-paper-100 text-ink-700 border-ink-100',
                           full && 'opacity-40',
                         )}
                       >
@@ -347,7 +347,7 @@ export function Onboarding() {
               </div>
 
               {/* Live preview: how it reads next to your name */}
-              <div className="rounded-2xl bg-white border border-ink-100 p-4">
+              <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-400 mb-2">Preview</p>
                 <div className="flex items-center gap-3">
                   <Avatar photoUrl={photoUrl} config={avatar} alt={me.display_name} size={44} fallback={me.display_name} />
@@ -386,7 +386,7 @@ export function Onboarding() {
                     onClick={() => toggleActivity(a.value)}
                     className={cn(
                       'w-full flex items-center gap-4 rounded-2xl border p-4 text-left transition-colors',
-                      on ? 'border-brand-500 bg-brand-100' : 'border-ink-100 bg-white',
+                      on ? 'border-brand-500 bg-brand-100' : 'border-ink-100 bg-paper-100',
                     )}
                   >
                     <span className="text-3xl">{a.emoji}</span>
@@ -430,7 +430,7 @@ export function Onboarding() {
             {climbs && (
               <div className="mt-8">
                 {climbSkipped ? (
-                  <div className="flex items-center justify-between rounded-2xl border border-ink-100 bg-white p-4">
+                  <div className="flex items-center justify-between rounded-2xl border border-ink-100 bg-paper-100 p-4">
                     <span className="text-sm text-ink-500">🧗 Climbing — skipped</span>
                     <button onClick={() => setClimbSkipped(false)} className="text-xs font-semibold text-brand-600">
                       Add it back
@@ -450,7 +450,7 @@ export function Onboarding() {
                         <select
                           value={homeGymId}
                           onChange={(e) => setHomeGymId(e.target.value)}
-                          className="w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-sm text-ink-900"
+                          className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
                         >
                           {gyms.map((g) => (
                             <option key={g.id} value={g.id}>{g.name}</option>
@@ -466,7 +466,7 @@ export function Onboarding() {
                               onClick={() => setTopGrade(band.value)}
                               className={cn(
                                 'rounded-xl border py-2.5 text-sm text-center',
-                                topGrade === band.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                                topGrade === band.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
                               )}
                             >
                               {band.label}
@@ -483,7 +483,7 @@ export function Onboarding() {
                               onClick={() => toggleStyle(s.value)}
                               className={cn(
                                 'rounded-full border px-3 py-1.5 text-xs font-medium',
-                                preferredStyles.includes(s.value) ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                                preferredStyles.includes(s.value) ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
                               )}
                             >
                               {s.label}
@@ -501,7 +501,7 @@ export function Onboarding() {
             {hikes && (
               <div className="mt-8">
                 {hikeSkipped ? (
-                  <div className="flex items-center justify-between rounded-2xl border border-ink-100 bg-white p-4">
+                  <div className="flex items-center justify-between rounded-2xl border border-ink-100 bg-paper-100 p-4">
                     <span className="text-sm text-ink-500">🥾 Hiking — skipped</span>
                     <button onClick={() => setHikeSkipped(false)} className="text-xs font-semibold text-brand-600">
                       Add it back
@@ -525,7 +525,7 @@ export function Onboarding() {
                               onClick={() => setHikeDistance(d.value)}
                               className={cn(
                                 'rounded-xl border py-2.5 text-sm text-center',
-                                hikeDistance === d.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                                hikeDistance === d.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
                               )}
                             >
                               {d.label}
@@ -542,7 +542,7 @@ export function Onboarding() {
                               onClick={() => setHikePace(p.value)}
                               className={cn(
                                 'rounded-full border px-3 py-1.5 text-xs font-medium',
-                                hikePace === p.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100',
+                                hikePace === p.value ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100',
                               )}
                             >
                               {p.label}
@@ -613,7 +613,7 @@ export function Onboarding() {
             <p className="mt-2 text-sm text-ink-500">
               Tell us what you can belay — no cert upload needed.
             </p>
-            <div className="mt-6 rounded-2xl bg-white border border-ink-100 p-5">
+            <div className="mt-6 rounded-2xl bg-paper-100 border border-ink-100 p-5">
               <p className="text-sm text-ink-700">
                 Self-reported skills become peer-confirmed after a few sessions with partners. Always do an in-person buddy check first.
               </p>
@@ -635,7 +635,7 @@ export function Onboarding() {
             <p className="mt-2 text-sm text-ink-500">
               Crux8 is better with friends. Invite a belay partner or two to get started.
             </p>
-            <div className="mt-6 rounded-2xl p-5 text-white shadow-brand" style={{ background: 'linear-gradient(135deg,#7C3AED,#EC4899)' }}>
+            <div className="mt-6 rounded-2xl p-5 text-white shadow-brand" style={{ background: 'linear-gradient(135deg,#7A5F24,#B08D3E)' }}>
               <p className="text-3xl">🤝</p>
               <p className="mt-2 font-semibold">Share your invite link</p>
               <p className="text-sm text-white/80">
@@ -663,7 +663,7 @@ export function Onboarding() {
             <p className="mt-2 text-sm text-ink-500">
               Take the 60-second quiz to discover your climbing archetype. You'll get sorted into a house and auto-join your house hangout crew — your first crew, on day one.
             </p>
-            <div className="mt-6 rounded-2xl p-5 text-white shadow-brand" style={{ background: 'linear-gradient(135deg,#7C3AED,#EC4899)' }}>
+            <div className="mt-6 rounded-2xl p-5 text-white shadow-brand" style={{ background: 'linear-gradient(135deg,#7A5F24,#B08D3E)' }}>
               <p className="text-3xl">🧬</p>
               <p className="mt-2 font-semibold">What's your climbing personality?</p>
               <p className="text-sm text-white/80">

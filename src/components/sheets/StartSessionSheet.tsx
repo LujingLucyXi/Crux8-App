@@ -79,7 +79,7 @@ export function StartSessionSheet({ call, open, onOpenChange, onStarted }: Props
                 disabled={isMe}
                 onClick={() => toggle(id)}
                 className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
-                  checked ? 'border-teal-500 bg-teal-50' : 'border-ink-100 bg-white'
+                  checked ? 'border-teal-500 bg-teal-50' : 'border-ink-100 bg-paper-100'
                 } ${isMe ? 'opacity-80' : 'hover:border-ink-300'}`}
               >
                 <span className={`flex h-5 w-5 items-center justify-center rounded-md border ${

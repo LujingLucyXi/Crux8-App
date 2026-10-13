@@ -30,7 +30,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-ink-100 pt-[env(safe-area-inset-top)]">
+      <header className="sticky top-0 z-20 bg-paper-100/95 backdrop-blur border-b border-ink-100 pt-[env(safe-area-inset-top)]">
         <div className="mx-auto max-w-[560px] flex items-center justify-between h-14 px-4">
           <button
             aria-label="Menu"

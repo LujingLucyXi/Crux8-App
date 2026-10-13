@@ -29,7 +29,7 @@ export function CallDeepLink() {
           <div className="flex flex-col items-center text-center">
             <Logo size={56} />
           </div>
-          <div className="mt-8 rounded-2xl bg-white border border-ink-100 p-6 text-center">
+          <div className="mt-8 rounded-2xl bg-paper-100 border border-ink-100 p-6 text-center">
             <p className="text-3xl">🧗</p>
             <h2 className="mt-3 text-xl font-semibold text-ink-900">This climb call is gone</h2>
             <p className="mt-2 text-sm text-ink-500">
@@ -51,7 +51,7 @@ export function CallDeepLink() {
           <div className="flex flex-col items-center text-center">
             <Logo size={56} />
           </div>
-          <div className="mt-8 rounded-2xl bg-white border border-ink-100 p-6 text-center">
+          <div className="mt-8 rounded-2xl bg-paper-100 border border-ink-100 p-6 text-center">
             <p className="text-3xl">🧗</p>
             <h2 className="mt-3 text-xl font-semibold text-ink-900">Someone wants a partner</h2>
             <p className="mt-2 text-sm text-ink-500">

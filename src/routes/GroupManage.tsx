@@ -99,12 +99,12 @@ export function GroupManage() {
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <section className="mt-6">
       <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-500 mb-2 px-1">{title}</h2>
-      <div className="rounded-2xl bg-white border border-ink-100 p-4">{children}</div>
+      <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">{children}</div>
     </section>
   );
 
   const input =
-    'w-full rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-teal-500';
+    'w-full rounded-xl border border-ink-200 bg-paper-100 px-3 py-2 text-sm text-ink-900 outline-none focus:border-teal-500';
 
   return (
     <div className="pb-10">
@@ -246,7 +246,7 @@ export function GroupManage() {
                 key={policy}
                 onClick={() => updateGroup(group.id, { join_policy: policy })}
                 className={`flex-1 rounded-xl border px-3 py-2.5 text-left ${
-                  active ? 'border-teal-500 bg-teal-50' : 'border-ink-200 bg-white'
+                  active ? 'border-teal-500 bg-teal-50' : 'border-ink-200 bg-paper-100'
                 }`}
               >
                 <p className="text-sm font-semibold text-ink-900">{policy === 'open' ? 'Open' : 'Request to join'}</p>

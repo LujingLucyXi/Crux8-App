@@ -44,14 +44,14 @@ export function ErrorScreen({ error }: { error?: unknown }) {
         </button>
         <button
           onClick={reset}
-          className="w-full rounded-xl bg-white border border-ink-100 text-ink-700 text-sm font-semibold py-3 active:scale-[0.98] transition-transform"
+          className="w-full rounded-xl bg-paper-100 border border-ink-100 text-ink-700 text-sm font-semibold py-3 active:scale-[0.98] transition-transform"
         >
           Reset local data
         </button>
       </div>
 
       {import.meta.env.DEV && message && (
-        <pre className="mt-8 max-w-full overflow-auto text-left text-[11px] text-coral-500 bg-white border border-ink-100 rounded-xl p-3">
+        <pre className="mt-8 max-w-full overflow-auto text-left text-[11px] text-coral-500 bg-paper-100 border border-ink-100 rounded-xl p-3">
           {message}
         </pre>
       )}

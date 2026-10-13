@@ -23,13 +23,13 @@ import { CollectionBook } from '@/components/CollectionBook';
 import { format } from 'date-fns';
 
 const BADGE_META: Record<BadgeId, { label: string; emoji: string; grad: string }> = {
-  first_session: { label: 'First Session', emoji: '🧗', grad: 'linear-gradient(135deg,#7C3AED,#EC4899)' },
-  first_recap: { label: 'First Recap', emoji: '📓', grad: 'linear-gradient(135deg,#38BDF8,#7C3AED)' },
+  first_session: { label: 'First Session', emoji: '🧗', grad: 'linear-gradient(135deg,#C9A24B,#E8C766)' },
+  first_recap: { label: 'First Recap', emoji: '📓', grad: 'linear-gradient(135deg,#948F82,#C9A24B)' },
   verified_belayer: { label: 'Verified Belayer', emoji: '🛡️', grad: 'linear-gradient(135deg,#0EA5A5,#38BDF8)' },
   adventurer: { label: 'Adventurer', emoji: '🏔️', grad: 'linear-gradient(135deg,#F4B942,#FF5A5F)' },
-  community: { label: 'Community', emoji: '🤝', grad: 'linear-gradient(135deg,#EC4899,#F4B942)' },
+  community: { label: 'Community', emoji: '🤝', grad: 'linear-gradient(135deg,#E8C766,#C49A6C)' },
   cruxmate_x5: { label: 'CruxMate ×5', emoji: '⚡', grad: 'linear-gradient(135deg,#C6F135,#0EA5A5)' },
-  trust_champion: { label: 'Trust Champion', emoji: '🏆', grad: 'linear-gradient(135deg,#FFB020,#EC4899)' },
+  trust_champion: { label: 'Trust Champion', emoji: '🏆', grad: 'linear-gradient(135deg,#FFB020,#C9A24B)' },
 };
 
 const BADGE_ORDER: BadgeId[] = [
@@ -98,7 +98,7 @@ export function Profile() {
   return (
     <div className="pb-4">
       {/* Header card */}
-      <div className="rounded-2xl bg-white border border-ink-100 p-5">
+      <div className="rounded-2xl bg-paper-100 border border-ink-100 p-5">
         <div className="flex items-start gap-4">
           <button
             onClick={() => {
@@ -182,7 +182,7 @@ export function Profile() {
           <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
             Climber DNA 🧬
           </h2>
-          <div className="rounded-2xl bg-white border border-ink-100 p-5">
+          <div className="rounded-2xl bg-paper-100 border border-ink-100 p-5">
             {(() => {
               const arch = getArchetype(me.quiz_result_type);
               const house = getHouse(me.quiz_house_id) ?? (arch ? getHouseForArchetype(arch.id) : null);
@@ -307,7 +307,7 @@ export function Profile() {
         </div>
         <button
           onClick={() => setHwOpen(true)}
-          className="w-full text-left rounded-2xl bg-white border border-ink-100 p-4 hover:border-ink-300 flex items-center justify-between gap-3"
+          className="w-full text-left rounded-2xl bg-paper-100 border border-ink-100 p-4 hover:border-ink-300 flex items-center justify-between gap-3"
         >
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-baseline gap-3 text-sm">
@@ -336,7 +336,7 @@ export function Profile() {
       <section className="mt-6">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">About / Story</h2>
         {editingAbout ? (
-          <div className="rounded-2xl bg-white border border-ink-100 p-4">
+          <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
             <Textarea
               value={about}
               onChange={(e) => setAbout(e.target.value.slice(0, 500))}
@@ -370,7 +370,7 @@ export function Profile() {
         ) : (
           <button
             onClick={() => setEditingAbout(true)}
-            className="w-full text-left rounded-2xl bg-white border border-ink-100 p-4 hover:border-ink-300"
+            className="w-full text-left rounded-2xl bg-paper-100 border border-ink-100 p-4 hover:border-ink-300"
           >
             {me.about ? (
               <p className="text-sm text-ink-700 leading-relaxed whitespace-pre-wrap">{me.about}</p>
@@ -426,14 +426,14 @@ export function Profile() {
           </button>
         </div>
         {sends.length === 0 ? (
-          <div className="rounded-2xl bg-white border border-dashed border-ink-100 p-6 text-center">
+          <div className="rounded-2xl bg-paper-100 border border-dashed border-ink-100 p-6 text-center">
             <span className="text-2xl">🔥</span>
             <p className="mt-2 text-sm text-ink-500">No sends logged yet. Every send counts — record your first.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-1.5">
             {sends.slice(0, 8).map((s) => (
-              <div key={s.id} className="flex items-center gap-3 rounded-2xl bg-white border border-ink-100 px-3.5 py-2.5">
+              <div key={s.id} className="flex items-center gap-3 rounded-2xl bg-paper-100 border border-ink-100 px-3.5 py-2.5">
                 <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center text-lg shrink-0">
                   {s.discipline === 'boulder' ? '🪨' : '🧗'}
                 </div>

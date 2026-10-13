@@ -67,7 +67,7 @@ export function ShareCallSheet({ call, open, onOpenChange }: Props) {
                 <button
                   key={g.id}
                   onClick={() => handleShareToGroup(g.id, g.name)}
-                  className="w-full flex items-center justify-between rounded-xl border border-ink-100 bg-white px-4 py-3 hover:border-ink-300 text-left"
+                  className="w-full flex items-center justify-between rounded-xl border border-ink-100 bg-paper-100 px-4 py-3 hover:border-ink-300 text-left"
                 >
                   <span className="font-medium text-ink-900 text-sm truncate">{g.name}</span>
                   <span className="text-xs font-semibold text-teal-600 shrink-0 ml-3">

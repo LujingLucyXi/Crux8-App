@@ -65,7 +65,7 @@ export function MiniScheduleCard({ accent, emoji, title, subtitle, startsAt, whe
   return (
     <button
       onClick={onClick}
-      className="w-[184px] shrink-0 text-left rounded-2xl bg-white border border-ink-100 p-3.5 hover:border-ink-300 transition-colors"
+      className="w-[184px] shrink-0 text-left rounded-2xl bg-paper-100 border border-ink-100 p-3.5 hover:border-ink-300 transition-colors"
     >
       <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center text-base', accent)}>
         {emoji}
@@ -93,7 +93,7 @@ export function ChallengeCard({ c }: { c: Challenge }) {
     <div
       className={cn(
         'w-[168px] shrink-0 rounded-2xl border p-3.5',
-        done ? 'bg-teal-100 border-teal-600' : 'bg-white border-ink-100',
+        done ? 'bg-teal-100 border-teal-600' : 'bg-paper-100 border-ink-100',
       )}
     >
       <div className="flex items-start justify-between">
@@ -125,7 +125,7 @@ export function BadgeProgressCard({ b, onClick }: { b: BadgeProgress; onClick: (
   return (
     <button
       onClick={onClick}
-      className="w-[132px] shrink-0 rounded-2xl bg-white border border-ink-100 p-3.5 flex flex-col items-center text-center hover:border-ink-300 transition-colors"
+      className="w-[132px] shrink-0 rounded-2xl bg-paper-100 border border-ink-100 p-3.5 flex flex-col items-center text-center hover:border-ink-300 transition-colors"
     >
       <div className="relative w-[56px] h-[56px]">
         <svg width="56" height="56" viewBox="0 0 56 56" className="-rotate-90">
@@ -155,7 +155,7 @@ export function EmptyNudge({ emoji, text, cta, onClick }: {
   emoji: string; text: string; cta: string; onClick: () => void;
 }) {
   return (
-    <div className="rounded-2xl bg-white border border-dashed border-ink-100 p-6 text-center">
+    <div className="rounded-2xl bg-paper-100 border border-dashed border-ink-100 p-6 text-center">
       <span className="text-2xl">{emoji}</span>
       <p className="mt-2 text-sm text-ink-500">{text}</p>
       <button onClick={onClick} className="mt-3 text-xs font-semibold text-teal-600">

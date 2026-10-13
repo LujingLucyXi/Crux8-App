@@ -39,7 +39,7 @@ export function EventCard({ event, hostGroupName, onClick }: EventCardProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left rounded-2xl bg-white border border-ink-100 p-4 flex gap-3 items-start hover:border-ink-300 transition-colors"
+      className="w-full text-left rounded-2xl bg-paper-100 border border-ink-100 p-4 flex gap-3 items-start hover:border-ink-300 transition-colors"
     >
       <div className={cn('w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center', color.bg)}>
         <Icon width={26} height={26} color="white" />

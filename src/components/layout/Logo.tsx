@@ -9,7 +9,7 @@ import logoUrl from '@/assets/crux8.png';
  * Backward-compatible props: old callers pass only `size`; legacy color props
  * are accepted and ignored so nothing breaks.
  */
-const INK = '#2A2140';
+const INK = '#C9A24B';
 
 export function Logo({
   size = 32,

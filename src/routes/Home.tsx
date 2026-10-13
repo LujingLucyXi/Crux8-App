@@ -323,7 +323,7 @@ export function Home() {
               <button
                 key={e.id}
                 onClick={() => setDetailEvent(e)}
-                className="w-[248px] shrink-0 text-left rounded-3xl overflow-hidden border border-ink-100 bg-white hover:border-ink-300 transition-colors active:scale-[0.99]"
+                className="w-[248px] shrink-0 text-left rounded-3xl overflow-hidden border border-ink-100 bg-paper-100 hover:border-ink-300 transition-colors active:scale-[0.99]"
               >
                 <div className="relative h-20 bg-[linear-gradient(135deg,#8B5CF6,#6D28D9)] px-4 py-3 flex flex-col justify-between">
                   {e.promo_label && (
@@ -544,7 +544,7 @@ export function Home() {
             <button
               key={g.id}
               onClick={() => nav(`/community/${g.id}`)}
-              className="w-[152px] shrink-0 rounded-2xl bg-white border border-ink-100 overflow-hidden text-left hover:border-ink-300 transition-colors"
+              className="w-[152px] shrink-0 rounded-2xl bg-paper-100 border border-ink-100 overflow-hidden text-left hover:border-ink-300 transition-colors"
             >
               <img src={g.cover_url} alt="" className="w-full h-16 object-cover" loading="lazy" />
               <div className="p-3">
@@ -556,7 +556,7 @@ export function Home() {
         ) : (
           <button
             onClick={() => nav('/community')}
-            className="w-[220px] shrink-0 rounded-2xl bg-white border border-dashed border-ink-100 p-5 text-center"
+            className="w-[220px] shrink-0 rounded-2xl bg-paper-100 border border-dashed border-ink-100 p-5 text-center"
           >
             <span className="text-xl">🎪</span>
             <p className="mt-1.5 text-xs text-ink-500">Join a crew to see their events here.</p>

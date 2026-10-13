@@ -53,7 +53,7 @@ export function JoinGroupSheet({ group, open, onOpenChange }: Props) {
                 value={answers[i] ?? ''}
                 onChange={(e) => setAnswer(i, e.target.value)}
                 rows={2}
-                className="mt-1.5 w-full rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-teal-500 resize-none"
+                className="mt-1.5 w-full rounded-xl border border-ink-200 bg-paper-100 px-3 py-2 text-sm text-ink-900 outline-none focus:border-teal-500 resize-none"
                 placeholder="Your answer…"
               />
             </label>

@@ -85,7 +85,7 @@ export function Lab() {
           </button>
           <button
             onClick={() => setSound((s) => !s)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-ink-700 rounded-full border border-ink-100 bg-white px-3 py-1.5"
+            className="flex items-center gap-1.5 text-xs font-semibold text-ink-700 rounded-full border border-ink-100 bg-paper-100 px-3 py-1.5"
           >
             {sound ? <SoundHigh width={14} height={14} /> : <SoundOff width={14} height={14} />}
             Sound {sound ? 'on' : 'off'}
@@ -99,7 +99,7 @@ export function Lab() {
         <SectionLabel>Name · Crux-Up! vs Go-Crux</SectionLabel>
         <div className="grid grid-cols-2 gap-3">
           {NAME_CANDIDATES.map((c) => (
-            <div key={c.key} className="rounded-2xl border border-ink-100 bg-white overflow-hidden">
+            <div key={c.key} className="rounded-2xl border border-ink-100 bg-paper-100 overflow-hidden">
               {/* header-size lockup */}
               <div className="flex items-center gap-2 px-3 py-2.5 border-b border-ink-100">
                 <Logo size={26} />
@@ -130,7 +130,7 @@ export function Lab() {
         <p className="text-xs text-ink-500 mb-3 -mt-1">
           A little boulder with a smiley face shouting “Go!”. Shown big, at header size, reversed, and as a lockup.
         </p>
-        <div className="rounded-2xl border border-ink-100 bg-white overflow-hidden">
+        <div className="rounded-2xl border border-ink-100 bg-paper-100 overflow-hidden">
           {/* hero */}
           <div className="flex items-center justify-center py-6 bg-paper-50">
             <BoulderMascot size={132} />
@@ -166,7 +166,7 @@ export function Lab() {
         </p>
         <div className="flex flex-col gap-3">
           {ROPE_LOGOS.map(({ key, name, note, Mark }) => (
-            <div key={key} className="rounded-2xl border border-ink-100 bg-white overflow-hidden">
+            <div key={key} className="rounded-2xl border border-ink-100 bg-paper-100 overflow-hidden">
               <div className="flex items-center gap-4 p-3">
                 <div className="rounded-xl bg-paper-50 p-2"><Mark size={72} /></div>
                 <div className="flex items-center gap-3"><Mark size={30} /><Mark size={20} /></div>
@@ -189,7 +189,7 @@ export function Lab() {
         </p>
         <div className="flex flex-col gap-3">
           {CU_LOGOS.map(({ key, name, note, Mark }) => (
-            <div key={key} className="rounded-2xl border border-ink-100 bg-white overflow-hidden">
+            <div key={key} className="rounded-2xl border border-ink-100 bg-paper-100 overflow-hidden">
               <div className="flex items-center gap-4 p-3">
                 <div className="rounded-xl bg-paper-50 p-2"><Mark size={72} /></div>
                 <div className="flex items-center gap-3"><Mark size={30} /><Mark size={20} /></div>
@@ -212,7 +212,7 @@ export function Lab() {
         </p>
         <div className="flex flex-col gap-3">
           {UNIQUE_LOGOS.map(({ key, name, note, Mark }) => (
-            <div key={key} className="rounded-2xl border border-ink-100 bg-white overflow-hidden">
+            <div key={key} className="rounded-2xl border border-ink-100 bg-paper-100 overflow-hidden">
               <div className="flex items-center gap-4 p-3">
                 <div className="rounded-xl bg-paper-50 p-2"><Mark size={72} /></div>
                 <div className="flex items-center gap-3"><Mark size={30} /><Mark size={20} /></div>
@@ -235,7 +235,7 @@ export function Lab() {
         </p>
         <div className="flex flex-col gap-3">
           {CHEVRON_BGS.map((b) => (
-            <div key={b.key} className="rounded-2xl border border-ink-100 bg-white overflow-hidden">
+            <div key={b.key} className="rounded-2xl border border-ink-100 bg-paper-100 overflow-hidden">
               <div className="flex items-center gap-4 p-3">
                 <ChevronMark bg={b.key} size={72} />
                 <div className="flex items-center gap-3">
@@ -260,7 +260,7 @@ export function Lab() {
         </p>
         <div className="flex flex-col gap-3">
           {REFINED_LOGOS.filter((l) => l.family === 'boulder').map(({ key, name, note, Mark }) => (
-            <div key={key} className="rounded-2xl border border-ink-100 bg-white overflow-hidden">
+            <div key={key} className="rounded-2xl border border-ink-100 bg-paper-100 overflow-hidden">
               <div className="flex items-center gap-4 p-3">
                 <div className="rounded-xl bg-paper-50 p-2"><Mark size={72} /></div>
                 <div className="flex items-center gap-3"><Mark size={30} /><Mark size={20} /></div>
@@ -282,7 +282,7 @@ export function Lab() {
         </p>
         <div className="flex flex-col gap-3">
           {REFINED_LOGOS.filter((l) => l.family === 'abstract').map(({ key, name, note, Mark }) => (
-            <div key={key} className="rounded-2xl border border-ink-100 bg-white overflow-hidden">
+            <div key={key} className="rounded-2xl border border-ink-100 bg-paper-100 overflow-hidden">
               <div className="flex items-center gap-4 p-3">
                 <div className="rounded-xl bg-paper-50 p-2"><Mark size={72} /></div>
                 <div className="flex items-center gap-3"><Mark size={30} /><Mark size={20} /></div>
@@ -305,7 +305,7 @@ export function Lab() {
         </p>
         <div className="flex flex-col gap-3">
           {GOCRUX_CONCEPTS.map(({ key, name, note, Mark }) => (
-            <div key={key} className="rounded-2xl border border-ink-100 bg-white overflow-hidden">
+            <div key={key} className="rounded-2xl border border-ink-100 bg-paper-100 overflow-hidden">
               <div className="flex items-center gap-4 p-3">
                 <div className="rounded-xl bg-paper-50 p-2"><Mark size={72} /></div>
                 <div className="flex items-center gap-3">
@@ -331,7 +331,7 @@ export function Lab() {
         </p>
         <div className="flex flex-col gap-3">
           {LOGO_CONCEPTS.map(({ key, name, note, Mark }) => (
-            <div key={key} className="rounded-2xl bg-white border border-ink-100 p-4">
+            <div key={key} className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-bold text-ink-900">{name}</p>
                 <p className="text-[11px] text-ink-500">{note}</p>
@@ -370,7 +370,7 @@ export function Lab() {
           One config, four renderers — swapping the style is a drop-in renderer swap. Punk (current), cyberpunk,
           anime, and hand-drawn sketch. Bucketed options; a real build would curate.
         </p>
-        <div className="rounded-2xl bg-white border border-ink-100 p-4 space-y-4">
+        <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4 space-y-4">
           {[
             { label: 'Now · punk', cls: 'text-ink-300', Render: PunkAvatar },
             { label: 'Cyberpunk', cls: 'text-brand-600', Render: CyberAvatar },
@@ -393,7 +393,7 @@ export function Lab() {
         <p className="text-xs text-ink-500 mb-3 -mt-1">
           Low/med-cost directions, one sample each — same config as above. Pixel, enamel-pin, low-poly, riso, vaporwave.
         </p>
-        <div className="rounded-2xl bg-white border border-ink-100 p-4 flex flex-wrap gap-5">
+        <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4 flex flex-wrap gap-5">
           {MORE_STYLES.map(({ key, name, note, Render }) => (
             <div key={key} className="flex flex-col items-center gap-1.5 w-[92px] text-center">
               <Render config={avatarFromSeed('Nova')} size={72} />
@@ -416,7 +416,7 @@ export function Lab() {
           The enamel-pin style across all seeds — varied hair, expressions, skin, and enamel backdrops, gold rim +
           metal line-work + gloss + a climbing-flair star. Shown large and at real avatar size.
         </p>
-        <div className="rounded-2xl bg-white border border-ink-100 p-4 space-y-4">
+        <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4 space-y-4">
           <div className="flex flex-wrap gap-3">
             {AVATAR_SEEDS.map((seed) => (
               <PinAvatar key={seed} config={avatarFromSeed(seed)} size={72} />
@@ -441,7 +441,7 @@ export function Lab() {
           Same flat, bold-outline cartoon language as the boulder mascot — read from the same AvatarConfig.
           Top row = current enamel pin; bottom = cartoon. Same seeds, so it's a true swap comparison.
         </p>
-        <div className="rounded-2xl bg-white border border-ink-100 p-4 space-y-4">
+        <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4 space-y-4">
           <div>
             <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-ink-300">Now · enamel pin</p>
             <div className="flex flex-wrap gap-3">
@@ -483,7 +483,7 @@ export function Lab() {
             <button
               key={m.key}
               onClick={() => setCelebration(m.cfg)}
-              className="rounded-2xl border border-ink-100 bg-white px-4 py-4 text-sm font-semibold text-ink-900 text-left active:scale-[0.97] transition hover:border-ink-300"
+              className="rounded-2xl border border-ink-100 bg-paper-100 px-4 py-4 text-sm font-semibold text-ink-900 text-left active:scale-[0.97] transition hover:border-ink-300"
             >
               {m.label}
             </button>
@@ -500,7 +500,7 @@ export function Lab() {
           {/* CALM (current) */}
           <div>
             <Tag>Now · calm</Tag>
-            <div className="rounded-2xl bg-white border border-ink-100 p-4">
+            <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center text-sm">🧗</div>
                 <div className="min-w-0">
@@ -560,7 +560,7 @@ export function Lab() {
                   className={
                     i === 0
                       ? 'rounded-full bg-ink-900 text-white text-xs font-semibold px-3 py-1.5'
-                      : 'rounded-full bg-white border border-ink-100 text-ink-700 text-xs font-medium px-3 py-1.5'
+                      : 'rounded-full bg-paper-100 border border-ink-100 text-ink-700 text-xs font-medium px-3 py-1.5'
                   }
                 >
                   {c}
@@ -588,7 +588,7 @@ export function Lab() {
           </div>
         </div>
 
-        <div className="mt-8 rounded-2xl bg-white border border-ink-100 p-4 text-xs text-ink-500 leading-relaxed">
+        <div className="mt-8 rounded-2xl bg-paper-100 border border-ink-100 p-4 text-xs text-ink-500 leading-relaxed">
           <span className="font-semibold text-ink-700">Notes:</span> The bold skin keeps your existing token
           structure — it's a palette + weight + radius swap on the same primitives, so adopting it is a config change,
           not a rewrite. Recommendation: pair the calm base for trust-critical flows (verification, safety) with the

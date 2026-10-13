@@ -50,7 +50,7 @@ export function GearChecklistSheet({ session, open, onOpenChange, onConfirm }: P
                   onClick={() => updateGearChecklist(session.id, item, !on)}
                   className={cn(
                     'w-full flex items-center gap-3 rounded-2xl border p-2.5 pr-3 text-left transition-colors',
-                    on ? 'bg-teal-100 border-teal-600' : 'bg-white border-ink-100 hover:border-ink-300',
+                    on ? 'bg-teal-100 border-teal-600' : 'bg-paper-100 border-ink-100 hover:border-ink-300',
                   )}
                 >
                   <GearGlyph item={item} />

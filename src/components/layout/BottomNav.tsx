@@ -22,7 +22,7 @@ const items = [
 
 export function BottomNav({ onFabClick }: BottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-ink-100 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-paper-100 border-t border-ink-100 pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto max-w-[560px] relative">
         <div className="grid grid-cols-5 h-16">
           {items.map((item, i) =>

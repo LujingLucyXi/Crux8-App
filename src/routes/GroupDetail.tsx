@@ -73,7 +73,7 @@ export function GroupDetail() {
       <img src={group.cover_url} alt={group.name} className="w-full h-40 object-cover" />
 
       <div className="px-4 -mt-6 relative">
-        <div className="rounded-2xl bg-white border border-ink-100 p-5">
+        <div className="rounded-2xl bg-paper-100 border border-ink-100 p-5">
           {group.avatar_url && (
             <img
               src={group.avatar_url}

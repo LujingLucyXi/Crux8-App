@@ -4,62 +4,65 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Deep indigo-black neutral scale (was teal-navy). Energetic base.
+        // Warm parchment text scale on near-black (black + gold theme).
+        // Luminance is inverted vs the old light theme: 900 = brightest text,
+        // 100 = subtle dark track/border fill.
         ink: {
-          900: '#1B1533',
-          700: '#2E2550',
-          600: '#4A3F6B',
-          500: '#6B6088',
-          300: '#A79FC0',
-          100: '#E7E1F5',
+          900: '#F7F3EA',
+          700: '#DED8C9',
+          600: '#B8B2A1',
+          500: '#948F82',
+          300: '#55534D',
+          100: '#26262C',
         },
-        // Brand violet — the new primary.
+        // Crux Gold — the primary brand.
         brand: {
-          600: '#7C3AED',
-          500: '#8B5CF6',
-          400: '#A78BFA',
-          100: '#EDE4FF',
+          600: '#C9A24B',
+          500: '#D9B45F',
+          400: '#E8C766',
+          100: '#2A2210',
         },
-        // Hot pink — gradient partner + secondary energy.
+        // Was hot pink — folded into light gold (gradient partner).
         pink: {
-          500: '#EC4899',
-          400: '#F472B6',
-          100: '#FCE0EE',
+          500: '#E8C766',
+          400: '#F0D488',
+          100: '#2A2210',
         },
-        // Acid lime — the "punch" CTA / reward accent.
+        // Was acid lime — folded into gold (punch CTA / rewards).
         lime: {
-          500: '#A3E635',
-          400: '#C6F135',
-          100: '#ECFCCB',
+          500: '#C9A24B',
+          400: '#E8C766',
+          100: '#2A2210',
         },
-        // Vivid cyan-teal — presence / "here now" accent (kept name `teal`).
+        // Was cyan-teal — deep antique gold (presence / go actions).
+        // Dark enough to keep white button text legible.
         teal: {
-          600: '#0EA5A5',
-          500: '#14BDBD',
-          100: '#C7F5F2',
+          600: '#8A6D2F',
+          500: '#A5823A',
+          100: '#2A2210',
         },
         gold: {
-          500: '#F4B942',
-          100: '#FBEBC5',
+          500: '#C9A24B',
+          100: '#2A2210',
         },
         coral: {
-          500: '#FF5A5F',
-          100: '#FFE0E0',
+          500: '#F26D6D',
+          100: '#3A1D1D',
         },
         sky: {
-          200: '#DBE7FF',
+          200: '#26262C',
         },
         paper: {
-          50: '#F5F3FF', // violet-tinted app canvas
-          100: '#FFFFFF',
+          50: '#0B0B0D', // near-black app canvas
+          100: '#16161A', // card surface
         },
       },
       backgroundImage: {
-        'brand-gradient': 'linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)',
+        'brand-gradient': 'linear-gradient(135deg, #C9A24B 0%, #E8C766 100%)',
       },
       boxShadow: {
-        brand: '0 10px 26px -8px rgba(124,58,237,0.5)',
-        punch: '0 5px 0 0 #7fa815',
+        brand: '0 10px 26px -8px rgba(201,162,75,0.45)',
+        punch: '0 5px 0 0 #8a6d2f',
       },
       fontFamily: {
         sans: ['Poppins', 'ui-sans-serif', 'system-ui', 'sans-serif'],

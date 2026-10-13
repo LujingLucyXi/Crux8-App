@@ -63,7 +63,7 @@ export function Chat() {
                 <li key={sc.id}>
                   <button
                     onClick={() => nav(`/chat/session/${sc.id}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white transition-colors text-left"
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-paper-100 transition-colors text-left"
                   >
                     <div className="relative shrink-0">
                       <div className="w-11 h-11 rounded-full bg-teal-100 flex items-center justify-center">
@@ -120,7 +120,7 @@ export function Chat() {
                 <li key={id}>
                   <button
                     onClick={() => nav(`/chat/${id}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white transition-colors text-left"
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-paper-100 transition-colors text-left"
                   >
                     <div className="relative shrink-0">
                       <Avatar config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} />

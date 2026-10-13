@@ -58,7 +58,7 @@ export function FilterRow() {
   const chip = (active: boolean) =>
     cn(
       'shrink-0 inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
-      active ? 'enamel bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] text-white border-transparent' : 'bg-white text-ink-700 border-ink-100 hover:border-brand-400',
+      active ? 'enamel bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] text-white border-transparent' : 'bg-paper-100 text-ink-700 border-ink-100 hover:border-brand-400',
     );
 
   const dateLabel = () => {
@@ -160,7 +160,7 @@ export function FilterRow() {
             <div className="flex flex-col gap-4">
               <div className="flex gap-2">
                 <button
-                  className={cn('flex-1 rounded-xl border py-2 text-xs font-medium', !filters.date && !filters.date_specific ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100')}
+                  className={cn('flex-1 rounded-xl border py-2 text-xs font-medium', !filters.date && !filters.date_specific ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100')}
                   onClick={() => setFilter({ date: undefined, date_specific: undefined })}
                 >
                   Anytime
@@ -168,7 +168,7 @@ export function FilterRow() {
                 {DATE_OPTS.map((d) => (
                   <button
                     key={d.value}
-                    className={cn('flex-1 rounded-xl border py-2 text-xs font-medium', filters.date === d.value && !filters.date_specific ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100')}
+                    className={cn('flex-1 rounded-xl border py-2 text-xs font-medium', filters.date === d.value && !filters.date_specific ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100')}
                     onClick={() => setFilter({ date: d.value, date_specific: undefined })}
                   >
                     {d.label}
@@ -212,7 +212,7 @@ export function FilterRow() {
                 return (
                   <button
                     key={b}
-                    className={cn('rounded-xl border py-3 text-sm', active ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-700 border-ink-100')}
+                    className={cn('rounded-xl border py-3 text-sm', active ? 'bg-ink-900 text-white border-ink-900' : 'bg-paper-100 text-ink-700 border-ink-100')}
                     onClick={() => { setFilter({ grade_band: active ? undefined : b }); setOpen(null); }}
                   >
                     {b}

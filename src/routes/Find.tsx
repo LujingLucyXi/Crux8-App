@@ -237,7 +237,7 @@ export function Find() {
             onClick={() => setL1(value)}
             className={cn(
               'flex-1 rounded-full border py-2.5 text-xs font-bold transition-all',
-              l1 === value ? 'bg-brand-gradient text-white border-transparent shadow-brand' : 'bg-white text-ink-500 border-ink-100',
+              l1 === value ? 'bg-brand-gradient text-white border-transparent shadow-brand' : 'bg-paper-100 text-ink-500 border-ink-100',
             )}
           >
             {label}
@@ -267,7 +267,7 @@ export function Find() {
                   onClick={() => setFilter({ env: e, climb_styles: [] })}
                   className={cn(
                     'flex-1 rounded-full border py-2 text-xs font-semibold capitalize transition-colors',
-                    env === e ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-ink-500 border-ink-100',
+                    env === e ? 'bg-brand-600 text-white border-brand-600' : 'bg-paper-100 text-ink-500 border-ink-100',
                   )}
                 >
                   {e}
@@ -285,7 +285,7 @@ export function Find() {
                   'rounded-full border px-3 py-1.5 text-xs font-bold transition-colors',
                   activeStyles.length === 0
                     ? 'enamel bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] text-white border-transparent'
-                    : 'bg-white text-ink-700 border-ink-100 hover:border-ink-300',
+                    : 'bg-paper-100 text-ink-700 border-ink-100 hover:border-ink-300',
                 )}
               >
                 All
@@ -298,7 +298,7 @@ export function Find() {
                     onClick={() => toggle(styleKey, s.v)}
                     className={cn(
                       'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
-                      on ? 'enamel bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] text-white border-transparent' : 'bg-white text-ink-700 border-ink-100 hover:border-ink-300',
+                      on ? 'enamel bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] text-white border-transparent' : 'bg-paper-100 text-ink-700 border-ink-100 hover:border-ink-300',
                     )}
                   >
                     {s.l}
@@ -374,7 +374,7 @@ function LoadingCards() {
   return (
     <div className="flex flex-col gap-3" aria-label="Loading sessions">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="rounded-2xl bg-white border border-ink-100 p-4 animate-pulse">
+        <div key={i} className="rounded-2xl bg-paper-100 border border-ink-100 p-4 animate-pulse">
           <div className="h-4 w-2/3 rounded bg-ink-100" />
           <div className="mt-2 h-3 w-1/2 rounded bg-ink-100" />
           <div className="mt-3 flex gap-2">
@@ -392,7 +392,7 @@ function EmptyState({ nothingPosted }: { nothingPosted?: boolean }) {
   const setNewSessionOpen = useAppStore((s) => s.setNewSessionOpen);
   if (nothingPosted) {
     return (
-      <div className="rounded-2xl bg-white border border-dashed border-ink-100 p-10 flex flex-col items-center text-center">
+      <div className="rounded-2xl bg-paper-100 border border-dashed border-ink-100 p-10 flex flex-col items-center text-center">
         <SearchEngine width={32} height={32} className="text-ink-300" />
         <p className="mt-3 text-sm text-ink-500">Nothing here yet — be the first to post.</p>
         <button
@@ -405,7 +405,7 @@ function EmptyState({ nothingPosted }: { nothingPosted?: boolean }) {
     );
   }
   return (
-    <div className="rounded-2xl bg-white border border-dashed border-ink-100 p-10 flex flex-col items-center text-center">
+    <div className="rounded-2xl bg-paper-100 border border-dashed border-ink-100 p-10 flex flex-col items-center text-center">
       <SearchEngine width={32} height={32} className="text-ink-300" />
       <p className="mt-3 text-sm text-ink-500">Nothing matches your filters yet.</p>
       <button onClick={clearFilters} className="mt-3 text-xs font-semibold text-teal-600">

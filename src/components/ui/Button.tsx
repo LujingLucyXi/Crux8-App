@@ -6,13 +6,13 @@ type Variant = 'primary' | 'punch' | 'outline' | 'ghost' | 'destructive';
 type Size = 'sm' | 'md' | 'lg' | 'icon';
 
 const variantCls: Record<Variant, string> = {
-  // Enamel-pin violet — the everyday primary CTA (gold rim + gloss).
-  primary: 'enamel text-white font-semibold bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] hover:brightness-105',
-  // Enamel lime — the top-conversion action.
-  punch: 'enamel text-ink-900 font-extrabold bg-[linear-gradient(160deg,#C6F135,#8FB81E)] hover:brightness-[1.03]',
-  outline: 'bg-white border border-ink-100 text-ink-900 hover:border-brand-400 hover:text-brand-600',
+  // Enamel-pin gold — the everyday primary CTA (gold rim + gloss).
+  primary: 'enamel text-[#161310] font-semibold bg-[linear-gradient(160deg,#E8C766,#C9A24B)] hover:brightness-105',
+  // Enamel bright gold — the top-conversion action.
+  punch: 'enamel text-[#161310] font-extrabold bg-[linear-gradient(160deg,#F0D488,#D9B45F)] hover:brightness-[1.03]',
+  outline: 'bg-paper-100 border border-ink-100 text-ink-900 hover:border-brand-400 hover:text-brand-600',
   ghost: 'bg-transparent text-ink-700 hover:bg-brand-100',
-  destructive: 'bg-white border border-coral-500 text-coral-500 hover:bg-coral-100',
+  destructive: 'bg-paper-100 border border-coral-500 text-coral-500 hover:bg-coral-100',
 };
 
 const sizeCls: Record<Size, string> = {

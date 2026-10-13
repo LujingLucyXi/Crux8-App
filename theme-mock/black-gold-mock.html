@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux8 — Black + Gold Theme Mock</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, 'Segoe UI', sans-serif; }
+  body { background: #22242a; padding: 40px; display: flex; gap: 36px; justify-content: center; }
+  .phone {
+    width: 340px; height: 720px; border-radius: 44px; overflow: hidden; position: relative;
+    background: #0B0B0D; color: #F7F3EA; box-shadow: 0 30px 60px rgba(0,0,0,.6);
+    border: 1px solid #2a2a30; display: flex; flex-direction: column;
+  }
+  .status { display: flex; justify-content: space-between; padding: 16px 24px 6px; font-size: 12px; color: #F7F3EA; font-weight: 600; }
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px 14px; }
+  .logo { font-weight: 800; letter-spacing: .18em; font-size: 17px; color: #F7F3EA; }
+  .logo span { color: #C9A24B; }
+  .bell { width: 34px; height: 34px; border-radius: 50%; background: #1C1C21; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .content { padding: 0 16px; flex: 1; overflow: hidden; }
+  .greet { font-size: 22px; font-weight: 700; }
+  .greet-sub { color: #9a968c; font-size: 13px; margin-top: 3px; }
+  .card { background: #16161A; border: 1px solid #26262c; border-radius: 20px; padding: 16px; margin-top: 14px; }
+  .card-gold { background: linear-gradient(135deg, #241c08, #16161A 70%); border: 1px solid #C9A24B66; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 3px 10px; font-size: 10px; font-weight: 700; }
+  .chip-gold { background: #C9A24B; color: #161310; }
+  .chip-dark { background: #26262c; color: #d8d3c3; }
+  .chip-outline { border: 1px solid #C9A24B; color: #C9A24B; }
+  .btn-gold { background: linear-gradient(135deg, #E8C766, #C9A24B); color: #161310; border: none; border-radius: 14px; padding: 12px; font-weight: 800; font-size: 14px; width: 100%; }
+  .btn-dark { background: #26262c; color: #F7F3EA; border: 1px solid #3a3a42; border-radius: 14px; padding: 12px; font-weight: 700; font-size: 14px; width: 100%; }
+  .nav { display: flex; justify-content: space-around; padding: 12px 8px 22px; border-top: 1px solid #26262c; background: #101013; }
+  .nav div { text-align: center; font-size: 10px; color: #7d7a70; }
+  .nav .on { color: #C9A24B; }
+  .nav .ic { font-size: 19px; display: block; margin-bottom: 2px; }
+  .fab { width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(135deg, #E8C766, #C9A24B); color: #161310; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; margin-top: -18px; box-shadow: 0 8px 20px rgba(201,162,75,.45); }
+  h4 { font-size: 11px; letter-spacing: .14em; color: #9a968c; text-transform: uppercase; margin-top: 20px; }
+  .bar-row { margin-top: 9px; }
+  .bar-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; }
+  .bar { height: 7px; border-radius: 99px; background: #26262c; margin-top: 4px; overflow: hidden; }
+  .bar > div { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #C9A24B, #E8C766); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+  .mini { background: #16161A; border: 1px solid #C9A24B44; border-radius: 14px; padding: 10px 4px; text-align: center; }
+  .mini .e { font-size: 24px; }
+  .mini .n { font-size: 9px; font-weight: 700; margin-top: 3px; }
+  .avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #E8C766, #8a6d2f); display: flex; align-items: center; justify-content: center; font-size: 30px; border: 2px solid #C9A24B; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .muted { color: #9a968c; font-size: 12px; }
+  .msg { max-width: 78%; padding: 10px 13px; border-radius: 16px; font-size: 13px; line-height: 1.45; margin-top: 10px; }
+  .msg-in { background: #1C1C21; border-bottom-left-radius: 4px; }
+  .msg-out { background: linear-gradient(135deg, #a5823a, #C9A24B); color: #161310; margin-left: auto; border-bottom-right-radius: 4px; font-weight: 500; }
+  .screen-label { text-align: center; color: #cfccc2; font-size: 13px; font-weight: 600; margin-top: 14px; letter-spacing: .08em; }
+  .col { display: flex; flex-direction: column; }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div class="col">
+<div class="phone">
+  <div class="status"><span>9:41</span><span>▰▰▰</span></div>
+  <div class="header"><div class="logo">CRUX<span>8</span></div><div class="bell">🔔</div></div>
+  <div class="content">
+    <div class="greet">Evening, Lucy 🌙</div>
+    <div class="greet-sub">3 sessions near you this week</div>
+    <div class="card card-gold">
+      <span class="chip chip-gold">🏠 AUTO-MATCHED</span>
+      <div style="font-weight:800; font-size:17px; margin-top:10px;">🍃 Zen House Hangout</div>
+      <div class="muted" style="margin-top:2px;">Seattle · 12 members · your first crew</div>
+      <div style="margin-top:12px;"><button class="btn-gold">Open group chat</button></div>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content: space-between;">
+        <span class="chip chip-dark">🧗 CLIMB CALL</span><span class="muted">Tomorrow · 6 PM</span>
+      </div>
+      <div style="font-weight:700; margin-top:10px; font-size:15px;">Top-rope partner @ SBP Poplar</div>
+      <div class="muted" style="margin-top:3px;">5.10a–5.11c · Maya is looking for a belayer</div>
+      <div class="row" style="margin-top:12px;">
+        <button class="btn-dark" style="flex:1;">Details</button>
+        <button class="btn-gold" style="flex:1;">Request to pair</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content: space-between;">
+        <span class="chip chip-outline">SESSION #12</span><span class="muted">Sat · 10 AM</span>
+      </div>
+      <div style="font-weight:700; margin-top:10px; font-size:15px;">Boulder brunch crew</div>
+      <div class="muted" style="margin-top:3px;">SBP Fremont · 4 going · chill vibes</div>
+    </div>
+  </div>
+  <div class="nav">
+    <div class="on"><span class="ic">🏠</span>Home</div>
+    <div><span class="ic">🔍</span>Find</div>
+    <div class="fab">+</div>
+    <div><span class="ic">💬</span>Chat</div>
+    <div><span class="ic">👤</span>Profile</div>
+  </div>
+</div>
+<div class="screen-label">HOME</div>
+</div>
+
+<!-- PROFILE -->
+<div class="col">
+<div class="phone">
+  <div class="status"><span>9:41</span><span>▰▰▰</span></div>
+  <div class="header"><div class="logo">CRUX<span>8</span></div><div class="bell">⚙️</div></div>
+  <div class="content">
+    <div class="row">
+      <div class="avatar">🧗‍♀️</div>
+      <div>
+        <div style="font-size:19px; font-weight:800;">Lucy</div>
+        <div class="muted">Greater Seattle · V5 / 5.11</div>
+        <span class="chip chip-gold" style="margin-top:6px;">🍃 ZEN HOUSE</span>
+      </div>
+    </div>
+    <h4>Climber DNA 🧬</h4>
+    <div class="card" style="margin-top:10px;">
+      <div class="row"><span style="font-size:30px;">🍃</span>
+        <div><div style="font-weight:800;">The Flow State</div><div class="muted" style="font-style:italic;">"No beta. Just vibes."</div></div>
+      </div>
+      <div class="bar-row"><div class="bar-label"><span>🧭 Adventure</span><span>52%</span></div><div class="bar"><div style="width:52%"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>🧠 Beta</span><span>33%</span></div><div class="bar"><div style="width:33%"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>🤝 Social</span><span>31%</span></div><div class="bar"><div style="width:31%"></div></div></div>
+    </div>
+    <h4>Card collection 🃏 · 6</h4>
+    <div class="grid">
+      <div class="mini"><div class="e">🚀</div><div class="n">Send Machine</div></div>
+      <div class="mini"><div class="e">🧘</div><div class="n">Zen Master</div></div>
+      <div class="mini"><div class="e">🎉</div><div class="n">Social Butterfly</div></div>
+      <div class="mini"><div class="e">🔬</div><div class="n">Beta Scientist</div></div>
+      <div class="mini"><div class="e">😎</div><div class="n">Chiller</div></div>
+      <div class="mini"><div class="e">🏆</div><div class="n">Competitor</div></div>
+    </div>
+  </div>
+  <div class="nav">
+    <div><span class="ic">🏠</span>Home</div>
+    <div><span class="ic">🔍</span>Find</div>
+    <div class="fab">+</div>
+    <div><span class="ic">💬</span>Chat</div>
+    <div class="on"><span class="ic">👤</span>Profile</div>
+  </div>
+</div>
+<div class="screen-label">PROFILE</div>
+</div>
+
+<!-- CHAT -->
+<div class="col">
+<div class="phone">
+  <div class="status"><span>9:41</span><span>▰▰▰</span></div>
+  <div class="header"><div class="logo">‹ &nbsp;🍃 Zen House</div><div class="bell">⋯</div></div>
+  <div class="content">
+    <div class="msg msg-in">🧗 <b>Maya</b> shared a climb call<br>Top-rope · 5.10a–5.11c · SBP Poplar<br>Tomorrow 6 PM — tap to pair up!</div>
+    <div class="msg msg-out">I'm in! See you there 🙌</div>
+    <div class="msg msg-in">Session started 🧗 Cards collected: 🚀 🧘 — check your collection!</div>
+    <div class="card card-gold" style="margin-top:14px;">
+      <span class="chip chip-gold">SESSION #12</span>
+      <div style="font-weight:800; margin-top:8px;">Boulder brunch crew</div>
+      <div class="muted">4 partners · 2 cards collected · chill vibes</div>
+      <div style="margin-top:10px;"><button class="btn-gold">Share session card</button></div>
+    </div>
+    <div class="msg msg-in">that session card is so cute 😭 posting it to my story</div>
+  </div>
+  <div class="nav">
+    <div><span class="ic">🏠</span>Home</div>
+    <div><span class="ic">🔍</span>Find</div>
+    <div class="fab">+</div>
+    <div class="on"><span class="ic">💬</span>Chat</div>
+    <div><span class="ic">👤</span>Profile</div>
+  </div>
+</div>
+<div class="screen-label">CREW CHAT</div>
+</div>
+
+</body>
+</html>

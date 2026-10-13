@@ -90,8 +90,8 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
           style={{
             background: topHouse
               ? `linear-gradient(135deg, ${topHouse.color}30, ${topHouse.color}70)`
-              : 'linear-gradient(135deg, #f5f0e6, #e8dcc3)',
-            border: `2px solid ${topHouse?.color ?? '#d4c5a0'}`,
+              : 'linear-gradient(135deg, #2A2210, #16161A)',
+            border: `2px solid ${topHouse?.color ?? '#C9A24B'}`,
           }}
         >
           <div className="flex items-center justify-between">
@@ -115,7 +115,7 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
                   <span
                     key={id}
                     title={u?.display_name}
-                    className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-white text-xl shadow"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-paper-100 text-xl shadow"
                   >
                     {arch?.emoji ?? '🧗'}
                   </span>

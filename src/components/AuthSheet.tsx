@@ -189,7 +189,7 @@ export function AuthSheet({
               }}
               className={cn(
                 'rounded-lg py-2 transition-colors',
-                tab === t ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500',
+                tab === t ? 'bg-paper-100 text-ink-900 shadow-sm' : 'text-ink-500',
               )}
             >
               {t === 'code' ? 'Email code' : 'Password'}

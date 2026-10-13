@@ -111,7 +111,7 @@ export function NewCrewSheet({ open, onOpenChange }: Props) {
                     'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                     category === c.value
                       ? 'bg-ink-900 text-white border-ink-900'
-                      : 'bg-white text-ink-700 border-ink-100',
+                      : 'bg-paper-100 text-ink-700 border-ink-100',
                   )}
                 >
                   {c.label}
@@ -138,7 +138,7 @@ export function NewCrewSheet({ open, onOpenChange }: Props) {
                   'flex-1 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors text-left',
                   joinPolicy === 'open'
                     ? 'bg-ink-900 text-white border-ink-900'
-                    : 'bg-white text-ink-700 border-ink-100',
+                    : 'bg-paper-100 text-ink-700 border-ink-100',
                 )}
               >
                 Open
@@ -152,7 +152,7 @@ export function NewCrewSheet({ open, onOpenChange }: Props) {
                   'flex-1 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors text-left',
                   joinPolicy === 'request'
                     ? 'bg-ink-900 text-white border-ink-900'
-                    : 'bg-white text-ink-700 border-ink-100',
+                    : 'bg-paper-100 text-ink-700 border-ink-100',
                 )}
               >
                 By request
