@@ -23,22 +23,30 @@ export function ShareCallSheet({ call, open, onOpenChange }: Props) {
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
   const inviteCruxmatesToCall = useAppStore((s) => s.inviteCruxmatesToCall);
+  const inviteCruxyToCall = useAppStore((s) => s.inviteCruxyToCall);
   const [sharedTo, setSharedTo] = useState<string | null>(null);
   const [invited, setInvited] = useState<string[]>([]);
 
   if (!call) return null;
   const link = `https://crux8.app/call/${call.id}`;
   const myGroups = groups.filter((g) => myGroupMemberships.includes(g.id));
-  // Cruxmates who could still join: not me, not Cruxy (she has her own
-  // auto-accept button), and not already in the call.
+  // Cruxmates who could still join: not me, and not already in the call.
+  // Cruxy is invitable like everyone else — inviting her is what makes
+  // her join (she auto-accepts on invite, never without one).
   const invitable = me
     ? cruxmates
-        .filter((id) => id !== 'cruxy' && id !== me.id && !call.participant_ids.includes(id))
+        .filter((id) => id !== me.id && !call.participant_ids.includes(id))
         .map((id) => resolveUser(id, me, users, directory))
         .filter((u): u is NonNullable<typeof u> => !!u)
     : [];
 
   const handleInvite = (userId: string, name: string) => {
+    if (userId === 'cruxy') {
+      inviteCruxyToCall(call.id);
+      setInvited((prev) => [...prev, userId]);
+      toast.success('Cruxy joined your call 🦊');
+      return;
+    }
     inviteCruxmatesToCall(call.id, [userId]);
     setInvited((prev) => [...prev, userId]);
     toast.success(`Invite sent to ${name}`);
@@ -97,7 +105,7 @@ export function ShareCallSheet({ call, open, onOpenChange }: Props) {
                     disabled={invited.includes(u.id)}
                     className="text-xs font-semibold text-teal-600 shrink-0 disabled:text-ink-400"
                   >
-                    {invited.includes(u.id) ? '✓ Invited' : 'Invite'}
+                    {invited.includes(u.id) ? (u.id === 'cruxy' ? '✓ Joined' : '✓ Invited') : 'Invite'}
                   </button>
                 </div>
               ))}
