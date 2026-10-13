@@ -143,11 +143,14 @@ export function ShareSessionSheet({ session, open, onOpenChange }: Props) {
           <Button variant="outline" className="flex-1" onClick={handleCopy}>
             Copy link
           </Button>
-          <Button className="flex-1" onClick={handleNativeShare}>
+          <Button variant="outline" className="flex-1" onClick={handleNativeShare}>
             Send…
           </Button>
         </div>
         <p className="mt-3 text-[11px] text-ink-400 break-all">{link}</p>
+        <Button className="mt-5 w-full" onClick={() => onOpenChange(false)}>
+          Done
+        </Button>
       </SheetContent>
     </Sheet>
   );
