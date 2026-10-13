@@ -128,6 +128,7 @@ export function Find() {
     const styles = filters.climb_styles;
     const envCats = env === 'indoor' ? ['boulder'] : ['outdoor_sport', 'trad', 'multi_pitch', 'outdoor_boulder'];
     return sessions
+      .filter((s) => s.participant_ids.length > 0)
       .filter((s) => s.location_type === env && envCats.includes(s.category))
       .filter((s) => {
         if (styles.length > 0 && !styles.includes(s.category)) return false;
@@ -143,6 +144,7 @@ export function Find() {
     if (l1 !== 'hike') return [];
     const types = filters.hike_types;
     return sessions
+      .filter((s) => s.participant_ids.length > 0)
       .filter((s) => s.category === 'hiking')
       .filter((s) => {
         if (types.length > 0 && !(s.hike_type && types.includes(s.hike_type))) return false;

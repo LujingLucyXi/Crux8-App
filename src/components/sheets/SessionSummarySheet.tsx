@@ -12,6 +12,21 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+const FELT_FACES: Record<number, string> = { 1: '😖', 2: '😕', 3: '🙂', 4: '😄', 5: '🤩' };
+const FELT_LABELS: Record<number, string> = {
+  1: 'Rough',
+  2: 'Meh',
+  3: 'Good',
+  4: 'Great',
+  5: 'Best ever',
+};
+const DURATION_LABELS: Record<string, string> = {
+  lt1h: 'Under 1h',
+  '1to2h': '1–2h',
+  '2to3h': '2–3h',
+  gt3h: '3h+',
+};
+
 /**
  * Collectible session summary card: numbered, house-themed, shareable.
  * Shows who was there, cards collected, and the vibe.
@@ -68,7 +83,10 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
       try {
         await navigator.share({
           title: `Session #${sessionNumber} on Crux8`,
-          text: `Climbed with ${participants.length} ${participants.length === 1 ? 'partner' : 'partners'} at ${where}`,
+          text:
+            participants.length === 0
+              ? `Solo session at ${where} 🧗`
+              : `Climbed with ${participants.length} ${participants.length === 1 ? 'cruxmate' : 'cruxmates'} at ${where}`,
           url: link,
         });
       } catch { /* dismissed */ }
@@ -104,28 +122,59 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
             )}
           </div>
 
-          {/* Crew */}
+          {/* Crew — cruxmates, or the solo framing (never "0 partners") */}
           <div className="mt-4 flex items-center gap-2">
-            <div className="flex -space-x-2">
-              {participants.slice(0, 5).map((id) => {
-                const u = resolveUser(id, me, users, directory);
-                const card = collectedCards.find((c) => c.user_id === id);
-                const arch = card ? getArchetype(card.archetype_id) : null;
-                return (
-                  <span
-                    key={id}
-                    title={u?.display_name}
-                    className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-paper-100 text-xl shadow"
-                  >
-                    {arch?.emoji ?? '🧗'}
-                  </span>
-                );
-              })}
-            </div>
-            <span className="text-xs text-ink-600 font-medium">
-              {participants.length} climbing {participants.length === 1 ? 'partner' : 'partners'}
-            </span>
+            {participants.length > 0 ? (
+              <>
+                <div className="flex -space-x-2">
+                  {participants.slice(0, 5).map((id) => {
+                    const u = resolveUser(id, me, users, directory);
+                    const card = collectedCards.find((c) => c.user_id === id);
+                    const arch = card ? getArchetype(card.archetype_id) : null;
+                    return (
+                      <span
+                        key={id}
+                        title={u?.display_name}
+                        className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-paper-100 text-xl shadow"
+                      >
+                        {arch?.emoji ?? '🧗'}
+                      </span>
+                    );
+                  })}
+                </div>
+                <span className="text-xs text-ink-600 font-medium">
+                  Climbed with {participants.length}{' '}
+                  {participants.length === 1 ? 'cruxmate' : 'cruxmates'}
+                </span>
+              </>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-ink-700">
+                🧗 Solo session
+              </span>
+            )}
           </div>
+
+          {/* Your session stats — only what they answered (all optional) */}
+          {(recap?.felt || recap?.duration_bucket || recap?.sends_count !== undefined) && (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {recap?.felt && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
+                  {FELT_FACES[recap.felt]} {FELT_LABELS[recap.felt]}
+                </span>
+              )}
+              {recap?.duration_bucket && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
+                  ⏱ {DURATION_LABELS[recap.duration_bucket]}
+                </span>
+              )}
+              {recap?.sends_count !== undefined && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
+                  🔥 {recap.sends_count === 5 ? '5+' : recap.sends_count}{' '}
+                  {recap.sends_count === 1 ? 'send' : 'sends'}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Cards collected */}
           {sessionCards.length > 0 && (
@@ -146,10 +195,10 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
             </div>
           )}
 
-          {/* Vibe */}
+          {/* Vibe — the user's felt vibe from the recap wins over the plan */}
           <div className="mt-4 flex items-center justify-between">
             <span className="inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-ink-700 capitalize">
-              {session.vibe} vibes
+              {recap?.vibe_pick ?? session.vibe} vibes
             </span>
             <span className="text-[10px] text-ink-400 font-medium">crux8.app</span>
           </div>

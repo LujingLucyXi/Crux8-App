@@ -8,7 +8,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useAppStore } from '@/store/useAppStore';
 import { REACTIONS } from '@/lib/reactions';
 import { formatSessionWhen } from '@/lib/date';
-import type { Session, PartnerFlag } from '@/seed/types';
+import type { Session, PartnerFlag, SessionRecap, Vibe } from '@/seed/types';
 import { cn } from '@/lib/utils';
 import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
 
@@ -24,6 +24,27 @@ const FLAG_REASONS: { value: PartnerFlag['reason']; label: string }[] = [
   { value: 'uncomfortable', label: 'Made me uncomfortable' },
   { value: 'other', label: 'Something else' },
 ];
+
+/** "Your session" summary options — every answer optional. */
+const FELT_OPTIONS = [
+  { v: 1, emoji: '😖', label: 'Rough' },
+  { v: 2, emoji: '😕', label: 'Meh' },
+  { v: 3, emoji: '🙂', label: 'Good' },
+  { v: 4, emoji: '😄', label: 'Great' },
+  { v: 5, emoji: '🤩', label: 'Best ever' },
+] as const;
+const VIBE_OPTIONS: { v: Vibe; emoji: string; label: string }[] = [
+  { v: 'chill', emoji: '🧘', label: 'Chill' },
+  { v: 'projecting', emoji: '🧗', label: 'Projecting' },
+  { v: 'training', emoji: '🏋️', label: 'Training' },
+  { v: 'social', emoji: '🎉', label: 'Social' },
+] as const;
+const DURATION_OPTIONS: { v: NonNullable<SessionRecap['duration_bucket']>; label: string }[] = [
+  { v: 'lt1h', label: '< 1h' },
+  { v: '1to2h', label: '1–2h' },
+  { v: '2to3h', label: '2–3h' },
+  { v: 'gt3h', label: '3h+' },
+] as const;
 
 /**
  * Post-session recap. NOT a 1–5 rating.
@@ -41,6 +62,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
   const togglePartnerProp = useAppStore((s) => s.togglePartnerProp);
   const setPartnerCheck = useAppStore((s) => s.setPartnerCheck);
   const setBelayConfirm = useAppStore((s) => s.setBelayConfirm);
+  const setRecapSummary = useAppStore((s) => s.setRecapSummary);
 
   const [flagFor, setFlagFor] = useState<string | null>(null);
   const [flagReason, setFlagReason] = useState<PartnerFlag['reason']>('unsafe_belay');
@@ -90,12 +112,134 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
           </div>
         </div>
 
-        {partners.length === 0 ? (
-          <p className="text-sm text-ink-500 text-center py-4">
-            Solo session logged. Nice work getting out there. 🧗
-          </p>
-        ) : (
+        {/* Your session — Strava-style summary, every answer optional */}
+        <div className="mb-6">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-3">
+            Your session <span className="normal-case font-normal text-ink-400">· all optional</span>
+          </h3>
+
+          <p className="text-[11px] font-semibold text-ink-700 mb-1.5">How it felt</p>
+          <div className="flex gap-1.5 mb-4">
+            {FELT_OPTIONS.map((f) => {
+              const active = recap?.felt === f.v;
+              return (
+                <button
+                  key={f.v}
+                  onClick={() =>
+                    setRecapSummary(session.id, { felt: active ? undefined : f.v })
+                  }
+                  className={cn(
+                    'flex-1 rounded-xl border py-2 text-center transition-colors',
+                    active
+                      ? 'bg-brand-600 border-brand-600'
+                      : 'bg-paper-100 border-ink-100 hover:border-ink-300',
+                  )}
+                >
+                  <span className="block text-xl leading-none">{f.emoji}</span>
+                  <span
+                    className={cn(
+                      'mt-1 block text-[10px] font-semibold',
+                      active ? 'text-[#161310]' : 'text-ink-500',
+                    )}
+                  >
+                    {f.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="text-[11px] font-semibold text-ink-700 mb-1.5">The vibe</p>
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {VIBE_OPTIONS.map((o) => {
+              const active = recap?.vibe_pick === o.v;
+              return (
+                <button
+                  key={o.v}
+                  onClick={() =>
+                    setRecapSummary(session.id, {
+                      vibe_pick: active ? undefined : o.v,
+                    })
+                  }
+                  className={cn(
+                    'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                    active
+                      ? 'bg-brand-600 text-[#161310] border-brand-600'
+                      : 'bg-paper-100 text-ink-600 border-ink-100 hover:border-ink-300',
+                  )}
+                >
+                  {o.emoji} {o.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <p className="text-[11px] font-semibold text-ink-700 mb-1.5">How long</p>
+              <div className="flex flex-wrap gap-1.5">
+                {DURATION_OPTIONS.map((o) => {
+                  const active = recap?.duration_bucket === o.v;
+                  return (
+                    <button
+                      key={o.v}
+                      onClick={() =>
+                        setRecapSummary(session.id, {
+                          duration_bucket: active ? undefined : o.v,
+                        })
+                      }
+                      className={cn(
+                        'rounded-full border px-2.5 py-1.5 text-xs font-semibold transition-colors',
+                        active
+                          ? 'bg-brand-600 text-[#161310] border-brand-600'
+                          : 'bg-paper-100 text-ink-600 border-ink-100 hover:border-ink-300',
+                      )}
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex-1">
+              <p className="text-[11px] font-semibold text-ink-700 mb-1.5">Sends</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[0, 1, 2, 3, 4, 5].map((n) => {
+                  const active = recap?.sends_count === n;
+                  return (
+                    <button
+                      key={n}
+                      onClick={() =>
+                        setRecapSummary(session.id, {
+                          sends_count: active ? undefined : n,
+                        })
+                      }
+                      className={cn(
+                        'h-8 w-8 rounded-full border text-xs font-semibold transition-colors',
+                        active
+                          ? 'bg-brand-600 text-[#161310] border-brand-600'
+                          : 'bg-paper-100 text-ink-600 border-ink-100 hover:border-ink-300',
+                      )}
+                    >
+                      {n === 5 ? '5+' : n}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          {partners.length === 0 && (
+            <p className="mt-4 text-sm text-ink-500">
+              Solo mission — just you and the wall. 🧗
+            </p>
+          )}
+        </div>
+
+        {partners.length === 0 ? null : (
           <>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
+              Your cruxmates
+            </h3>
             <p className="text-sm text-ink-600 mb-4">
               Give props to who you climbed with. All optional — no scores, no averages.
             </p>

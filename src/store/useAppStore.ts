@@ -271,6 +271,11 @@ interface Store {
   togglePartnerProp: (sessionId: string, partnerId: string, key: ReactionKey) => void;
   setPartnerCheck: (sessionId: string, partnerId: string, check: PartnerCheck, flag?: PartnerFlag) => void;
   setBelayConfirm: (sessionId: string, partnerId: string, value: BelayConfirm) => void;
+  /** "Your session" summary fields — every one optional (Strava-style recap). */
+  setRecapSummary: (
+    sessionId: string,
+    patch: Partial<Pick<SessionRecap, 'felt' | 'vibe_pick' | 'duration_bucket' | 'sends_count'>>,
+  ) => void;
 
   setFilter: (patch: Partial<Filters>) => void;
   setL1: (l1: Filters['l1']) => void;
@@ -522,7 +527,10 @@ export const useAppStore = create<Store>()(
       fetchSessions: async () => {
         set({ sessionsLoading: true });
         try {
-          const sessions = await dbFetchSessions();
+          // Sessions everyone has left (0 going) never surface anywhere.
+          const sessions = (await dbFetchSessions()).filter(
+            (s) => s.participant_ids.length > 0,
+          );
           set({ sessions });
           await get().ensureDirectoryProfiles(
             sessions.flatMap((s) => [s.host_id, ...s.participant_ids]),
@@ -1545,6 +1553,20 @@ export const useAppStore = create<Store>()(
           recaps: {
             ...get().recaps,
             [sessionId]: { ...base, belay_confirms: { ...base.belay_confirms, [partnerId]: value } },
+          },
+        });
+      },
+
+      setRecapSummary: (sessionId, patch) => {
+        const cur = get().recaps[sessionId];
+        const base: SessionRecap = cur ?? {
+          session_id: sessionId, logged_at: new Date().toISOString(),
+          props: {}, partner_checks: {}, partner_flags: {}, belay_confirms: {},
+        };
+        set({
+          recaps: {
+            ...get().recaps,
+            [sessionId]: { ...base, ...patch },
           },
         });
       },

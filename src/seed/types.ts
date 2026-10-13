@@ -315,6 +315,11 @@ export interface SessionRecap {
   partner_checks: Record<string, PartnerCheck>; // partnerUserId -> all_good | flagged
   partner_flags: Record<string, PartnerFlag>;   // partnerUserId -> private detail (flagged only)
   belay_confirms: Record<string, BelayConfirm>; // partnerUserId -> peer belay-cert confirmation
+  // "Your session" summary (Strava-style, ALL optional — feeds the share card)
+  felt?: number;              // 1–5 stoke scale: how it felt
+  vibe_pick?: Vibe;           // the vibe YOU felt (vs the host's planned vibe)
+  duration_bucket?: 'lt1h' | '1to2h' | '2to3h' | 'gt3h';
+  sends_count?: number;       // 0–5, where 5 means 5+
 }
 
 // Helper: date offset from "now" so the seed always feels fresh.

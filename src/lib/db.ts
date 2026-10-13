@@ -108,7 +108,11 @@ function mapSessionRow(row: SessionRow, participantIds: string[]): Session {
     area: row.area ?? undefined,
     route_id: row.route_id ?? undefined,
     hike_type: (row.hike_type as HikeType | null) ?? undefined,
-    participant_ids: uniq([row.host_id, ...participantIds]),
+    // Participants are exactly the 'going' RSVPs — the host is upserted as
+    // 'going' at creation. Do NOT force-add host_id here: a host who leaves
+    // must actually leave (and an all-left session drops to 0 people and is
+    // filtered out in the store).
+    participant_ids: uniq(participantIds),
     capacity: row.capacity ?? 4,
     vibe: (row.vibe as Vibe | null) ?? 'social',
     location_type:
