@@ -172,6 +172,19 @@ export const SEED_GYMS: Gym[] = [
     disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
     here_now: 12,
   },
+  {
+    id: 'gym_uplift',
+    name: 'Uplift Climbing',
+    short_name: 'Uplift',
+    address: '17229 15th Ave NE',
+    city: 'Shoreline, WA',
+    neighborhood: 'Shoreline',
+    lat: 47.7548,
+    lng: -122.3141,
+    disciplines: ['boulder'],
+    here_now: 9,
+    boutique: true,
+  },
 ];
 
 export const GYM_BY_ID = Object.fromEntries(SEED_GYMS.map((g) => [g.id, g] as const));
