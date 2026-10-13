@@ -156,6 +156,9 @@ interface Store {
    *  every sessions fetch. */
   cruxySessions: string[];
   inviteCruxy: (sessionId: string) => void;
+  /** Climb calls Cruxy has auto-accepted (same local overlay as sessions). */
+  cruxyCalls: string[];
+  inviteCruxyToCall: (callId: string) => void;
   /** Gyms I've suggested that aren't listed yet (kept locally as well). */
   gymSuggestions: { name: string; city?: string; note?: string; at: string }[];
   suggestGym: (name: string, city: string, note: string) => Promise<void>;
@@ -497,6 +500,7 @@ export const useAppStore = create<Store>()(
       recaps: {},
       sessionLifecycle: {},
       cruxySessions: [],
+      cruxyCalls: [],
       gymSuggestions: [],
       pairRequests: [],
       checkin: null,
@@ -598,7 +602,12 @@ export const useAppStore = create<Store>()(
 
       fetchClimbCalls: async () => {
         try {
-          const climbCalls = await dbFetchClimbCalls();
+          const cruxyCalls = get().cruxyCalls;
+          const climbCalls = (await dbFetchClimbCalls()).map((c) =>
+            cruxyCalls.includes(c.id) && !c.participant_ids.includes('cruxy')
+              ? { ...c, participant_ids: [...c.participant_ids, 'cruxy'] }
+              : c,
+          );
           set({ climbCalls });
           await get().ensureDirectoryProfiles(
             climbCalls.flatMap((c) => [c.user_id, ...c.participant_ids]),
@@ -850,6 +859,7 @@ export const useAppStore = create<Store>()(
           recaps: {},
           sessionLifecycle: {},
           cruxySessions: [],
+          cruxyCalls: [],
           gymSuggestions: [],
           checkin: null,
           gymPresence: {},
@@ -1002,7 +1012,7 @@ export const useAppStore = create<Store>()(
         const now = new Date();
         const endsAt = new Date(now.getTime() + 3 * 3600_000);
         const session = await get().postSession({
-          category: 'boulder',
+          category: call.category,
           title: `${call.category === 'top_rope' ? 'Top-rope' : 'Lead'} session`,
           subtitle: call.grade,
           starts_at: now.toISOString(),
@@ -1031,6 +1041,11 @@ export const useAppStore = create<Store>()(
             ...get().sessionLifecycle,
             [session.id]: { started_at: now.toISOString() },
           },
+          // Cruxy's session membership is a local overlay — carry it over
+          // so she stays in the session after the next fetch.
+          cruxySessions: present.includes('cruxy') && !get().cruxySessions.includes(session.id)
+            ? [...get().cruxySessions, session.id]
+            : get().cruxySessions,
         });
         void dbSetSessionLifecycle(session.id, { started_at: now.toISOString() });
         // Mutual card collection: everyone present collects everyone else.
@@ -1741,6 +1756,21 @@ export const useAppStore = create<Store>()(
             s.id === sessionId
               ? { ...s, participant_ids: [...s.participant_ids, 'cruxy'] }
               : s,
+          ),
+        });
+      },
+
+      inviteCruxyToCall: (callId) => {
+        const call = get().climbCalls.find((c) => c.id === callId);
+        if (!call || call.participant_ids.includes('cruxy')) return;
+        set({
+          cruxyCalls: get().cruxyCalls.includes(callId)
+            ? get().cruxyCalls
+            : [...get().cruxyCalls, callId],
+          climbCalls: get().climbCalls.map((c) =>
+            c.id === callId
+              ? { ...c, participant_ids: [...c.participant_ids, 'cruxy'] }
+              : c,
           ),
         });
       },
