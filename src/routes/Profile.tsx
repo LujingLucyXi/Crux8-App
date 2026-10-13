@@ -57,6 +57,7 @@ export function Profile() {
   const sessions = useAppStore((s) => s.sessions);
   const cruxmates = useAppStore((s) => s.cruxmates);
   const verifications = useAppStore((s) => s.verifications);
+  const myConfirmCounts = useAppStore((s) => s.myConfirmCounts);
   const badges = useAppStore((s) => s.badges);
   const recaps = useAppStore((s) => s.recaps);
   const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
@@ -178,6 +179,30 @@ export function Profile() {
                 </span>
               </button>
             );
+          })}
+        </div>
+
+        {/* Peer-confirm progress toward / from the badge */}
+        <div className="mt-2.5 space-y-1">
+          {(['top_rope', 'lead', 'trad'] as VerificationCategory[]).map((cat) => {
+            const v = verifications[cat];
+            const n = myConfirmCounts[cat] ?? 0;
+            if (v.status === 'verified') {
+              return (
+                <p key={cat} className="text-[11px] font-medium text-teal-600">
+                  🛡 {CATEGORY_LABEL[cat]}: peer-confirmed
+                  {n > 0 ? ` by ${n} cruxmate${n === 1 ? '' : 's'}` : ''}
+                </p>
+              );
+            }
+            if (v.status === 'self_attested') {
+              return (
+                <p key={cat} className="text-[11px] text-ink-500">
+                  {CATEGORY_LABEL[cat]}: {n} of 2 cruxmate confirms toward peer-confirmed
+                </p>
+              );
+            }
+            return null;
           })}
         </div>
 

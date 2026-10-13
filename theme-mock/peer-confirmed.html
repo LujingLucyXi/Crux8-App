@@ -1,0 +1,84 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,'Segoe UI',Roboto,sans-serif; }
+  body { background:#08080A; color:#F7F3EA; padding:36px 28px 44px; width:1420px; }
+  .flow { display:flex; gap:26px; align-items:flex-start; }
+  .step { flex:1; }
+  .steplabel { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .num { background:#C9A24B; color:#161310; font-weight:800; width:26px; height:26px; border-radius:50%;
+         display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .steplabel h2 { font-size:16px; font-weight:700; }
+  .phone { background:#0B0B0D; border:1px solid #26262C; border-radius:28px; padding:20px 18px 24px; min-height:520px; }
+  .sub { color:#B8B2A1; font-size:12.5px; line-height:1.6; }
+  .sect { font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#948F82; margin:18px 0 10px; }
+  .vchip { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:8px 14px; font-size:12.5px; font-weight:700; margin:0 6px 8px 0; }
+  .vchip.self { background:#2A2210; border:1px solid #C9A24B; color:#E8C766; }
+  .vchip.verified { background:#0F766E; color:#fff; }
+  .progress { background:#16161A; border:1px solid #26262C; border-radius:12px; padding:12px; font-size:12.5px; line-height:1.7; color:#DED8C9; }
+  .bar { height:8px; background:#26262C; border-radius:99px; margin-top:8px; overflow:hidden; }
+  .bar i { display:block; height:100%; width:66%; background:#0F766E; }
+  .rule { display:flex; gap:10px; align-items:flex-start; margin-bottom:12px; font-size:13px; line-height:1.55; color:#DED8C9; }
+  .rule .n { background:#26262C; color:#E8C766; font-weight:800; width:22px; height:22px; border-radius:50%;
+             display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; margin-top:1px; }
+  .belay { background:#16161A; border:1px solid #26262C; border-radius:12px; padding:12px; }
+  .belay p { font-size:11px; font-weight:700; color:#DED8C9; margin-bottom:8px; }
+  .seg { display:flex; gap:6px; }
+  .seg span { flex:1; text-align:center; font-size:12px; font-weight:700; padding:8px 0; border-radius:9px; border:1px solid #55534D; color:#B8B2A1; }
+  .seg span.on { background:#C9A24B; color:#161310; border-color:#C9A24B; }
+  .person { display:flex; align-items:center; gap:10px; padding:8px 0; font-size:14px; }
+  .ava { width:34px; height:34px; border-radius:50%; background:#2A2210; border:1px solid #C9A24B55;
+         display:flex; align-items:center; justify-content:center; font-size:15px; }
+  .shield { color:#2DD4BF; font-size:13px; }
+  .note { background:#16161A; border:1px solid #26262C; border-radius:12px; padding:12px; font-size:12px; color:#B8B2A1; line-height:1.6; margin-top:14px; }
+  code { background:#26262C; padding:1px 6px; border-radius:5px; font-size:11.5px; color:#E8C766; }
+</style></head>
+<body>
+<div class="flow">
+
+  <div class="step">
+    <div class="steplabel"><span class="num">1</span><h2>The upgrade rule</h2></div>
+    <div class="phone">
+      <div class="rule"><span class="n">1</span><span>A cruxmate answers the recap belay question after a <b>real shared session</b>. The answer now also syncs to a private <code>belay_confirms</code> table.</span></div>
+      <div class="belay">
+        <p>Does Marcus belay safely? (top-rope session)</p>
+        <div class="seg"><span class="on">✓ Yes</span><span>Not sure</span><span>No</span></div>
+      </div>
+      <div class="rule" style="margin-top:14px;"><span class="n">2</span><span>The confirm counts toward the skill the session was: rope session → <b>Top Rope</b>, lead session → <b>Lead</b>.</span></div>
+      <div class="rule"><span class="n">3</span><span><b>2 different cruxmates</b> confirm "Yes" → status flips from self-reported to <b>peer-confirmed</b>, automatically, server-side.</span></div>
+      <div class="rule"><span class="n">4</span><span>"No" from 2+ partners blocks the upgrade and flags the profile for your review. Individual answers are never shown to the person — only the final badge.</span></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="steplabel"><span class="num">2</span><h2>The badge (already styled)</h2></div>
+    <div class="phone">
+      <p class="sect" style="margin-top:2px;">Before</p>
+      <span class="vchip self">• Top Rope · self-reported</span>
+      <p class="sect">After 2 confirms</p>
+      <span class="vchip verified">🛡 Top Rope · peer-confirmed</span>
+      <div class="progress">
+        Peer-confirmed by <b>3 cruxmates</b>
+        <div class="bar"><i></i></div>
+        <span style="font-size:11px; color:#948F82;">Shown on the profile under the chips — the count, never the names or the "No"s.</span>
+      </div>
+      <div class="note">No new design work: the teal shield chip already exists in Profile and renders today for demo climbers. This just gives real users a path to it.</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="steplabel"><span class="num">3</span><h2>Where it shows up</h2></div>
+    <div class="phone">
+      <p class="sect" style="margin-top:2px;">Their public profile</p>
+      <div class="person"><span class="ava">🧗</span><span><b>Marcus</b><br><span style="font-size:11px; color:#948F82;">Send House · V6</span></span></div>
+      <div style="margin:6px 0 4px;">
+        <span class="vchip verified">🛡 Top Rope</span><span class="vchip verified">🛡 Lead</span>
+      </div>
+      <p class="sect">Session · Who's going</p>
+      <div class="person"><span class="ava">🧗</span> Marcus <span class="shield">🛡 peer-confirmed belayer</span></div>
+      <div class="person"><span class="ava">🦊</span> Priya <span style="font-size:12px; color:#948F82;">self-reported</span></div>
+      <div class="note">Needs one data change: verification status moves onto the Supabase <code>profiles</code> row, so other users' apps can read it — today it lives only on the owner's phone.</div>
+    </div>
+  </div>
+
+</div>
+</body></html>

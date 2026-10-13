@@ -20,13 +20,17 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
   const directory = useAppStore((s) => s.directory);
   const gyms = useAppStore((s) => s.gyms);
   const cruxmates = useAppStore((s) => s.cruxmates);
+  const directoryVerifications = useAppStore((s) => s.directoryVerifications);
   const addCruxMate = useAppStore((s) => s.addCruxMate);
   const removeCruxMate = useAppStore((s) => s.removeCruxMate);
 
   const user = userId ? resolveUser(userId, me, users, directory) : undefined;
   if (!user) return null;
-  // NPC-only fields (verifications, pronouns, home gym) aren't on resolved directory users.
+  // NPC seed users carry verifications inline; real users' come from their
+  // public profile status (directoryVerifications).
   const npcUser = users.find((u) => u.id === user.id);
+  const userVerifications =
+    npcUser?.verifications ?? directoryVerifications[user.id];
   const homeGymId = npcUser?.home_gym_id ?? (user.id === me?.id ? me?.home_gym_id : undefined);
   const gym = gyms.find((g) => g.id === homeGymId);
   const isCruxmate = cruxmates.includes(user.id);
@@ -52,19 +56,27 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
 
           <div className="mt-3 flex flex-wrap gap-1 justify-center">
             {(['top_rope', 'lead', 'trad'] as const).map((cat) => {
-              const s = npcUser?.verifications[cat];
+              const s = userVerifications?.[cat];
               const isVerified = s === 'verified';
+              const isSelf = s === 'self_attested';
               return (
                 <span
                   key={cat}
                   className={
                     isVerified
                       ? 'inline-flex items-center gap-1 rounded-full bg-teal-600 text-white text-[10px] font-semibold px-2 py-0.5'
-                      : 'inline-flex items-center gap-1 rounded-full border border-ink-100 text-ink-300 text-[10px] font-semibold px-2 py-0.5'
+                      : isSelf
+                        ? 'inline-flex items-center gap-1 rounded-full border border-brand-600 text-brand-600 text-[10px] font-semibold px-2 py-0.5'
+                        : 'inline-flex items-center gap-1 rounded-full border border-ink-100 text-ink-300 text-[10px] font-semibold px-2 py-0.5'
                   }
                 >
-                  {isVerified && <ShieldCheck width={11} height={11} />}
+                  {isVerified ? (
+                    <ShieldCheck width={11} height={11} />
+                  ) : isSelf ? (
+                    <span aria-hidden>•</span>
+                  ) : null}
                   {cat.replace('_', ' ')}
+                  {isVerified ? ' · peer-confirmed' : isSelf ? ' · self-reported' : ''}
                 </span>
               );
             })}

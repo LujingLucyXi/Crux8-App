@@ -36,6 +36,8 @@ export interface ProfileRow {
   weight_kg?: number | null;
   height_cm?: number | null;
   onboarded?: boolean | null;
+  /** Public belay verification statuses: {top_rope: 'self_attested'|'verified', ...} */
+  verifications?: Record<string, string> | null;
 }
 
 /**

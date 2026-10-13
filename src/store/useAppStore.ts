@@ -57,6 +57,10 @@ import {
   createSession as dbCreateSession,
   updateSession as dbUpdateSession,
   setSessionLifecycle as dbSetSessionLifecycle,
+  setMyVerifications as dbSetMyVerifications,
+  submitBelayConfirmRemote,
+  fetchPublicVerifications,
+  fetchBelayConfirmCounts,
   setSessionRsvp,
   fetchClimbCalls as dbFetchClimbCalls,
   createClimbCall as dbCreateClimbCall,
@@ -135,6 +139,10 @@ interface Store {
   sessionChats: Record<string, SessionChat>;            // group chats, keyed by session/event/call id
   chatReads: Record<string, string>;                    // thread key -> ISO of last time I read it
   verifications: Record<VerificationCategory, Verification>;
+  /** Real users' public verification statuses (from profiles via RPC). */
+  directoryVerifications: Record<string, Partial<Record<VerificationCategory, VerificationStatus>>>;
+  /** Distinct partners who confirmed my belay skills, per category. */
+  myConfirmCounts: Partial<Record<VerificationCategory, number>>;
   gearChecklists: Record<string, Record<string, boolean>>;
   badges: BadgeId[];
   recaps: Record<string, SessionRecap>;       // sessionId -> recap
@@ -456,6 +464,8 @@ export const useAppStore = create<Store>()(
       users: [],
       climbCalls: [],
       directory: {},
+      directoryVerifications: {},
+      myConfirmCounts: {},
       myGroupMemberships: [],
       ticketPurchases: [],
       ticketRedemptions: {},
@@ -570,6 +580,17 @@ export const useAppStore = create<Store>()(
           const directory = { ...get().directory };
           for (const p of profiles) directory[p.id] = p;
           set({ directory });
+          // Public belay verification statuses ride along (badge display).
+          const remote = await fetchPublicVerifications(missing).catch(
+            () => ({}) as Record<string, Record<string, string>>,
+          );
+          if (Object.keys(remote).length > 0) {
+            const dv = { ...get().directoryVerifications };
+            for (const [id, v] of Object.entries(remote)) {
+              dv[id] = v as Partial<Record<VerificationCategory, VerificationStatus>>;
+            }
+            set({ directoryVerifications: dv });
+          }
         } catch (e) {
           console.error('[directory] fetch failed', e);
         }
@@ -696,6 +717,26 @@ export const useAppStore = create<Store>()(
         const applySessionUser = async (userId: string, email: string) => {
           const row = await fetchMyProfile(userId).catch(() => null);
           set({ me: profileRowToProfile(userId, email, row) });
+          // Hydrate belay verification status from the profile row (the
+          // server is the source of truth; it may have flipped a skill to
+          // peer-confirmed since this device last looked).
+          if (row?.verifications) {
+            const merged = { ...get().verifications };
+            for (const cat of ['top_rope', 'lead', 'trad'] as VerificationCategory[]) {
+              const st = row.verifications[cat];
+              if (st === 'verified') {
+                merged[cat] = { status: 'verified' };
+              } else if (st === 'self_attested' && merged[cat].status !== 'verified') {
+                merged[cat] = { status: 'self_attested', attested_at: merged[cat].attested_at };
+              }
+            }
+            set({ verifications: merged });
+          }
+          void fetchBelayConfirmCounts(userId).then((counts) =>
+            set({
+              myConfirmCounts: counts as Partial<Record<VerificationCategory, number>>,
+            }),
+          );
           get().ensureCruxyThread();
         };
         const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
@@ -753,6 +794,8 @@ export const useAppStore = create<Store>()(
           groups: [],
           users: [],
           directory: {},
+          directoryVerifications: {},
+          myConfirmCounts: {},
           myGroupMemberships: [],
           ticketPurchases: [],
           ticketRedemptions: {},
@@ -1543,6 +1586,18 @@ export const useAppStore = create<Store>()(
           },
         });
         get().checkBadges();
+        // Publish the status to my profile row so other climbers can see it
+        // (and peer confirms can later upgrade it server-side).
+        const meId = get().me?.id;
+        if (meId) {
+          const json: Record<string, string> = {};
+          for (const [cat, v] of Object.entries(get().verifications)) {
+            if (v.status === 'self_attested' || v.status === 'verified') {
+              json[cat] = v.status;
+            }
+          }
+          void dbSetMyVerifications(meId, json);
+        }
       },
 
       setBelayConfirm: (sessionId, partnerId, value) => {
@@ -1557,6 +1612,9 @@ export const useAppStore = create<Store>()(
             [sessionId]: { ...base, belay_confirms: { ...base.belay_confirms, [partnerId]: value } },
           },
         });
+        // Sync to the private confirms table; the server derives the skill
+        // from the session type and may flip the partner to peer-confirmed.
+        void submitBelayConfirmRemote(sessionId, partnerId, value);
       },
 
       setRecapSummary: (sessionId, patch) => {

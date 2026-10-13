@@ -42,6 +42,7 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const updateSession = useAppStore((s) => s.updateSession);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
+  const directoryVerifications = useAppStore((s) => s.directoryVerifications);
   const gyms = useAppStore((s) => s.gyms);
   const routes = useAppStore((s) => s.routes);
   const verifications = useAppStore((s) => s.verifications);
@@ -189,6 +190,25 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
                 >
                   <Avatar photoUrl={p.photo_url ?? undefined} config={p.avatar} alt={p.display_name} size={32} fallback={p.display_name} />
                   <span className="text-sm text-ink-900 flex-1">{p.display_name}</span>
+                  {(() => {
+                    const vs = p.isMe
+                      ? undefined
+                      : (users.find((u) => u.id === p.id)?.verifications ??
+                        directoryVerifications[p.id]);
+                    const peerConfirmed = vs
+                      ? requiredVerification
+                        ? vs[requiredVerification] === 'verified'
+                        : Object.values(vs).includes('verified')
+                      : false;
+                    return peerConfirmed ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-600 uppercase tracking-wider"
+                        title="Peer-confirmed belayer"
+                      >
+                        <ShieldCheck width={12} height={12} /> Peer-confirmed
+                      </span>
+                    ) : null;
+                  })()}
                   {p.id === session.host_id && (
                     <span className="text-[10px] font-semibold text-ink-500 uppercase tracking-wider">Host</span>
                   )}

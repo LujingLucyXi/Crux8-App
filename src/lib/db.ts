@@ -255,6 +255,73 @@ export async function setSessionLifecycle(
   return !error;
 }
 
+/* ── Belay verification (peer-confirmed) ─────────────────────────────── */
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const isUuid = (id: string): boolean => UUID_RE.test(id);
+
+/** Write my public verification statuses ({cat: 'self_attested'|'verified'}). */
+export async function setMyVerifications(
+  userId: string,
+  verifications: Record<string, string>,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ verifications })
+    .eq('id', userId);
+  return !error;
+}
+
+/**
+ * Sync one recap belay answer to the private belay_confirms table via RPC
+ * (the server derives the skill from the session type and recomputes the
+ * subject's peer-confirmed status). False pre-migration / for seed users.
+ */
+export async function submitBelayConfirmRemote(
+  sessionId: string,
+  subjectId: string,
+  value: 'has_cert' | 'no_cert' | 'unsure',
+): Promise<boolean> {
+  if (!isUuid(sessionId) || !isUuid(subjectId)) return false;
+  const { error } = await supabase.rpc('submit_belay_confirm', {
+    p_session_id: sessionId,
+    p_subject_id: subjectId,
+    p_value: value,
+  });
+  return !error;
+}
+
+/** Public verification statuses for a batch of real users (directory). */
+export async function fetchPublicVerifications(
+  ids: string[],
+): Promise<Record<string, Record<string, string>>> {
+  const uuids = ids.filter(isUuid);
+  if (uuids.length === 0) return {};
+  const { data, error } = await supabase.rpc('get_public_verifications', {
+    p_ids: uuids,
+  });
+  if (error || !Array.isArray(data)) return {};
+  const out: Record<string, Record<string, string>> = {};
+  for (const row of data as Array<{ id: string; verifications: unknown }>) {
+    if (row?.id && row.verifications && typeof row.verifications === 'object') {
+      out[row.id] = row.verifications as Record<string, string>;
+    }
+  }
+  return out;
+}
+
+/** Distinct partners who confirmed 'has_cert', per category, for one user. */
+export async function fetchBelayConfirmCounts(
+  userId: string,
+): Promise<Record<string, number>> {
+  if (!isUuid(userId)) return {};
+  const { data, error } = await supabase.rpc('get_belay_confirm_counts', {
+    p_subject: userId,
+  });
+  if (error || !data || typeof data !== 'object') return {};
+  return data as Record<string, number>;
+}
+
 /** going=true upserts a 'going' RSVP; going=false deletes the row. */
 export async function setSessionRsvp(
   sessionId: string,
