@@ -31,6 +31,8 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
   const cancelPairRequest = useAppStore((s) => s.cancelPairRequest);
   const addCruxMate = useAppStore((s) => s.addCruxMate);
   const sendMessage = useAppStore((s) => s.sendMessage);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [startOpen, setStartOpen] = useState(false);
 
   if (!call || !me) return null;
   const caller = resolveUser(call.user_id, me, users, directory);
@@ -41,8 +43,6 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
   const callerNpc = users.find((u) => u.id === call.user_id);
 
   const isRequested = pairRequests.includes(call.id);  const isFriend = cruxmates.includes(caller.id);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [startOpen, setStartOpen] = useState(false);
   const canStart = call.participant_ids.length >= 2 && call.status === 'live';
   const weightSafe = isWeightSafe(me.weight_kg, call.weight_kg);
   const isMyCall = caller.id === me.id;
