@@ -39,6 +39,7 @@ function catToVerification(cat: Session['category']): VerificationCategory | nul
 export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
   const rsvp = useAppStore((s) => s.rsvp);
   const unrsvp = useAppStore((s) => s.unrsvp);
+  const inviteCruxy = useAppStore((s) => s.inviteCruxy);
   const updateSession = useAppStore((s) => s.updateSession);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
@@ -219,6 +220,15 @@ export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
               ))}
             </div>
           </div>
+
+          {isHost && !session.participant_ids.includes('cruxy') && (
+            <button
+              onClick={() => inviteCruxy(session.id)}
+              className="mb-4 w-full rounded-xl border border-dashed border-brand-600/60 py-2.5 text-sm font-semibold text-brand-600"
+            >
+              🦊 Invite Cruxy — she auto-accepts
+            </button>
+          )}
 
           <Button
             variant={isJoined ? 'outline' : 'primary'}

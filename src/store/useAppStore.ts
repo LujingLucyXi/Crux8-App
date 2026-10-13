@@ -148,6 +148,11 @@ interface Store {
   recaps: Record<string, SessionRecap>;       // sessionId -> recap
   /** Manual start/finish stamps per session (see lib/sessionPhase rules). */
   sessionLifecycle: Record<string, { started_at?: string; finished_at?: string }>;
+  /** Session ids Cruxy (the demo cruxmate) has auto-accepted. Local overlay:
+   *  she has no Supabase account, so her membership is merged back in after
+   *  every sessions fetch. */
+  cruxySessions: string[];
+  inviteCruxy: (sessionId: string) => void;
   pairRequests: string[];               // callIds we've requested to pair on
   checkin: CheckIn | null;              // my current gym check-in
   gymPresence: Record<string, number>; // gymId -> people here now
@@ -481,6 +486,7 @@ export const useAppStore = create<Store>()(
       badges: [],
       recaps: {},
       sessionLifecycle: {},
+      cruxySessions: [],
       pairRequests: [],
       checkin: null,
       gymPresence: {},
@@ -539,10 +545,17 @@ export const useAppStore = create<Store>()(
       fetchSessions: async () => {
         set({ sessionsLoading: true });
         try {
-          // Sessions everyone has left (0 going) never surface anywhere.
-          const sessions = (await dbFetchSessions()).filter(
-            (s) => s.participant_ids.length > 0,
-          );
+          // Cruxy's memberships are a local overlay (no Supabase account) —
+          // merge them back in before the 0-person filter.
+          const cruxySessions = get().cruxySessions;
+          const sessions = (await dbFetchSessions())
+            .map((s) =>
+              cruxySessions.includes(s.id) && !s.participant_ids.includes('cruxy')
+                ? { ...s, participant_ids: [...s.participant_ids, 'cruxy'] }
+                : s,
+            )
+            // Sessions everyone has left (0 going) never surface anywhere.
+            .filter((s) => s.participant_ids.length > 0);
           set({ sessions });
           await get().ensureDirectoryProfiles(
             sessions.flatMap((s) => [s.host_id, ...s.participant_ids]),
@@ -807,6 +820,7 @@ export const useAppStore = create<Store>()(
           badges: [],
           recaps: {},
           sessionLifecycle: {},
+          cruxySessions: [],
           checkin: null,
           gymPresence: {},
           xp: 0,
@@ -1661,6 +1675,21 @@ export const useAppStore = create<Store>()(
         });
         get().addXp(XP.recap);
         get().checkBadges();
+      },
+
+      inviteCruxy: (sessionId) => {
+        const session = get().sessions.find((s) => s.id === sessionId);
+        if (!session || session.participant_ids.includes('cruxy')) return;
+        set({
+          cruxySessions: get().cruxySessions.includes(sessionId)
+            ? get().cruxySessions
+            : [...get().cruxySessions, sessionId],
+          sessions: get().sessions.map((s) =>
+            s.id === sessionId
+              ? { ...s, participant_ids: [...s.participant_ids, 'cruxy'] }
+              : s,
+          ),
+        });
       },
 
       startSession: (sessionId) => {

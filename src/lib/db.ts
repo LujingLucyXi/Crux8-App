@@ -431,7 +431,10 @@ export async function setCallPairing(
 
 /** Public profile directory entries for display names / photos. No-op on []. */
 export async function fetchDirectoryProfiles(ids: string[]): Promise<DirectoryProfile[]> {
-  const unique = uniq(ids);
+  // Directory ids are profile UUIDs — seed/demo ids (e.g. 'cruxy') resolve
+  // locally and must never reach the uuid-typed view (the cast would fail
+  // the whole batch).
+  const unique = uniq(ids).filter((id) => isUuid(id));
   if (unique.length === 0) return [];
   // directory_profiles is a security-definer view over public.profiles exposing
   // only the columns shown next to other users' names (weight/height stay private).
