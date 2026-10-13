@@ -1255,7 +1255,9 @@ export const useAppStore = create<Store>()(
             name: `${house.emoji} ${house.name} Hangout`,
             tagline: `${cityLabel} · auto-grouped by Climber DNA`,
             category: 'general',
-            member_count: 1,
+            // joinGroup below adds the creator — start empty so she isn't
+            // counted twice (member_count 1 + join increment = "2 members").
+            member_count: 0,
             cover_url: '',
             description:
               `Your house, your city. Everyone here got sorted into ${house.name} ` +
@@ -1263,7 +1265,7 @@ export const useAppStore = create<Store>()(
             admin_ids: [],
             recent_activity: 'Hangout created 🏠',
             owner_id: undefined,
-            member_ids: [me.id],
+            member_ids: [],
             join_policy: 'open',
             kind: 'house_hangout',
             house_id: houseId,

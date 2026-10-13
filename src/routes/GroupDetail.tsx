@@ -12,6 +12,7 @@ import { JoinGroupSheet } from '@/components/sheets/JoinGroupSheet';
 import { useAppStore } from '@/store/useAppStore';
 import type { Session, EventItem } from '@/seed/types';
 import type { AvatarConfig } from '@/lib/avatar';
+import { getHouse } from '@/lib/quizMeta';
 
 export function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -33,6 +34,12 @@ export function GroupDetail() {
   const [joinOpen, setJoinOpen] = useState(false);
 
   const group = groups.find((g) => g.id === groupId);
+  const detailHouse = group?.house_id ? getHouse(group.house_id) : undefined;
+  // House hangouts: show the deduped real roster size (see GroupCard note).
+  const detailMemberCount =
+    group?.kind === 'house_hangout' && group.member_ids?.length
+      ? new Set(group.member_ids).size
+      : (group?.member_count ?? 0);
   if (!group) {
     return (
       <div className="pt-10 text-center">
@@ -64,13 +71,27 @@ export function GroupDetail() {
     <div className="pb-4 -mx-4">
       <button
         onClick={() => nav('/community')}
-        className="absolute top-16 left-3 z-10 rounded-full bg-white/90 backdrop-blur border border-ink-100 p-2"
+        className="absolute top-16 left-3 z-10 rounded-full bg-black/50 backdrop-blur border border-white/25 p-2"
         aria-label="Back"
       >
-        <NavArrowLeft width={18} height={18} className="text-ink-900" />
+        <NavArrowLeft width={18} height={18} className="text-white" />
       </button>
 
-      <img src={group.cover_url} alt={group.name} className="w-full h-40 object-cover" />
+      {group.cover_url ? (
+        <img src={group.cover_url} alt="" className="w-full h-40 object-cover" />
+      ) : (
+        <div
+          className="flex h-40 w-full items-center justify-center"
+          style={{
+            background: detailHouse
+              ? `linear-gradient(120deg, ${detailHouse.color}66, #0B0B0D 78%)`
+              : 'linear-gradient(120deg, #8A6D2F, #0B0B0D 78%)',
+          }}
+          aria-hidden
+        >
+          <span className="text-6xl opacity-80">{detailHouse?.emoji ?? '🧗'}</span>
+        </div>
+      )}
 
       <div className="px-4 -mt-6 relative">
         <div className="rounded-2xl bg-paper-100 border border-ink-100 p-5">
@@ -86,7 +107,7 @@ export function GroupDetail() {
               <h1 className="text-xl font-semibold text-ink-900">{group.name}</h1>
               <p className="text-sm text-ink-500 mt-1">{group.tagline}</p>
               <p className="text-xs text-ink-500 mt-2">
-                {group.member_count.toLocaleString()} members · <span className="capitalize">{group.category}</span>
+                {detailMemberCount.toLocaleString()} members · <span className="capitalize">{group.category}</span>
                 {requestPolicy && <span> · request to join</span>}
               </p>
             </div>
