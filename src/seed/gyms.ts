@@ -19,7 +19,7 @@ export const SEED_GYMS: Gym[] = [
     short_name: 'Vertical World',
     address: '2330 W Commodore Way',
     city: 'Seattle, WA',
-    neighborhood: 'Interbay',
+    neighborhood: 'Magnolia',
     lat: 47.6609,
     lng: -122.3868,
     disciplines: ['top_rope', 'lead', 'boulder', 'autobelay'],
