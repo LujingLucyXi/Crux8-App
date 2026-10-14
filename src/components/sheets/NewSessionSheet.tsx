@@ -464,6 +464,20 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 ))}
               </div>
             </div>
+            {invitable.length > 0 && (
+              <div>
+                <Label>Invite cruxmates (optional)</Label>
+                <CruxmatePicker
+                  invitable={invitable}
+                  invited={inviteIds}
+                  selectMode
+                  onInvite={(id) => toggleInvite(id)}
+                />
+                <p className="mt-1.5 text-[11px] text-ink-400">
+                  Cruxy joins the moment you post. Others get an invite they can accept or deny.
+                </p>
+              </div>
+            )}
             <div>
               <Label>Style</Label>
               <div className="grid grid-cols-2 gap-2">
@@ -523,20 +537,6 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               </div>
             </div>
             {descriptionField(callNote, setCallNote)}
-            {invitable.length > 0 && (
-              <div>
-                <Label>Invite cruxmates (optional)</Label>
-                <CruxmatePicker
-                  invitable={invitable}
-                  invited={inviteIds}
-                  selectMode
-                  onInvite={(id) => toggleInvite(id)}
-                />
-                <p className="mt-1.5 text-[11px] text-ink-400">
-                  Cruxy joins the moment you post. Others get an invite DM with the link.
-                </p>
-              </div>
-            )}
             {!me?.weight_kg && (
               <div className="rounded-xl bg-gold-100 border border-gold-500/30 p-3 text-xs text-ink-700">
                 Add your weight in Profile to unlock <b>weight-safe</b> matching. It stays hidden from other users.
