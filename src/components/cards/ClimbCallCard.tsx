@@ -6,6 +6,7 @@ import { formatSessionWhen } from '@/lib/date';
 import { AvatarStack } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { ShareCallSheet } from '@/components/sheets/ShareCallSheet';
+import { StartSessionSheet } from '@/components/sheets/StartSessionSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { isWeightSafe } from '@/lib/weight';
 import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
@@ -47,6 +48,7 @@ export function ClimbCallCard({
   const pairRequests = useAppStore((s) => s.pairRequests);
   const cancelPairRequest = useAppStore((s) => s.cancelPairRequest);
   const [shareOpen, setShareOpen] = useState(false);
+  const [startOpen, setStartOpen] = useState(false);
 
   const style = categoryStyle[call.category];
   const { Icon } = style;
@@ -142,6 +144,14 @@ export function ClimbCallCard({
       )}
 
       {/* CTAs */}
+      {isMyCall && call.status === 'live' && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setStartOpen(true); }}
+          className="mt-3.5 w-full rounded-2xl bg-white text-[#161310] text-sm font-extrabold py-3 active:scale-[0.99] transition"
+        >
+          ▶ Start session
+        </button>
+      )}
       <div className="mt-3.5 flex gap-2">
         {isMyCall ? (
           <>
@@ -187,6 +197,9 @@ export function ClimbCallCard({
       </div>
       {isMyCall && (
         <ShareCallSheet call={call} open={shareOpen} onOpenChange={setShareOpen} />
+      )}
+      {isMyCall && (
+        <StartSessionSheet call={call} open={startOpen} onOpenChange={setStartOpen} />
       )}
     </article>
   );
