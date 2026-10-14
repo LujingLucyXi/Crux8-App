@@ -156,7 +156,7 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
         <div className="flex flex-col gap-2">
           {call.status === 'matched' ? (
             <p className="text-sm text-ink-500 text-center rounded-xl bg-paper-50 border border-ink-100 p-3">
-              🧗 You're on belay! This session is live under <b>Ongoing</b> in My climbs — climb on, have fun, send something good.
+              Chalk up — you're live! 🧗
             </p>
           ) : (
             <>
