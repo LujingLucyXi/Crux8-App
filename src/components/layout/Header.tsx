@@ -83,7 +83,7 @@ export function Header() {
         <SheetContent title="Menu">
           <div className="flex flex-col gap-1 mt-2">
             <button
-              className="text-left px-3 py-3 rounded-xl hover:bg-paper-50 text-ink-900 font-medium"
+              className="text-left px-3 py-2 rounded-xl hover:bg-paper-50 text-ink-900 font-medium"
               onClick={() => {
                 setMenuOpen(false);
                 setInfoKind('about');
@@ -92,7 +92,7 @@ export function Header() {
               About Crux8
             </button>
             <button
-              className="text-left px-3 py-3 rounded-xl hover:bg-paper-50 text-ink-900 font-medium"
+              className="text-left px-3 py-2 rounded-xl hover:bg-paper-50 text-ink-900 font-medium"
               onClick={() => {
                 setMenuOpen(false);
                 setInfoKind('trust');
@@ -101,7 +101,7 @@ export function Header() {
               Trust & safety
             </button>
             <button
-              className="text-left px-3 py-3 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold flex items-center gap-2"
+              className="text-left px-3 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 font-semibold flex items-center gap-2"
               onClick={() => {
                 setMenuOpen(false);
                 setFeedbackOpen(true);
