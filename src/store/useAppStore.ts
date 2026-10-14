@@ -646,7 +646,7 @@ export const useAppStore = create<Store>()(
           // Cruxy's memberships are a local overlay (no Supabase account) —
           // merge them back in before the 0-person filter.
           const cruxySessions = get().cruxySessions;
-          const sessions = (await dbFetchSessions())
+          const fetched = (await dbFetchSessions())
             .map((s) =>
               cruxySessions.includes(s.id) && !s.participant_ids.includes('cruxy')
                 ? { ...s, participant_ids: [...s.participant_ids, 'cruxy'] }
@@ -654,6 +654,28 @@ export const useAppStore = create<Store>()(
             )
             // Sessions everyone has left (0 going) never surface anywhere.
             .filter((s) => s.participant_ids.length > 0);
+          // Union-merge (same shield climb calls already had): a fetch
+          // must never delete a session I'M IN that's still in the fetch
+          // window — hosts watched their session vanish on refresh when
+          // the local copy and the server momentarily disagreed (account
+          // switches, cross-device creates, mid-flight races). Server rows
+          // win on fields; local-only copies where I'm a participant ride
+          // along. Sessions I left have me removed from participant_ids,
+          // so they can't resurrect through this path.
+          const meId = get().me?.id;
+          const fetchedIds = new Set(fetched.map((s) => s.id));
+          const cutoff = new Date(Date.now() - 7 * 86400_000).toISOString();
+          const localOnly = meId
+            ? get().sessions.filter(
+                (s) =>
+                  !fetchedIds.has(s.id) &&
+                  s.participant_ids.includes(meId) &&
+                  s.ends_at > cutoff,
+              )
+            : [];
+          const sessions = [...fetched, ...localOnly].sort((a, b) =>
+            a.starts_at.localeCompare(b.starts_at),
+          );
           set({ sessions });
           await get().ensureDirectoryProfiles(
             sessions.flatMap((s) => [s.host_id, ...s.participant_ids]),
@@ -946,6 +968,13 @@ export const useAppStore = create<Store>()(
         } else {
           await applySessionUser(sessionUser.id, sessionUser.email ?? '');
         }
+        // The server is the source of truth: pull fresh sessions + calls
+        // on EVERY launch, not only at first seed. Without this, a session
+        // created on another device — or lost to any local-state
+        // divergence — never lands here, and hosts watched sessions
+        // "disappear on refresh" while their rows sat safe server-side.
+        void get().fetchSessions();
+        void get().fetchClimbCalls();
         if (!initAuthSubscribed) {
           initAuthSubscribed = true;
           supabase.auth.onAuthStateChange(async (event, session) => {
@@ -962,6 +991,8 @@ export const useAppStore = create<Store>()(
               set({ me: null });
             } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
               await applySessionUser(session.user.id, session.user.email ?? '');
+              void get().fetchSessions();
+              void get().fetchClimbCalls();
             }
           });
         }
