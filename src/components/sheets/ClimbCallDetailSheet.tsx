@@ -154,45 +154,54 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
         )}
 
         <div className="flex flex-col gap-2">
-          {isMyCall ? (
-            <>
-              <p className="text-sm text-ink-500 text-center">This is your call — it's visible to others.</p>
-              <Button variant="outline" onClick={() => setEditing(true)}>
-                Edit call
-              </Button>
-              <Button variant="outline" onClick={() => setShareOpen(true)}>
-                Invite CruxMate
-              </Button>
-              <button
-                onClick={() => {
-                  void cancelClimbCall(call.id);
-                  toast('Call ended — no longer visible to others');
-                  onOpenChange(false);
-                }}
-                className="mt-1 text-sm font-semibold text-coral-500 py-1"
-              >
-                End call
-              </button>
-            </>
+          {call.status === 'matched' ? (
+            <p className="text-sm text-ink-500 text-center rounded-xl bg-paper-50 border border-ink-100 p-3">
+              ✓ Session started — it's live under <b>Ongoing</b> in My climbs. This call is closed.
+            </p>
           ) : (
-            <Button
-              variant={isRequested ? 'outline' : 'primary'}
-              className={isRequested ? '' : 'bg-teal-600 hover:bg-teal-500 border-teal-600'}
-              onClick={handleRequest}
-            >
-              {isRequested ? 'Cancel pair request' : 'Request to pair'}
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => setShareOpen(true)}>
-            <ShareIos width={16} height={16} /> Share
-          </Button>
-          {canStart && (
-            <Button
-              className="bg-teal-600 hover:bg-teal-500 border-teal-600"
-              onClick={() => setStartOpen(true)}
-            >
-              🧗 Start session
-            </Button>
+            <>
+              {canStart && (
+                <Button size="lg" onClick={() => setStartOpen(true)}>
+                  🧗 Start session
+                </Button>
+              )}
+              {isMyCall ? (
+                <>
+                  <p className="text-sm text-ink-500 text-center">
+                    {call.participant_ids.length >= 2
+                      ? "Your crew's here — start the session when you're at the gym."
+                      : 'Just you so far — start solo now, or invite cruxmates to fill it.'}
+                  </p>
+                  <Button variant="outline" onClick={() => setEditing(true)}>
+                    Edit call
+                  </Button>
+                  <Button variant="outline" onClick={() => setShareOpen(true)}>
+                    Invite CruxMate
+                  </Button>
+                  <button
+                    onClick={() => {
+                      void cancelClimbCall(call.id);
+                      toast('Call ended — no longer visible to others');
+                      onOpenChange(false);
+                    }}
+                    className="mt-1 text-sm font-semibold text-coral-500 py-1"
+                  >
+                    End call
+                  </button>
+                </>
+              ) : (
+                <Button
+                  variant={isRequested ? 'outline' : 'primary'}
+                  className={isRequested ? '' : 'bg-teal-600 hover:bg-teal-500 border-teal-600'}
+                  onClick={handleRequest}
+                >
+                  {isRequested ? 'Cancel pair request' : 'Request to pair'}
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setShareOpen(true)}>
+                <ShareIos width={16} height={16} /> Share
+              </Button>
+            </>
           )}
         </div>
         </>
