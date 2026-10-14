@@ -168,6 +168,7 @@ interface Store {
   /** Gyms I've suggested that aren't listed yet (kept locally as well). */
   gymSuggestions: { name: string; city?: string; note?: string; at: string }[];
   suggestGym: (name: string, city: string, note: string) => Promise<void>;
+  addLocalGym: (name: string, city: string, disciplines: Gym['disciplines']) => Gym;
   /** Sessions I've left. The server forgets my RSVP, so this local record
    *  is what keeps them in my Past history. */
   leftSessions: string[];
@@ -580,9 +581,14 @@ export const useAppStore = create<Store>()(
 
       syncSeedGyms: () => {
         const cur = get().gyms;
+        // User-suggested gyms (gym_local_*) live after the seed roster and
+        // must survive the re-sync — compare and rebuild the seed part only.
+        const isLocal = (g: Gym) => g.id.startsWith('gym_local_');
+        const locals = cur.filter(isLocal);
+        const persistedSeed = cur.filter((g) => !isLocal(g));
         const inSync =
-          cur.length === SEED_GYMS.length &&
-          cur.every((g, i) => {
+          persistedSeed.length === SEED_GYMS.length &&
+          persistedSeed.every((g, i) => {
             const s = SEED_GYMS[i];
             return (
               g.id === s.id && g.name === s.name && g.short_name === s.short_name
@@ -593,7 +599,7 @@ export const useAppStore = create<Store>()(
         for (const g of SEED_GYMS) {
           if (gymPresence[g.id] === undefined) gymPresence[g.id] = g.here_now;
         }
-        set({ gyms: SEED_GYMS, gymPresence });
+        set({ gyms: [...SEED_GYMS, ...locals], gymPresence });
       },
 
       /** Make sure every signed-in user has Cruxy's welcome thread. Idempotent. */
@@ -2131,6 +2137,30 @@ export const useAppStore = create<Store>()(
         // Remote insert is best-effort (table may not exist pre-migration);
         // the local copy above means the suggestion is never lost.
         await submitGymSuggestion(name, city, note);
+      },
+
+      // A suggested gym the user wants to use right now: appended to the
+      // local gym list (persisted; syncSeedGyms preserves gym_local_* ids)
+      // so it can be selected in the form immediately. Coords are unknown —
+      // nothing reads lat/lng for rendering today.
+      addLocalGym: (name, city, disciplines) => {
+        const gym: Gym = {
+          id: `gym_local_${Date.now().toString(36)}`,
+          name,
+          short_name: name,
+          address: '',
+          city: city || 'Seattle, WA',
+          neighborhood: 'Suggested by you',
+          lat: 0,
+          lng: 0,
+          disciplines,
+          here_now: 0,
+        };
+        set({
+          gyms: [...get().gyms, gym],
+          gymPresence: { ...get().gymPresence, [gym.id]: 0 },
+        });
+        return gym;
       },
 
       startSession: (sessionId) => {

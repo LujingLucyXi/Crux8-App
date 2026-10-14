@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input, Label, Textarea } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { useAppStore } from '@/store/useAppStore';
-import type { Category, EventType, LocationType, Vibe, ClimbCall, HikeType } from '@/seed/types';
+import type { EventType, Vibe, ClimbCall, HikeType, Gym } from '@/seed/types';
 import { plusHours, UNCAPPED_CAPACITY } from '@/seed/types';
 import { cn } from '@/lib/utils';
 import { gymsForCategory } from '@/lib/gymFilter';
@@ -19,15 +19,6 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   defaultGroupId?: string;
 }
-
-const CATEGORIES: { value: Category; label: string; loc: LocationType }[] = [
-  { value: 'top_rope', label: 'Top Rope', loc: 'indoor' },
-  { value: 'lead', label: 'Lead', loc: 'indoor' },
-  { value: 'boulder', label: 'Boulder', loc: 'indoor' },
-  { value: 'outdoor_sport', label: 'Outdoor Sport', loc: 'outdoor' },
-  { value: 'trad', label: 'Trad', loc: 'outdoor' },
-  { value: 'outdoor_boulder', label: 'Outdoor Boulder', loc: 'outdoor' },
-];
 
 const VIBES: Vibe[] = ['chill', 'projecting', 'training', 'social'];
 
@@ -100,11 +91,11 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const [callNote, setCallNote] = useState('');
 
   // Session state
-  const [category, setCategory] = useState<Category>('top_rope');
   const [sessionTitle, setSessionTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [gymId, setGymId] = useState<string>(me?.home_gym_id ?? gyms[0]?.id ?? '');
   const [suggestGymOpen, setSuggestGymOpen] = useState(false);
+  const [suggestFor, setSuggestFor] = useState<'call' | 'session'>('session');
   const [area, setArea] = useState<string>('Index');
   const [durationHours, setDurationHours] = useState(2);
   const [capacity, setCapacity] = useState(4);
@@ -122,16 +113,29 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const [evtDesc, setEvtDesc] = useState('');
   const [evtGroupId, setEvtGroupId] = useState<string>(defaultGroupId ?? '');
 
-  // Gym lists are category-scoped: a top-rope call/session lists only gyms
-  // with top-rope walls, lead only lead gyms, bouldering only boulder gyms.
+  // Gym lists are category-scoped: a top-rope call lists only gyms with
+  // top-rope walls, lead only lead gyms. The session form only ever posts
+  // boulder sessions (see handleSubmitSession), so its list is boulder-only.
+  // (It previously read a leftover `category` state that never left
+  // 'top_rope', which hid every boulder-only gym — SBP included.)
   const callGyms = useMemo(
     () => gymsForCategory(gyms, callCategory),
     [gyms, callCategory],
   );
   const sessionGyms = useMemo(
-    () => gymsForCategory(gyms, category),
-    [gyms, category],
+    () => gymsForCategory(gyms, 'boulder'),
+    [gyms],
   );
+
+  // A gym suggested from a form joins the local list carrying the
+  // discipline that form is posting, so it passes that form's gym filter
+  // and can be auto-selected into the form's gym field.
+  const suggestDisciplines: Gym['disciplines'] =
+    suggestFor === 'call'
+      ? callCategory === 'top_rope'
+        ? ['top_rope']
+        : ['lead']
+      : ['boulder'];
   useEffect(() => {
     if (mode === 'indoor' && discipline === 'hike') setDiscipline('belay');
   }, [mode, discipline]);
@@ -154,7 +158,6 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
   };
 
-  const catInfo = CATEGORIES.find((c) => c.value === category)!;
   const adminGroups = groups.filter((g) => g.admin_ids.includes(me?.id ?? ''));
 
   const reset = () => {
@@ -174,7 +177,6 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     setCallDurationHours(2);
     setCallCapacity(2);
     setCallNote('');
-    setCategory('top_rope');
     setSessionTitle('');
     setSubtitle('');
     setGymId(me?.home_gym_id ?? gyms[0]?.id ?? '');
@@ -296,7 +298,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     mode === 'event' ? 'Post an event' : discipline === 'belay' ? 'Drop a climb call' : discipline === 'hike' ? 'Post a hike' : 'Post a boulder session';
 
   // Shared location field — gym dropdown indoors, free-text crag outdoors.
-  const locationField = (gymValue: string, onGym: (v: string) => void, gymList = gyms) =>
+  const locationField = (gymValue: string, onGym: (v: string) => void, gymList = gyms, onSuggest?: () => void) =>
     mode === 'indoor' ? (
       <div>
         <Label>Gym</Label>
@@ -311,7 +313,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
         </select>
         <button
           type="button"
-          onClick={() => setSuggestGymOpen(true)}
+          onClick={onSuggest ?? (() => setSuggestGymOpen(true))}
           className="mt-1.5 text-xs font-semibold text-brand-600"
         >
           + Don't see your gym? Suggest it
@@ -512,7 +514,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               <Input value={callTitle} onChange={(e) => setCallTitle(e.target.value.slice(0, 48))} placeholder="e.g. Sunset lead sesh" />
             </div>
             {/* Roped calls list only gyms with that rope discipline */}
-            {locationField(callGymId, setCallGymId, callGyms)}
+            {locationField(callGymId, setCallGymId, callGyms, () => { setSuggestFor('call'); setSuggestGymOpen(true); })}
             {whenField()}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -616,7 +618,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 placeholder={discipline === 'hike' ? 'e.g. 6 mi · moderate · 1,800 ft gain' : "e.g. V3 – V6, or 'All levels welcome'"}
               />
             </div>
-            {locationField(gymId, setGymId, sessionGyms)}
+            {locationField(gymId, setGymId, sessionGyms, () => { setSuggestFor('session'); setSuggestGymOpen(true); })}
             {whenField()}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -712,7 +714,15 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
         )}
       </SheetContent>
     </Sheet>
-    <SuggestGymSheet open={suggestGymOpen} onOpenChange={setSuggestGymOpen} />
+    <SuggestGymSheet
+      open={suggestGymOpen}
+      onOpenChange={setSuggestGymOpen}
+      disciplines={suggestDisciplines}
+      onAdded={(id) => {
+        if (suggestFor === 'call') setCallGymId(id);
+        else setGymId(id);
+      }}
+    />
     </>
   );
 }

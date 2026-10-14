@@ -4,20 +4,31 @@ import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Input, Label } from '@/components/ui/Input';
 import { useAppStore } from '@/store/useAppStore';
+import type { Gym } from '@/seed/types';
 
 /**
  * "Don't see your gym?" — users suggest a gym that's missing from the
  * list. Suggestions are stored locally and (for signed-in users with real
  * uuid ids) inserted into the gym_suggestions table for review.
+ *
+ * When the caller passes `disciplines` + `onAdded`, the suggested gym is
+ * also added to the user's local gym list on the spot and `onAdded` fires
+ * with its id, so the form they were filling in gets the new gym filled
+ * in immediately instead of dead-ending at "we'll review it".
  */
 export function SuggestGymSheet({
   open,
   onOpenChange,
+  disciplines,
+  onAdded,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  disciplines?: Gym['disciplines'];
+  onAdded?: (gymId: string) => void;
 }) {
   const suggestGym = useAppStore((s) => s.suggestGym);
+  const addLocalGym = useAppStore((s) => s.addLocalGym);
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
   const [note, setNote] = useState('');
@@ -28,8 +39,14 @@ export function SuggestGymSheet({
     if (!n) return;
     setSending(true);
     await suggestGym(n, city.trim(), note.trim());
+    if (disciplines && onAdded) {
+      const gym = addLocalGym(n, city.trim(), disciplines);
+      onAdded(gym.id);
+      toast.success('Added — it\u2019s selected in your form.');
+    } else {
+      toast.success('Thanks! We\u2019ll review it and add it to the list.');
+    }
     setSending(false);
-    toast.success('Thanks! We\u2019ll review it and add it to the list.');
     setName('');
     setCity('');
     setNote('');
