@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import QRCode from 'react-qr-code';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/store/useAppStore';
@@ -92,14 +93,14 @@ export function ShareSessionSheet({ session, open, onOpenChange }: Props) {
         <h2 className="text-lg font-bold text-ink-900">{live ? 'Share live session' : 'Invite & share'}</h2>
         <p className="text-sm text-ink-500 mt-1">
           {live
-            ? "This session is live now. Post it to a crew chat or send the link — anyone with it can view the session. Joining closed when it started."
+            ? 'This session is live now. Anyone with the share — crew chat, link, QR code, or a direct invite — can view it and still join in.'
             : 'Invite a cruxmate directly, post it to a crew chat, or send the link — anyone with it can view the session and RSVP.'}
         </p>
         <Button className="mt-4 w-full" onClick={() => onOpenChange(false)}>
           ← Done — back to the session
         </Button>
 
-        {!live && invitable.length > 0 && (
+        {invitable.length > 0 && (
           <>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mt-5 mb-2">
               Invite a cruxmate
@@ -129,6 +130,18 @@ export function ShareSessionSheet({ session, open, onOpenChange }: Props) {
             </div>
           </>
         )}
+
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mt-5 mb-2">
+          Scan to join
+        </h3>
+        <div className="flex flex-col items-center gap-2">
+          <div className="rounded-2xl bg-[#F7F3EA] p-4">
+            <QRCode value={link} size={168} bgColor="#F7F3EA" fgColor="#161616" />
+          </div>
+          <p className="text-xs text-ink-500 text-center">
+            Show this at the gym — anyone who scans it lands on the session and can join.
+          </p>
+        </div>
 
         <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mt-5 mb-2">
           Share outside Crux8

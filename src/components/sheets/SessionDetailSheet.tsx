@@ -103,7 +103,10 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
   };
 
   const confirmRsvp = async () => {
-    await rsvp(session.id);
+    // Joining a LIVE session from here means the user arrived through a
+    // share (Find never lists live sessions to non-participants) — the
+    // store's viaShare exception lets them in.
+    await rsvp(session.id, { viaShare: phase === 'live' });
     void tapTick();
     toast(`You're in for ${session.title}`, { description: formatSessionWhen(session.starts_at) });
     onOpenChange(false); // close the detail sheet after joining
@@ -229,8 +232,8 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
           </div>
 
           {phase === 'live' && !isJoined ? (
-            <Button className="w-full" disabled>
-              Session already started — closed to new joins
+            <Button className="w-full" disabled={isFull} onClick={handleRsvp}>
+              {isFull ? 'Full' : "Join session — it's live now"}
             </Button>
           ) : (
             <Button

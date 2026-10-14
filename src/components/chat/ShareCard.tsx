@@ -135,14 +135,29 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
               <button disabled className="mt-2.5 w-full rounded-xl bg-ink-100 py-2 text-sm font-semibold text-ink-500">
                 Finished
               </button>
-            ) : started ? (
-              <button disabled className="mt-2.5 w-full rounded-xl bg-ink-100 py-2 text-sm font-semibold text-ink-500">
-                Already started — closed
-              </button>
             ) : full ? (
               <button disabled className="mt-2.5 w-full rounded-xl bg-ink-100 py-2 text-sm font-semibold text-ink-500">
                 Full
               </button>
+            ) : started ? (
+              gated ? (
+                <button
+                  onClick={() => setDetailOpen(true)}
+                  className={cn('mt-2.5 w-full rounded-xl bg-brand-600 py-2 text-sm font-bold text-[#161310]')}
+                >
+                  ● Live — view &amp; join
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    void rsvp(session.id, { viaShare: true });
+                    toast.success(`You're in for ${session.title}`);
+                  }}
+                  className="mt-2.5 w-full rounded-xl bg-brand-600 py-2 text-sm font-bold text-[#161310]"
+                >
+                  ● Join live session
+                </button>
+              )
             ) : gated ? (
               <button
                 onClick={() => setDetailOpen(true)}

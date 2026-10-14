@@ -228,7 +228,7 @@ interface Store {
   signOut: () => Promise<void>;
   resetAll: () => void;
 
-  rsvp: (sessionId: string) => Promise<void>;
+  rsvp: (sessionId: string, opts?: { viaShare?: boolean }) => Promise<void>;
   unrsvp: (sessionId: string) => Promise<void>;
   rsvpEvent: (eventId: string, waitlist?: boolean) => void;
   unrsvpEvent: (eventId: string) => void;
@@ -458,7 +458,10 @@ export function isInviteActionable(
   if (!session) return false;
   if (session.participant_ids.includes(s.me.id)) return false;
   const phase = sessionPhase(session, s.sessionLifecycle[session.id]);
-  return phase === 'upcoming';
+  // An invite is a share: it stays actionable while the session is
+  // upcoming AND while it's live (recipients can still get in via the
+  // invite). It dies only when the session finishes or lapses.
+  return phase === 'upcoming' || phase === 'live';
 }
 
 export function countActionableInvites(s: {
@@ -1019,14 +1022,17 @@ export const useAppStore = create<Store>()(
         });
       },
 
-      rsvp: async (sessionId) => {
+      rsvp: async (sessionId, opts) => {
         const me = get().me;
         if (!me) return;
-        // Started sessions are closed to new joins (backstop for every
-        // surface — cards, deep links, chat shares).
+        // Started sessions are closed to new joins from public surfaces
+        // (Find, browsing) — but a SHARE is an invitation: anyone holding
+        // the chat card, the link, or a personal invite can still get in
+        // while it's live. Callers on share surfaces pass viaShare.
         const target = get().sessions.find((s) => s.id === sessionId);
         if (
           target &&
+          !opts?.viaShare &&
           !target.participant_ids.includes(me.id) &&
           hasStarted(target, get().sessionLifecycle[sessionId])
         ) {
@@ -1851,7 +1857,7 @@ export const useAppStore = create<Store>()(
         // Join semantics match the share cards: a session invite accepts
         // via RSVP, a call invite via request-to-pair (host confirms by
         // the pairing going confirmed). The invite flips to accepted.
-        if (invite.kind === 'session') get().rsvp(invite.target_id);
+        if (invite.kind === 'session') get().rsvp(invite.target_id, { viaShare: true });
         else get().requestPair(invite.target_id);
         set({
           invites: get().invites.map((i) =>
