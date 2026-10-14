@@ -1479,6 +1479,9 @@ export const useAppStore = create<Store>()(
       },
 
       removeGroupAdmin: (groupId, userId) => {
+        const group = get().groups.find((g) => g.id === groupId);
+        // Cruxy is the default house-hangout admin — she keeps the role.
+        if (group?.kind === 'house_hangout' && userId === 'cruxy') return;
         set({
           groups: get().groups.map((g) =>
             g.id === groupId && g.owner_id !== userId
@@ -1529,6 +1532,15 @@ export const useAppStore = create<Store>()(
         let hangoutId: string;
         if (existing) {
           hangoutId = existing.id;
+          // Cruxy is the default admin of every house hangout — backfill
+          // hangouts created before she took the job.
+          if (!existing.admin_ids.includes('cruxy')) {
+            set({
+              groups: get().groups.map((g) =>
+                g.id === existing.id ? { ...g, admin_ids: ['cruxy', ...g.admin_ids] } : g,
+              ),
+            });
+          }
         } else {
           const cityLabel = cityShortLabel(me.location ?? 'greater-seattle');
           const hangout: Group = {
@@ -1543,7 +1555,8 @@ export const useAppStore = create<Store>()(
             description:
               `Your house, your city. Everyone here got sorted into ${house.name} ` +
               `by the Crux8 quiz. Say hi, find partners who match your vibe, and plan your first hangout.`,
-            admin_ids: [],
+            // Cruxy is the default admin of every house hangout.
+            admin_ids: ['cruxy'],
             recent_activity: 'Hangout created 🏠',
             owner_id: undefined,
             member_ids: [],
