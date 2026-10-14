@@ -17,6 +17,7 @@ import type {
   Vibe,
   LocationType,
   HikeType,
+  Invite,
 } from '@/seed/types';
 
 export interface DirectoryProfile {
@@ -508,4 +509,42 @@ export async function fetchDirectoryProfiles(ids: string[]): Promise<DirectoryPr
     .in('id', unique);
   if (error) throw new Error(`fetchDirectoryProfiles: ${error.message}`);
   return asRows<DirectoryProfile>(data);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Invites (public.invites): personal call/session invites that reach the
+// invitee's device. Create is an upsert (re-inviting resets to pending);
+// answers are status updates by the invitee.
+
+export async function createInviteRemote(
+  kind: 'call' | 'session',
+  targetId: string,
+  fromId: string,
+  toId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('invites')
+    .upsert(
+      { kind, target_id: targetId, from_id: fromId, to_id: toId, status: 'pending' },
+      { onConflict: 'kind,target_id,to_id' },
+    );
+  if (error) throw new Error(`createInviteRemote: ${error.message}`);
+}
+
+export async function fetchMyInvites(userId: string): Promise<Invite[]> {
+  const { data, error } = await supabase
+    .from('invites')
+    .select('id,kind,target_id,from_id,to_id,status,created_at')
+    .eq('to_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(`fetchMyInvites: ${error.message}`);
+  return asRows<Invite>(data);
+}
+
+export async function setInviteStatusRemote(
+  id: string,
+  status: 'accepted' | 'denied',
+): Promise<void> {
+  const { error } = await supabase.from('invites').update({ status }).eq('id', id);
+  if (error) throw new Error(`setInviteStatusRemote: ${error.message}`);
 }

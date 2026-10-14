@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChatBubble, Community } from 'iconoir-react';
 import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { useAppStore, dmKey, scKey } from '@/store/useAppStore';
+import { InvitesSection } from '@/components/chat/InvitesSection';
 import { formatChatTimestamp } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import type { AvatarConfig } from '@/lib/avatar';
@@ -13,6 +14,7 @@ export function Chat() {
   const chats = useAppStore((s) => s.chats);
   const sessionChats = useAppStore((s) => s.sessionChats);
   const chatReads = useAppStore((s) => s.chatReads);
+  const invites = useAppStore((s) => s.invites);
   const me = useAppStore((s) => s.me);
 
   const isThreadUnread = (key: string, last: { from: string; sent_at: string } | undefined) => {
@@ -29,7 +31,8 @@ export function Chat() {
       return bLast.localeCompare(aLast);
     });
 
-  const isEmpty = cruxmates.length === 0 && sessionChatList.length === 0;
+  const hasPendingInvites = invites.some((i) => i.status === 'pending');
+  const isEmpty = cruxmates.length === 0 && sessionChatList.length === 0 && !hasPendingInvites;
   if (isEmpty) {
     return (
       <div className="pt-16 flex flex-col items-center text-center">
@@ -95,6 +98,9 @@ export function Chat() {
   return (
     <div>
       <h1 className="text-2xl font-semibold text-ink-900 mb-4">Chats</h1>
+
+      {/* Invite inbox — accept / deny, or ignore until the climb ends */}
+      <InvitesSection />
 
       {/* Crew chats (group threads) */}
       {crewChatList.length > 0 && (

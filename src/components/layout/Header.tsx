@@ -1,7 +1,7 @@
 import { Menu, ChatBubbleEmpty } from 'iconoir-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppStore, countUnreadThreads } from '@/store/useAppStore';
+import { useAppStore, countUnreadThreads, countActionableInvites } from '@/store/useAppStore';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { InfoSheet } from '@/components/sheets/InfoSheet';
 import { FeedbackSheet } from '@/components/sheets/FeedbackSheet';
@@ -19,7 +19,7 @@ export function Header() {
   const resetAll = useAppStore((s) => s.resetAll);
   // Real per-thread unread: a thread counts only when its latest message is
   // incoming and arrived after I last opened it. Clears as I read each thread.
-  const unreadCount = useAppStore((s) =>
+  const unreadThreads = useAppStore((s) =>
     countUnreadThreads({
       cruxmates: s.cruxmates,
       chats: s.chats,
@@ -27,6 +27,18 @@ export function Header() {
       chatReads: s.chatReads,
     }),
   );
+  // Pending invites are notifications too — they ride the same badge and
+  // clear when answered or when the climb starts/ends.
+  const pendingInvites = useAppStore((s) =>
+    countActionableInvites({
+      me: s.me,
+      invites: s.invites,
+      sessions: s.sessions,
+      climbCalls: s.climbCalls,
+      sessionLifecycle: s.sessionLifecycle,
+    }),
+  );
+  const unreadCount = unreadThreads + pendingInvites;
 
   return (
     <>

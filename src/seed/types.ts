@@ -344,3 +344,16 @@ export const UNCAPPED_CAPACITY = 99;
 /** Display string for a session capacity: "6" or "10+". */
 export const formatCapacity = (capacity: number): string =>
   capacity >= UNCAPPED_CAPACITY ? '10+' : String(capacity);
+
+/** A personal invite to a climb call or session. Server-backed
+ *  (public.invites) so it reaches the invitee's own device; the invitee
+ *  can accept or deny at any time until the target ends, or ignore it. */
+export interface Invite {
+  id: string;
+  kind: 'call' | 'session';
+  target_id: string;
+  from_id: string;
+  to_id: string;
+  status: 'pending' | 'accepted' | 'denied';
+  created_at: string;
+}

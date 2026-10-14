@@ -21,6 +21,7 @@ import type {
   VerificationStatus,
   Style,
   CollectedCard,
+  Invite,
 } from '@/seed/types';
 import {
   SEED_GYMS,
@@ -66,13 +67,17 @@ import {
   fetchClimbCalls as dbFetchClimbCalls,
   createClimbCall as dbCreateClimbCall,
   updateClimbCallRemote,
+  createInviteRemote,
+  fetchMyInvites,
+  setInviteStatusRemote,
+  isUuid,
   type ClimbCallPatch,
   setCallPairing,
   fetchDirectoryProfiles,
   type DirectoryProfile,
 } from '@/lib/db';
 import { resolveUser } from '@/lib/resolveUser';
-import { hasStarted } from '@/lib/sessionPhase';
+import { hasStarted, sessionPhase, type SessionLifecycle } from '@/lib/sessionPhase';
 
 export type Verification = { status: VerificationStatus; photo_url?: string; verified_at?: string; attested_at?: string };
 
@@ -166,6 +171,11 @@ interface Store {
   /** Sessions I've left. The server forgets my RSVP, so this local record
    *  is what keeps them in my Past history. */
   leftSessions: string[];
+  /** Server-backed personal invites addressed to me (call/session). */
+  invites: Invite[];
+  fetchInvites: () => Promise<void>;
+  acceptInvite: (invite: Invite) => void;
+  denyInvite: (invite: Invite) => void;
   pairRequests: string[];               // callIds we've requested to pair on
   checkin: CheckIn | null;              // my current gym check-in
   gymPresence: Record<string, number>; // gymId -> people here now
@@ -421,6 +431,44 @@ export function countUnreadThreads(s: {
   return count;
 }
 
+/**
+ * An invite is ACTIONABLE while it's pending, its target still exists,
+ * the climb hasn't started/ended, and I'm not already in. Ignored
+ * invites stay actionable until the session/call ends — that's the
+ * point: decide later, it waits for you.
+ */
+export function isInviteActionable(
+  invite: Invite,
+  s: {
+    me: { id: string } | null;
+    sessions: Session[];
+    climbCalls: ClimbCall[];
+    sessionLifecycle: Record<string, SessionLifecycle>;
+  },
+): boolean {
+  if (invite.status !== 'pending' || !s.me) return false;
+  if (invite.kind === 'call') {
+    const call = s.climbCalls.find((c) => c.id === invite.target_id);
+    if (!call || call.status !== 'live') return false;
+    return !call.participant_ids.includes(s.me.id);
+  }
+  const session = s.sessions.find((x) => x.id === invite.target_id);
+  if (!session) return false;
+  if (session.participant_ids.includes(s.me.id)) return false;
+  const phase = sessionPhase(session, s.sessionLifecycle[session.id]);
+  return phase === 'upcoming';
+}
+
+export function countActionableInvites(s: {
+  me: { id: string } | null;
+  invites: Invite[];
+  sessions: Session[];
+  climbCalls: ClimbCall[];
+  sessionLifecycle: Record<string, SessionLifecycle>;
+}): number {
+  return s.invites.filter((i) => isInviteActionable(i, s)).length;
+}
+
 /** Short display label for a launch-city slug, e.g. 'greater-seattle' → 'Seattle'. */
 function cityShortLabel(slug: string): string {
   const map: Record<string, string> = {
@@ -512,6 +560,7 @@ export const useAppStore = create<Store>()(
       cruxyCalls: [],
       gymSuggestions: [],
       leftSessions: [],
+      invites: [],
       pairRequests: [],
       checkin: null,
       gymPresence: {},
@@ -582,6 +631,7 @@ export const useAppStore = create<Store>()(
         // Sessions and climb calls now come from Supabase (real backend).
         void get().fetchSessions();
         void get().fetchClimbCalls();
+        void get().fetchInvites();
         get().ensureCruxyThread();
       },
 
@@ -895,6 +945,7 @@ export const useAppStore = create<Store>()(
           cruxyCalls: [],
           gymSuggestions: [],
           leftSessions: [],
+          invites: [],
           checkin: null,
           gymPresence: {},
           xp: 0,
@@ -1651,6 +1702,12 @@ export const useAppStore = create<Store>()(
           `\nTap to view and request to pair: https://crux8.app/call/${call.id}`;
         for (const uid of userIds) {
           get().sendMessage(uid, text);
+          // Server-backed invite row for real accounts — this is what
+          // lands in their Invites inbox with Accept / Deny. Best-effort:
+          // pre-migration the table may not exist yet.
+          if (isUuid(uid) && get().me?.id) {
+            void createInviteRemote('call', callId, get().me!.id, uid).catch(() => {});
+          }
         }
       },
 
@@ -1695,7 +1752,46 @@ export const useAppStore = create<Store>()(
           `\nTap to view and RSVP: https://crux8.app/session/${session.id}`;
         for (const uid of userIds) {
           get().sendMessage(uid, text);
+          // Server-backed invite row for real accounts (see call invites).
+          if (isUuid(uid) && get().me?.id) {
+            void createInviteRemote('session', sessionId, get().me!.id, uid).catch(() => {});
+          }
         }
+      },
+
+      fetchInvites: async () => {
+        const me = get().me;
+        if (!me || !isUuid(me.id)) return;
+        try {
+          const rows = await fetchMyInvites(me.id);
+          set({ invites: rows });
+        } catch {
+          // Table may not exist until the invites migration runs — the
+          // inbox just stays empty; never break boot over it.
+        }
+      },
+
+      acceptInvite: (invite) => {
+        // Join semantics match the share cards: a session invite accepts
+        // via RSVP, a call invite via request-to-pair (host confirms by
+        // the pairing going confirmed). The invite flips to accepted.
+        if (invite.kind === 'session') get().rsvp(invite.target_id);
+        else get().requestPair(invite.target_id);
+        set({
+          invites: get().invites.map((i) =>
+            i.id === invite.id ? { ...i, status: 'accepted' as const } : i,
+          ),
+        });
+        void setInviteStatusRemote(invite.id, 'accepted').catch(() => {});
+      },
+
+      denyInvite: (invite) => {
+        set({
+          invites: get().invites.map((i) =>
+            i.id === invite.id ? { ...i, status: 'denied' as const } : i,
+          ),
+        });
+        void setInviteStatusRemote(invite.id, 'denied').catch(() => {});
       },
 
       markThreadRead: (key: string) => {
