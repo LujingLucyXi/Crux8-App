@@ -51,7 +51,11 @@ export function SheetContent({
         <DialogPrimitive.Description className="sr-only">Sheet content</DialogPrimitive.Description>
         <div
           className={cn(
-            'overflow-y-auto overscroll-contain px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]',
+            // flex-1 + min-h-0: without min-h-0 a flex child refuses to shrink
+            // below its content height, so overflow-y-auto never engages and
+            // tall content is CLIPPED by the container's overflow-hidden
+            // instead of scrolling (bit the header Menu: Sign out unreachable).
+            'flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]',
             hasHeader ? 'pt-4' : 'pt-5',
           )}
         >
