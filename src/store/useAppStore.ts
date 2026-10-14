@@ -235,6 +235,8 @@ interface Store {
   postEvent: (event: Omit<EventItem, 'id' | 'attendee_ids' | 'waitlist_ids'>) => EventItem;
   postClimbCall: (call: Omit<ClimbCall, 'id' | 'user_id' | 'status' | 'participant_ids'>) => Promise<ClimbCall>;
   updateClimbCall: (id: string, patch: ClimbCallPatch) => Promise<void>;
+  /** Host ends their own live call: it retires everywhere (status 'expired'). */
+  cancelClimbCall: (id: string) => Promise<void>;
   requestPair: (callId: string) => Promise<void>;
   cancelPairRequest: (callId: string) => Promise<void>;
 
@@ -1161,6 +1163,15 @@ export const useAppStore = create<Store>()(
         });
         // Remote persist for real calls; seed calls live locally only.
         await updateClimbCallRemote(id, patch);
+      },
+
+      cancelClimbCall: async (id) => {
+        set({
+          climbCalls: get().climbCalls.map((c) =>
+            c.id === id ? { ...c, status: 'expired' as const } : c,
+          ),
+        });
+        await updateClimbCallRemote(id, { status: 'expired' });
       },
 
       checkIn: (gymId) => {

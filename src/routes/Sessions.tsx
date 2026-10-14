@@ -67,6 +67,11 @@ export function Sessions() {
         .map((e) => ({ kind: 'event' as const, at: e.starts_at, data: e, end: e.ends_at })),
     ];
     const isPastSession = (i: Item) => {
+      if (i.kind === 'call') {
+        // An ended (cancelled) call is history right away, not at ends_at.
+        if ((i.data as ClimbCall).status === 'expired') return true;
+        return new Date(i.end).getTime() <= now;
+      }
       if (i.kind !== 'session') return new Date(i.end).getTime() <= now;
       const s = i.data as Session;
       // A session I left (and haven't rejoined) is history, even if it

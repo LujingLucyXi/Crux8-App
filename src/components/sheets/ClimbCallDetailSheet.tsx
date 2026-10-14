@@ -33,6 +33,7 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
   const requestPair = useAppStore((s) => s.requestPair);
   const cancelPairRequest = useAppStore((s) => s.cancelPairRequest);
   const addCruxMate = useAppStore((s) => s.addCruxMate);
+  const cancelClimbCall = useAppStore((s) => s.cancelClimbCall);
   const sendMessage = useAppStore((s) => s.sendMessage);
   const [shareOpen, setShareOpen] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
@@ -157,6 +158,16 @@ export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
               <Button variant="outline" onClick={() => setShareOpen(true)}>
                 Invite CruxMate
               </Button>
+              <button
+                onClick={() => {
+                  void cancelClimbCall(call.id);
+                  toast('Call ended — no longer visible to others');
+                  onOpenChange(false);
+                }}
+                className="mt-1 text-sm font-semibold text-coral-500 py-1"
+              >
+                End call
+              </button>
             </>
           ) : (
             <Button
