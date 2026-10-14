@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar } from 'iconoir-react';
 import { SessionCard } from '@/components/cards/SessionCard';
@@ -40,7 +40,8 @@ export function Sessions() {
   const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
   const sessionsLoading = useAppStore((s) => s.sessionsLoading);
 
-  const [view, setView] = useState<'upcoming' | 'past'>('upcoming');
+  const [view, setView] = useState<'ongoing' | 'upcoming' | 'past'>('upcoming');
+  const [viewTouched, setViewTouched] = useState(false);
   const [detailSession, setDetailSession] = useState<Session | null>(null);
   const [detailCall, setDetailCall] = useState<ClimbCall | null>(null);
   const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
@@ -48,13 +49,12 @@ export function Sessions() {
 
   const gymName = (id?: string) => gyms.find((g) => g.id === id)?.short_name;
 
-  const { upcoming, past } = useMemo(() => {
+  const { ongoing, upcoming, past } = useMemo(() => {
     const now = Date.now();
-    if (!me) return { upcoming: [] as Item[], past: [] as Item[] };
-    // Sessions partition by lifecycle phase, not the clock: upcoming/live
-    // stay in Upcoming until someone taps Finish; finished and lapsed
-    // (never started) sessions land in Past. Calls and events keep the
-    // clock-based split.
+    if (!me) return { ongoing: [] as Item[], upcoming: [] as Item[], past: [] as Item[] };
+    // Sessions partition by lifecycle phase, not the clock: live sessions
+    // get their own Ongoing bucket; finished and lapsed (never started)
+    // sessions land in Past. Calls and events keep the clock-based split.
     const sessionItems: Item[] = sessions
       .filter((s) => s.participant_ids.includes(me.id) || leftSessions.includes(s.id))
       .map((s) => ({ kind: 'session' as const, at: s.starts_at, data: s, end: s.ends_at }));
@@ -69,32 +69,44 @@ export function Sessions() {
         .filter((e) => e.attendee_ids.includes(me.id))
         .map((e) => ({ kind: 'event' as const, at: e.starts_at, data: e, end: e.ends_at })),
     ];
-    const isPastSession = (i: Item) => {
+    const bucket = (i: Item): 'ongoing' | 'upcoming' | 'past' => {
       if (i.kind === 'call') {
         // An ended (cancelled) call is history right away, not at ends_at.
-        if ((i.data as ClimbCall).status === 'expired') return true;
-        return new Date(i.end).getTime() <= now;
+        if ((i.data as ClimbCall).status === 'expired') return 'past';
+        return new Date(i.end).getTime() <= now ? 'past' : 'upcoming';
       }
-      if (i.kind !== 'session') return new Date(i.end).getTime() <= now;
+      if (i.kind !== 'session') return new Date(i.end).getTime() <= now ? 'past' : 'upcoming';
       const s = i.data as Session;
       // A session I left (and haven't rejoined) is history, even if it
       // hasn't happened yet — it's out of my Upcoming, kept in Past.
-      if (leftSessions.includes(s.id) && !s.participant_ids.includes(me.id)) return true;
+      if (leftSessions.includes(s.id) && !s.participant_ids.includes(me.id)) return 'past';
       const ph = sessionPhase(s, sessionLifecycle[s.id], now);
-      return ph === 'done' || ph === 'expired';
+      if (ph === 'live') return 'ongoing';
+      if (ph === 'done' || ph === 'expired') return 'past';
+      return 'upcoming';
     };
     const all = [...sessionItems, ...otherItems];
+    const on = all
+      .filter((i) => bucket(i) === 'ongoing')
+      .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
     const up = all
-      .filter((i) => !isPastSession(i))
+      .filter((i) => bucket(i) === 'upcoming')
       .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
     const pa = all
-      .filter((i) => isPastSession(i))
+      .filter((i) => bucket(i) === 'past')
       .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
-    return { upcoming: up, past: pa };
+    return { ongoing: on, upcoming: up, past: pa };
   }, [me, sessions, climbCalls, events, sessionLifecycle, leftSessions]);
 
+  // Land on Ongoing whenever something is live (until the user picks a
+  // tab themselves) — right after starting, the live session is the first
+  // thing you see, with End session one tap away.
+  useEffect(() => {
+    if (!viewTouched && ongoing.length > 0) setView('ongoing');
+  }, [ongoing.length, viewTouched]);
+
   if (!me) return null;
-  const list = view === 'upcoming' ? upcoming : past;
+  const list = view === 'ongoing' ? ongoing : view === 'past' ? past : upcoming;
 
   const renderItem = (it: Item) => {
     if (it.kind === 'session') {
@@ -111,6 +123,9 @@ export function Sessions() {
             groupName={grp?.name}
             onClick={() => setDetailSession(s)}
           />
+          {view === 'ongoing' && (
+            <p className="mt-2 text-center text-xs font-semibold text-coral-500">● Live now — open the session to end it</p>
+          )}
           {view === 'past' && phase === 'expired' && (
             <p className="mt-2 text-center text-xs text-ink-500">This session never started.</p>
           )}
@@ -155,17 +170,18 @@ export function Sessions() {
     <div className="pb-4">
       <h1 className="text-2xl font-semibold text-ink-900 mb-4">My climbs</h1>
 
-      {/* Upcoming / Past segmented */}
+      {/* Ongoing / Upcoming / Past segmented */}
       <div className="flex gap-1.5 mb-4">
         {(
           [
+            { v: 'ongoing', l: `● Ongoing · ${ongoing.length}` },
             { v: 'upcoming', l: `Upcoming · ${upcoming.length}` },
             { v: 'past', l: `Past · ${past.length}` },
           ] as const
         ).map((seg) => (
           <button
             key={seg.v}
-            onClick={() => setView(seg.v)}
+            onClick={() => { setViewTouched(true); setView(seg.v); }}
             className={cn(
               'flex-1 rounded-full border py-2.5 px-3 text-xs font-semibold transition-colors',
               view === seg.v ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-500 border-ink-100',
@@ -191,7 +207,11 @@ export function Sessions() {
         <div className="rounded-2xl bg-paper-100 border border-dashed border-ink-100 p-10 flex flex-col items-center text-center">
           <Calendar width={30} height={30} className="text-ink-300" />
           <p className="mt-3 text-sm text-ink-500">
-            {view === 'upcoming' ? 'Nothing booked yet.' : 'No past climbs yet.'}
+            {view === 'ongoing'
+              ? 'Nothing live right now. Sessions you start show up here.'
+              : view === 'upcoming'
+                ? 'Nothing booked yet.'
+                : 'No past climbs yet.'}
           </p>
           {view === 'upcoming' && (
             <button onClick={() => nav('/find')} className="mt-3 text-xs font-semibold text-teal-600">
