@@ -209,6 +209,8 @@ interface Store {
   // Real auth (Supabase email OTP). Replaces the old mock `signUp`.
   sendOtp: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   verifyOtp: (email: string, code: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** Wipe the previous account's on-device data when a DIFFERENT user signs in. */
+  prepareForUser: (userId: string) => void;
   // Email + password auth (alternative to OTP; same account system).
   signUpWithPassword: (
     email: string,
@@ -744,6 +746,62 @@ export const useAppStore = create<Store>()(
         return { ok: true as const };
       },
 
+      /**
+       * Account-switch guard: local state is per-DEVICE, so without this a
+       * second account signing in on the same phone inherits the first
+       * account's crews, chats, cruxmates and overlays. When the incoming
+       * user differs from the one whose data is on the device, wipe every
+       * user-scoped slice back to seed and reseed for the new account.
+       */
+      prepareForUser: (userId) => {
+        const prev = get().me;
+        if (!prev || prev.id === userId) return;
+        set({
+          sessions: [],
+          climbCalls: [],
+          events: [],
+          groups: [],
+          users: [],
+          directory: {},
+          directoryVerifications: {},
+          myConfirmCounts: {},
+          myGroupMemberships: [],
+          ticketPurchases: [],
+          ticketRedemptions: {},
+          mysteryMemberUntil: null,
+          cruxmates: [],
+          chats: {},
+          sessionChats: {},
+          chatReads: {},
+          pairRequests: [],
+          collectedCards: [],
+          lastCollectedCard: null,
+          verifications: initialVerifications,
+          gearChecklists: {},
+          badges: [],
+          recaps: {},
+          sessionLifecycle: {},
+          cruxySessions: [],
+          cruxyCalls: [],
+          gymSuggestions: [],
+          leftSessions: [],
+          invites: [],
+          checkin: null,
+          gymPresence: {},
+          xp: 0,
+          sends: [],
+          lastCheckinDay: null,
+          filters: initialFilters,
+          seededAt: null,
+        });
+        try {
+          localStorage.removeItem('crux8-onboarding-draft');
+        } catch {
+          /* storage unavailable */
+        }
+        get().seedIfEmpty();
+      },
+
       /** Email OTP login, step 2: verifies the 6-digit code and signs the user in. */
       verifyOtp: async (email, code) => {
         const normalizedEmail = email.trim().toLowerCase();
@@ -758,6 +816,7 @@ export const useAppStore = create<Store>()(
         const user = data.user;
         await ensureProfileRow(user.id, user.email);
         const row = await fetchMyProfile(user.id).catch(() => null);
+        get().prepareForUser(user.id);
         set({ me: profileRowToProfile(user.id, user.email ?? normalizedEmail, row) });
         get().ensureCruxyThread();
         return { ok: true as const };
@@ -802,6 +861,7 @@ export const useAppStore = create<Store>()(
         }
         await ensureProfileRow(user.id, user.email);
         const row = await fetchMyProfile(user.id).catch(() => null);
+        get().prepareForUser(user.id);
         set({ me: profileRowToProfile(user.id, user.email ?? normalizedEmail, row) });
         get().ensureCruxyThread();
         return { ok: true as const, needsConfirmation: false };
@@ -820,6 +880,7 @@ export const useAppStore = create<Store>()(
         const user = data.user;
         await ensureProfileRow(user.id, user.email);
         const row = await fetchMyProfile(user.id).catch(() => null);
+        get().prepareForUser(user.id);
         set({ me: profileRowToProfile(user.id, user.email ?? normalizedEmail, row) });
         get().ensureCruxyThread();
         return { ok: true as const };
@@ -849,7 +910,9 @@ export const useAppStore = create<Store>()(
        */
       initAuth: async () => {
         const applySessionUser = async (userId: string, email: string) => {
+          get().prepareForUser(userId);
           const row = await fetchMyProfile(userId).catch(() => null);
+          get().prepareForUser(userId);
           set({ me: profileRowToProfile(userId, email, row) });
           // Hydrate belay verification status from the profile row (the
           // server is the source of truth; it may have flipped a skill to
