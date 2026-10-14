@@ -13,9 +13,12 @@ interface Props {
   invitable: ResolvedUser[];
   invited: string[];
   onInvite: (userId: string, name: string) => void;
+  /** Select mode (creation forms): tapping toggles selection instead of
+   *  sending immediately; `invited` carries the selected ids. */
+  selectMode?: boolean;
 }
 
-export function CruxmatePicker({ invitable, invited, onInvite }: Props) {
+export function CruxmatePicker({ invitable, invited, onInvite, selectMode }: Props) {
   const [query, setQuery] = useState('');
   const showSearch = invitable.length > 8;
   const filtered = useMemo(() => {
@@ -53,10 +56,12 @@ export function CruxmatePicker({ invitable, invited, onInvite }: Props) {
               <p className="flex-1 text-sm font-medium text-ink-900 truncate">{u.display_name}</p>
               <button
                 onClick={() => onInvite(u.id, u.display_name)}
-                disabled={invited.includes(u.id)}
+                disabled={!selectMode && invited.includes(u.id)}
                 className="text-xs font-semibold text-teal-600 shrink-0 disabled:text-ink-400"
               >
-                {invited.includes(u.id) ? (u.id === 'cruxy' ? '✓ Joined' : '✓ Invited') : 'Invite'}
+                {selectMode
+                  ? (invited.includes(u.id) ? '✓ Added' : 'Add')
+                  : (invited.includes(u.id) ? (u.id === 'cruxy' ? '✓ Joined' : '✓ Invited') : 'Invite')}
               </button>
             </div>
           ))}

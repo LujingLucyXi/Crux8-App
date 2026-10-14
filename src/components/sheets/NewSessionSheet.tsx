@@ -10,6 +10,8 @@ import type { Category, EventType, LocationType, Vibe, ClimbCall, HikeType } fro
 import { plusHours, UNCAPPED_CAPACITY } from '@/seed/types';
 import { cn } from '@/lib/utils';
 import { gymsForCategory } from '@/lib/gymFilter';
+import { resolveUser } from '@/lib/resolveUser';
+import { CruxmatePicker } from './CruxmatePicker';
 import { SuggestGymSheet } from './SuggestGymSheet';
 
 interface Props {
@@ -57,6 +59,23 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const postSession = useAppStore((s) => s.postSession);
   const postEvent = useAppStore((s) => s.postEvent);
   const postClimbCall = useAppStore((s) => s.postClimbCall);
+  const cruxmates = useAppStore((s) => s.cruxmates);
+  const users = useAppStore((s) => s.users);
+  const directory = useAppStore((s) => s.directory);
+  const inviteCruxmatesToCall = useAppStore((s) => s.inviteCruxmatesToCall);
+  const inviteCruxyToCall = useAppStore((s) => s.inviteCruxyToCall);
+  const inviteCruxmatesToSession = useAppStore((s) => s.inviteCruxmatesToSession);
+  const inviteCruxy = useAppStore((s) => s.inviteCruxy);
+  // Cruxmates to invite the moment the call/session is created.
+  const [inviteIds, setInviteIds] = useState<string[]>([]);
+  const invitable = me
+    ? cruxmates
+        .filter((id) => id !== me.id)
+        .map((id) => resolveUser(id, me, users, directory))
+        .filter((u): u is NonNullable<typeof u> => !!u)
+    : [];
+  const toggleInvite = (id: string) =>
+    setInviteIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   // Taxonomy mirrors Find: INDOOR / OUTDOOR / EVENT, with BELAY / BOULDER
   // under the two climb modes. Belay => climb call, Boulder => session.
@@ -173,15 +192,17 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     setEvtCapacity(20);
     setEvtDesc('');
     setEvtGroupId('');
+    setInviteIds([]);
   };
 
   const handleSubmitCall = async () => {
     const startsAt = resolveStart();
     const isOutdoor = mode === 'outdoor';
+    let created: Awaited<ReturnType<typeof postClimbCall>>;
     try {
       // The store fills user_id from the signed-in user and seeds
       // participant_ids from it; the payload must NOT carry them.
-      await postClimbCall({
+      created = await postClimbCall({
         title: callTitle.trim() || undefined,
         looking_for: callLookingFor,
         category: callCategory,
@@ -200,6 +221,11 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
       toast("Couldn't post — check your connection and try again.");
       return;
     }
+    // Invites chosen in the form fire the moment the call exists: Cruxy
+    // joins on the spot; everyone else gets the invite DM.
+    if (inviteIds.includes('cruxy')) inviteCruxyToCall(created.id);
+    const humans = inviteIds.filter((id) => id !== 'cruxy');
+    if (humans.length > 0) inviteCruxmatesToCall(created.id, humans);
     toast('Climb call live', { description: `Belay partners can request to pair.` });
     onOpenChange(false);
     reset();
@@ -232,6 +258,10 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
         posted_by_group_id: defaultGroupId,
         note: note.trim() || undefined,
       });
+      // Invites chosen in the form fire the moment the session exists.
+      if (inviteIds.includes('cruxy')) inviteCruxy(session.id);
+      const humans = inviteIds.filter((id) => id !== 'cruxy');
+      if (humans.length > 0) inviteCruxmatesToSession(session.id, humans);
       toast('Session posted', {
         description: `${session.capacity >= UNCAPPED_CAPACITY ? 'Open invite' : `${session.capacity - 1} spots open`} · appears at the top of Find.`,
       });
@@ -493,6 +523,20 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               </div>
             </div>
             {descriptionField(callNote, setCallNote)}
+            {invitable.length > 0 && (
+              <div>
+                <Label>Invite cruxmates (optional)</Label>
+                <CruxmatePicker
+                  invitable={invitable}
+                  invited={inviteIds}
+                  selectMode
+                  onInvite={(id) => toggleInvite(id)}
+                />
+                <p className="mt-1.5 text-[11px] text-ink-400">
+                  Cruxy joins the moment you post. Others get an invite DM with the link.
+                </p>
+              </div>
+            )}
             {!me?.weight_kg && (
               <div className="rounded-xl bg-gold-100 border border-gold-500/30 p-3 text-xs text-ink-700">
                 Add your weight in Profile to unlock <b>weight-safe</b> matching. It stays hidden from other users.
@@ -600,6 +644,20 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               </RadioGroup.Root>
             </div>
             {descriptionField(note, setNote)}
+            {invitable.length > 0 && (
+              <div>
+                <Label>Invite cruxmates (optional)</Label>
+                <CruxmatePicker
+                  invitable={invitable}
+                  invited={inviteIds}
+                  selectMode
+                  onInvite={(id) => toggleInvite(id)}
+                />
+                <p className="mt-1.5 text-[11px] text-ink-400">
+                  Cruxy joins the moment you post. Others get an invite DM with the link.
+                </p>
+              </div>
+            )}
             <Button onClick={handleSubmitSession}>{discipline === 'hike' ? 'Post hike' : 'Post boulder session'}</Button>
           </div>
         )}
