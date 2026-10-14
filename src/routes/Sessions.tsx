@@ -60,6 +60,9 @@ export function Sessions() {
       .map((s) => ({ kind: 'session' as const, at: s.starts_at, data: s, end: s.ends_at }));
     const otherItems: Item[] = [
       ...climbCalls
+        // A matched call became a session — the session is the single
+        // entry for that climb now (no duplicate call + session cards).
+        .filter((c) => c.status !== 'matched')
         .filter((c) => c.participant_ids.includes(me.id))
         .map((c) => ({ kind: 'call' as const, at: c.starts_at, data: c, end: c.ends_at })),
       ...events

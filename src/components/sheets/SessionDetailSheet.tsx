@@ -37,10 +37,13 @@ function catToVerification(cat: Session['category']): VerificationCategory | nul
   return null;
 }
 
-export function SessionDetailSheet({ session, open, onOpenChange }: Props) {
+export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }: Props) {
   const rsvp = useAppStore((s) => s.rsvp);
   const unrsvp = useAppStore((s) => s.unrsvp);
   const updateSession = useAppStore((s) => s.updateSession);
+  // Render the LIVE store copy, not the parent's snapshot — participants
+  // and lifecycle stamps change while the sheet is open.
+  const session = useAppStore((s) => (sessionProp ? s.sessions.find((x) => x.id === sessionProp.id) : undefined)) ?? sessionProp;
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
   const directoryVerifications = useAppStore((s) => s.directoryVerifications);

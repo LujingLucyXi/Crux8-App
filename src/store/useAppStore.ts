@@ -622,14 +622,23 @@ export const useAppStore = create<Store>()(
           // fetch that omits a still-live, in-window local call must not
           // delete it — hosts watched their previous call vanish on every
           // refresh. Server rows win on fields; local-only live calls ride
-          // along until their window passes. (Locally-matched calls are
-          // not 'live', so started calls still retire correctly.)
+          // along until their window passes. One exception: a LOCAL
+          // retirement (matched/expired) always beats a fetched 'live' —
+          // the server update can lag or be blocked, and a started/ended
+          // call must never resurrect as live on this device.
+          const localById = new Map(get().climbCalls.map((c) => [c.id, c]));
+          const merged = fetched.map((c) => {
+            const local = localById.get(c.id);
+            return local && local.status !== 'live' && c.status === 'live'
+              ? { ...c, status: local.status }
+              : c;
+          });
           const fetchedIds = new Set(fetched.map((c) => c.id));
           const nowIso = new Date().toISOString();
           const localOnly = get().climbCalls.filter(
             (c) => !fetchedIds.has(c.id) && c.status === 'live' && c.ends_at > nowIso,
           );
-          const climbCalls = [...fetched, ...localOnly].sort((a, b) =>
+          const climbCalls = [...merged, ...localOnly].sort((a, b) =>
             a.starts_at.localeCompare(b.starts_at),
           );
           set({ climbCalls });

@@ -22,9 +22,14 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-export function ClimbCallDetailSheet({ call, open, onOpenChange }: Props) {
+export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Props) {
   const nav = useNavigate();
   const me = useAppStore((s) => s.me);
+  // Always render the LIVE store copy, not the snapshot the parent tapped:
+  // invites/pairings/status change while this sheet is open (e.g. inviting
+  // Cruxy from here, then starting) and a stale prop silently dropped her
+  // from the start sheet's who's-here list.
+  const call = useAppStore((s) => (callProp ? s.climbCalls.find((c) => c.id === callProp.id) : undefined)) ?? callProp;
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
   const gyms = useAppStore((s) => s.gyms);
