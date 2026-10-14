@@ -73,7 +73,8 @@ export function ClimbCallCard({
 
   return (
     <article
-      className="enamel overflow-hidden rounded-3xl p-4 text-white"
+      onClick={onViewCard}
+      className="enamel overflow-hidden rounded-3xl p-4 text-white cursor-pointer"
       style={{ backgroundImage: style.gradient }}
     >
       <div className="flex gap-3 items-start">
@@ -145,14 +146,14 @@ export function ClimbCallCard({
         {isMyCall ? (
           <>
             <button
-              onClick={() => setShareOpen(true)}
+              onClick={(e) => { e.stopPropagation(); setShareOpen(true); }}
               className="inline-flex items-center gap-1.5 rounded-2xl bg-white text-[#161310] text-xs font-bold px-4 py-2.5 active:scale-[0.97] transition"
             >
               <ShareIos width={13} height={13} />
               Share to fill it
             </button>
             <button
-              onClick={onViewCard}
+              onClick={(e) => { e.stopPropagation(); onViewCard(); }}
               className="rounded-2xl bg-white/15 ring-1 ring-white/30 text-white text-xs font-bold px-4 py-2.5 hover:bg-white/25 active:scale-[0.97] transition"
             >
               Details
@@ -165,18 +166,18 @@ export function ClimbCallCard({
           <>
             {isRequested ? (
               <button
-                onClick={() => cancelPairRequest(call.id)}
+                onClick={(e) => { e.stopPropagation(); cancelPairRequest(call.id); }}
                 className="rounded-2xl bg-white/15 ring-1 ring-white/40 text-white text-xs font-bold px-4 py-2.5 active:scale-[0.97] transition"
               >
                 Requested ✓
               </button>
             ) : (
-              <Button variant="punch" size="sm" disabled={isFull} onClick={onRequest}>
+              <Button variant="punch" size="sm" disabled={isFull} onClick={(e) => { e.stopPropagation(); onRequest(); }}>
                 {isFull ? 'Full' : 'Request to pair →'}
               </Button>
             )}
             <button
-              onClick={onViewCard}
+              onClick={(e) => { e.stopPropagation(); onViewCard(); }}
               className="rounded-2xl bg-white/15 ring-1 ring-white/30 text-white text-xs font-bold px-4 py-2.5 hover:bg-white/25 active:scale-[0.97] transition"
             >
               View card

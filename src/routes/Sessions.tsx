@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { resolveUser } from '@/lib/resolveUser';
-import { sessionPhase } from '@/lib/sessionPhase';
+import { sessionPhase, canStartSession } from '@/lib/sessionPhase';
+import { toast } from 'sonner';
 import type { Session, ClimbCall, EventItem } from '@/seed/types';
 
 type Item =
@@ -38,6 +39,8 @@ export function Sessions() {
   const groups = useAppStore((s) => s.groups);
   const recaps = useAppStore((s) => s.recaps);
   const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
+  const startSession = useAppStore((s) => s.startSession);
+  const finishSession = useAppStore((s) => s.finishSession);
   const sessionsLoading = useAppStore((s) => s.sessionsLoading);
 
   const [view, setView] = useState<'ongoing' | 'upcoming' | 'past'>('upcoming');
@@ -124,7 +127,34 @@ export function Sessions() {
             onClick={() => setDetailSession(s)}
           />
           {view === 'ongoing' && (
-            <p className="mt-2 text-center text-xs font-semibold text-coral-500">● Live now — open the session to end it</p>
+            <Button
+              className="mt-2 w-full"
+              onClick={() => {
+                finishSession(s.id);
+                setRecapSession(s);
+              }}
+            >
+              End session
+            </Button>
+          )}
+          {view === 'upcoming' && phase === 'upcoming' && (
+            <>
+              <Button
+                className="mt-2 w-full"
+                disabled={!canStartSession(s)}
+                onClick={() => {
+                  startSession(s.id);
+                  toast.success('Session started — find it under Ongoing 🧗');
+                }}
+              >
+                ▶ Start session
+              </Button>
+              {!canStartSession(s) && (
+                <p className="mt-1.5 text-center text-[11px] text-ink-500">
+                  Starting opens 30 min before the session
+                </p>
+              )}
+            </>
           )}
           {view === 'past' && phase === 'expired' && (
             <p className="mt-2 text-center text-xs text-ink-500">This session never started.</p>
