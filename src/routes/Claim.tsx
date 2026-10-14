@@ -209,6 +209,7 @@ export function Claim() {
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         title="Sign in"
+        initialTab="code"
       />
     </div>
   );

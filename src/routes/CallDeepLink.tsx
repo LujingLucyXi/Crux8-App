@@ -62,7 +62,7 @@ export function CallDeepLink() {
             </Button>
           </div>
         </div>
-        <AuthSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Sign in" />
+        <AuthSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Sign in" initialTab="code" />
       </div>
     );
   }

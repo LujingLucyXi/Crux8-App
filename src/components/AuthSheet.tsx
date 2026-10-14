@@ -134,13 +134,21 @@ export function AuthSheet({
         : await signInWithPassword(normalized, password);
     setBusy(false);
     if (!res.ok) {
-      setError(res.error);
-      // Already-registered email: point them at sign-in instead of leaving them
-      // staring at the signup form.
+      // Already-registered email: password sign-in can be a dead end here
+      // (accounts created via email code, e.g. quiz claim, have no password),
+      // so route them to the Email code tab with the address prefilled —
+      // that path works for every existing account.
       if ('code' in res && res.code === 'already_registered') {
         setPwMode('signin');
         setPassword('');
+        setEmail(normalized);
+        setTab('code');
+        setStep('email');
+        setError('');
+        setNotice('This email is already registered — sign in with a code instead, no password needed.');
+        return;
       }
+      setError(res.error);
       return;
     }
     if (pwMode === 'signup' && 'needsConfirmation' in res && res.needsConfirmation) {
