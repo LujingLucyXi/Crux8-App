@@ -23,6 +23,12 @@ import { Lab } from '@/routes/Lab';
 function RequireAuth() {
   const me = useAppStore((s) => s.me);
   if (!me) return <Navigate to="/" replace />;
+  // Orientation is mandatory for brand-new accounts no matter which
+  // door they came in — landing, quiz claim, or a shared call/session
+  // link all used to be able to skip it because the check only lived
+  // on '/'. onboarded === false happens only right after signup;
+  // returning users are true/undefined and pass straight through.
+  if (me.onboarded === false) return <Navigate to="/onboarding" replace />;
   return <Outlet />;
 }
 
