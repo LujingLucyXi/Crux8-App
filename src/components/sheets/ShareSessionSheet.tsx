@@ -5,6 +5,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { resolveUser } from '@/lib/resolveUser';
 import { CruxmatePicker } from '@/components/sheets/CruxmatePicker';
 import { toast } from 'sonner';
+import { hasStarted } from '@/lib/sessionPhase';
 import type { Session } from '@/seed/types';
 
 interface Props {
@@ -25,10 +26,15 @@ export function ShareSessionSheet({ session, open, onOpenChange }: Props) {
   const directory = useAppStore((s) => s.directory);
   const inviteCruxmatesToSession = useAppStore((s) => s.inviteCruxmatesToSession);
   const inviteCruxy = useAppStore((s) => s.inviteCruxy);
+  const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
   const [sharedTo, setSharedTo] = useState<string | null>(null);
   const [invited, setInvited] = useState<string[]>([]);
 
   if (!session) return null;
+  // An ONGOING session can be shared (crew chat + outside link) so people
+  // can follow along — but joining closed when it started, so the invite
+  // picker steps aside and the copy says so.
+  const live = hasStarted(session, sessionLifecycle[session.id]) && !session.finished_at;
   const link = `https://crux8.app/session/${session.id}`;
   const myGroups = groups.filter((g) => myGroupMemberships.includes(g.id));
   // Cruxmates who could still join: not me, and not already in the session.
@@ -71,7 +77,7 @@ export function ShareSessionSheet({ session, open, onOpenChange }: Props) {
   const handleNativeShare = async () => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Climb session on Crux8', text: 'Come climb with us?', url: link });
+        await navigator.share({ title: 'Climb session on Crux8', text: live ? "We're climbing now 🧗" : 'Come climb with us?', url: link });
       } catch {
         /* user dismissed */
       }
@@ -83,15 +89,17 @@ export function ShareSessionSheet({ session, open, onOpenChange }: Props) {
   return (
     <Sheet open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setSharedTo(null); setInvited([]); } }}>
       <SheetContent>
-        <h2 className="text-lg font-bold text-ink-900">Invite &amp; share</h2>
+        <h2 className="text-lg font-bold text-ink-900">{live ? 'Share live session' : 'Invite & share'}</h2>
         <p className="text-sm text-ink-500 mt-1">
-          Invite a cruxmate directly, post it to a crew chat, or send the link — anyone with it can view the session and RSVP.
+          {live
+            ? "This session is live now. Post it to a crew chat or send the link — anyone with it can view the session. Joining closed when it started."
+            : 'Invite a cruxmate directly, post it to a crew chat, or send the link — anyone with it can view the session and RSVP.'}
         </p>
         <Button className="mt-4 w-full" onClick={() => onOpenChange(false)}>
           ← Done — back to the session
         </Button>
 
-        {invitable.length > 0 && (
+        {!live && invitable.length > 0 && (
           <>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mt-5 mb-2">
               Invite a cruxmate

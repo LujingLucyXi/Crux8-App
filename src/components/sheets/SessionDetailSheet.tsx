@@ -243,12 +243,12 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
             </Button>
           )}
 
-          {!isPast && phase !== 'live' && (
+          {!isPast && (
             <button
               onClick={() => setShareOpen(true)}
               className="mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-ink-100 py-2.5 text-sm font-semibold text-ink-700"
             >
-              <ShareIos width={15} height={15} /> Invite CruxMate
+              <ShareIos width={15} height={15} /> {phase === 'live' ? 'Share live session' : 'Invite CruxMate'}
             </button>
           )}
 
