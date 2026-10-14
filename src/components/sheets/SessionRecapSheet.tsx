@@ -4,7 +4,7 @@ import { ShieldCheck, WarningTriangle, Calendar, MapPin, Check } from 'iconoir-r
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Input';
-import { Avatar } from '@/components/ui/Avatar';
+import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { useAppStore } from '@/store/useAppStore';
 import { REACTIONS } from '@/lib/reactions';
 import { formatSessionWhen } from '@/lib/date';
@@ -70,6 +70,11 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
   const [flagFor, setFlagFor] = useState<string | null>(null);
   const [flagReason, setFlagReason] = useState<PartnerFlag['reason']>('unsafe_belay');
   const [flagNote, setFlagNote] = useState('');
+  // After Done: the shareable finish card step.
+  const [showCard, setShowCard] = useState(false);
+  const groups = useAppStore((s) => s.groups);
+  const myGroupMemberships = useAppStore((s) => s.myGroupMemberships);
+  const shareSessionToGroup = useAppStore((s) => s.shareSessionToGroup);
 
   if (!session || !me) return null;
 
@@ -98,6 +103,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
     logSessionRecap(session.id);
     setFlagFor(null);
     setFlagNote('');
+    setShowCard(false);
     onOpenChange(false);
   };
 
@@ -110,6 +116,115 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
     setFlagFor(null);
     setFlagNote('');
   };
+
+  // ── Finish card step ──────────────────────────────────────────────────
+  // Tapping Done on the summary lands here: a Strava-style finisher card
+  // for the session, shareable to the crew chat, the system share sheet,
+  // or as a link.
+  if (showCard) {
+    const url = `https://crux8.app/session/${session.id}`;
+    const felt = FELT_OPTIONS.find((f) => f.v === recap?.felt);
+    const vibe = VIBE_OPTIONS.find((v) => v.v === recap?.vibe_pick);
+    const duration = DURATION_OPTIONS.find((d) => d.v === recap?.duration_bucket);
+    const crew = [me, ...partners].map((p) => ({
+      id: p.id,
+      display_name: p.id === me.id ? 'You' : p.display_name,
+      avatar: p.avatar,
+      photo_url: p.photo_url ?? undefined,
+    }));
+    const houseCrew =
+      groups.find((g) => g.id === session.posted_by_group_id) ??
+      groups.find((g) => g.kind === 'house_hangout' && myGroupMemberships.includes(g.id));
+    const shareText = `🧗 ${session.title} at ${gym?.short_name ?? session.area ?? 'the gym'} — ${partners.length + 1} climbed. Join us next time!`;
+    const doShare = async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'Crux8 session', text: shareText, url });
+          return;
+        } catch {
+          /* dismissed — fall through to copy */
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(`${shareText} ${url}`);
+        toast('Link copied — share it anywhere');
+      } catch {
+        toast('Copy this link', { description: url });
+      }
+    };
+    return (
+      <Sheet open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
+        <SheetContent title="Session complete">
+          <div
+            className="enamel overflow-hidden rounded-3xl p-5 text-white"
+            style={{ backgroundImage: 'linear-gradient(140deg, #7A5F24 0%, #B08D3E 100%)' }}
+          >
+            <p className="text-[10px] font-black tracking-[0.22em] text-white/85">SESSION COMPLETE</p>
+            <h3 className="mt-1.5 text-xl font-extrabold leading-tight">{session.title}</h3>
+            <p className="text-[13px] text-white/85 font-medium mt-0.5">
+              {gym?.name ?? session.area ?? 'Outdoors'} · {formatSessionWhen(session.starts_at)}
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              <AvatarStack users={crew} max={5} size={26} />
+              <span className="text-[12px] font-bold text-white">
+                {crew.length} climbed
+              </span>
+            </div>
+            {(felt || vibe || duration || sendsTotal > 0 || recap?.gym_rating) && (
+              <div className="mt-3.5 flex flex-wrap gap-1.5">
+                {felt && (
+                  <span className="rounded-full bg-white/20 ring-1 ring-white/25 px-2.5 py-1 text-[11px] font-bold">
+                    {felt.emoji} Felt {felt.label.toLowerCase()}
+                  </span>
+                )}
+                {vibe && (
+                  <span className="rounded-full bg-white/20 ring-1 ring-white/25 px-2.5 py-1 text-[11px] font-bold">
+                    {vibe.emoji} {vibe.label}
+                  </span>
+                )}
+                {duration && (
+                  <span className="rounded-full bg-white/20 ring-1 ring-white/25 px-2.5 py-1 text-[11px] font-bold">
+                    ⏱ {duration.label}
+                  </span>
+                )}
+                {sendsTotal > 0 && (
+                  <span className="rounded-full bg-white/20 ring-1 ring-white/25 px-2.5 py-1 text-[11px] font-bold">
+                    🎯 {sendsTotal} send{sendsTotal === 1 ? '' : 's'}
+                  </span>
+                )}
+                {recap?.gym_rating ? (
+                  <span className="rounded-full bg-white/20 ring-1 ring-white/25 px-2.5 py-1 text-[11px] font-bold">
+                    {'⭐'.repeat(recap.gym_rating)} {gym?.short_name ?? 'gym'}
+                  </span>
+                ) : null}
+              </div>
+            )}
+            <p className="mt-4 text-[10px] font-black tracking-[0.22em] text-white/70">
+              CRUX8 · CRUX8.APP
+            </p>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2">
+            <Button onClick={() => void doShare()}>Share…</Button>
+            {houseCrew && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  shareSessionToGroup(session.id, houseCrew.id);
+                  toast(`Posted to ${houseCrew.name} 💬`);
+                }}
+              >
+                Post to {houseCrew.name}
+              </Button>
+            )}
+            <Button variant="outline" onClick={close}>
+              Done
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <Sheet open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
@@ -452,7 +567,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
           </>
         )}
 
-        <Button className="w-full mt-6" onClick={close}>
+        <Button className="w-full mt-6" onClick={() => setShowCard(true)}>
           Done
         </Button>
       </SheetContent>
