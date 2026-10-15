@@ -12,8 +12,10 @@ import { normalizeInviteCode, isValidInviteCode } from '@/lib/inviteCode';
  * Add-cruxmates front door (2026-10-14 field report: the add action was
  * only reachable from a session roster's profile sheet — a host standing
  * next to a new friend in the gym had nowhere to add them). Searches the
- * people the app already knows (real profiles met in sessions + seed
- * climbers) by name. The session roster remains the primary add path.
+ * people the app already knows by name. 2026-10-15: the list covers only
+ * REAL directory users — seed (NPC) climbers are excluded so nobody can
+ * search for, add, or collect cards for mock people. The session roster
+ * remains the primary add path.
  */
 export function PeopleFinder() {
   const nav = useNavigate();
@@ -41,10 +43,9 @@ export function PeopleFinder() {
   };
 
   const people = useMemo<ResolvedUser[]>(() => {
-    const ids = new Set<string>([
-      ...users.map((u) => u.id),
-      ...Object.keys(directory),
-    ]);
+    // Directory-only: seed NPC climbers (users) are excluded so real users
+    // can never search for or add mock people.
+    const ids = new Set<string>(Object.keys(directory));
     const list: ResolvedUser[] = [];
     for (const id of ids) {
       if (id === me?.id) continue;
@@ -56,7 +57,7 @@ export function PeopleFinder() {
       ? list.filter((p) => p.display_name.toLowerCase().includes(term))
       : list.slice(0, 12);
     return filtered.sort((a, b) => a.display_name.localeCompare(b.display_name));
-  }, [users, directory, me, q]);
+  }, [directory, me, q]);
 
   return (
     <div className="mb-5">
