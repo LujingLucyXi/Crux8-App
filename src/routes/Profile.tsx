@@ -16,6 +16,7 @@ import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
 import { LogSendSheet } from '@/components/sheets/LogSendSheet';
 import { useAppStore, type BadgeId } from '@/store/useAppStore';
 import { InviteSection } from '@/components/InviteSection';
+import { PeopleFinder } from '@/components/PeopleFinder';
 import { normalizeInviteCode } from '@/lib/inviteCode';
 import { sessionPhase } from '@/lib/sessionPhase';
 import type { VerificationCategory } from '@/seed/types';
@@ -233,6 +234,14 @@ export function Profile() {
           <InviteSection code={normalizeInviteCode(me.invite_code)} displayName={me.display_name} />
         </section>
       ) : null}
+
+      {/* ── Add friends (same PeopleFinder as Community; 2026-10-15, Lucy's IA: Profile is the add-friend home, not a new tab) ── */}
+      <section className="mt-6">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
+          Add friends
+        </h2>
+        <PeopleFinder />
+      </section>
 
       {/* ── Climber DNA (from the quiz) ── */}
       {me.quiz_result_type && me.quiz_dna ? (
