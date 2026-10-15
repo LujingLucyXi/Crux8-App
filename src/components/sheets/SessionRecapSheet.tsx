@@ -12,14 +12,16 @@ import { formatSessionWhen } from '@/lib/date';
 import type { Session, PartnerFlag, SessionRecap, Vibe } from '@/seed/types';
 import { cn } from '@/lib/utils';
 import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
+import { SessionCardArtwork } from '@/components/SessionCardArtwork';
 import {
-  SessionCardArtwork,
-  type CardChip,
-  type CardCrewMember,
-} from '@/components/SessionCardArtwork';
+  buildSessionCardData,
+  vibeLabelFor,
+  type CardParticipant,
+} from '@/lib/cardData';
+import { normalizeInviteCode, isValidInviteCode } from '@/lib/inviteCode';
 import { ShareableCardFrame } from '@/components/ShareableCardFrame';
 import { shareCardImage } from '@/lib/shareCardImage';
-import { getSessionNumber, formatCardDate, initialsOf } from '@/lib/sessionCard';
+import { getSessionNumber } from '@/lib/sessionCard';
 
 interface Props {
   session: Session | null;
@@ -150,32 +152,56 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
     const felt = FELT_OPTIONS.find((f) => f.v === recap?.felt);
     const vibe = VIBE_OPTIONS.find((v) => v.v === recap?.vibe_pick);
     const duration = DURATION_OPTIONS.find((d) => d.v === recap?.duration_bucket);
-    const crew = [me, ...partners].map((p) => ({
-      id: p.id,
-      display_name: p.id === me.id ? 'You' : p.display_name,
-      real_name: p.display_name,
-      photo_url: p.photo_url ?? undefined,
-    }));
     const sessionNumber = getSessionNumber(sessions, me.id, session.id);
     const houseCrew =
       groups.find((g) => g.id === session.posted_by_group_id) ??
       groups.find((g) => g.kind === 'house_hangout' && myGroupMemberships.includes(g.id));
     const shareText = `🧗 ${session.title} at ${gym?.short_name ?? session.area ?? 'the gym'} — ${partners.length + 1} climbed. Join us next time!`;
-    const cardCrew: CardCrewMember[] = crew.map((p) => ({
-      id: p.id,
-      name: p.real_name,
-      photoUrl: photoOn ? p.photo_url : undefined,
-      initials: initialsOf(p.real_name),
-    }));
-    const chips: CardChip[] = [
-      ...(felt ? [{ label: `FELT ${felt.label.toUpperCase()}`, gold: true }] : []),
-      ...(vibe ? [{ label: vibe.label.toUpperCase() }] : []),
-      ...(duration ? [{ label: duration.label.toUpperCase() }] : []),
-      ...(sendsTotal > 0
-        ? [{ label: `${sendsTotal} SEND${sendsTotal === 1 ? '' : 'S'}` }]
-        : []),
-      ...(recap?.gym_rating ? [{ label: `GYM ★ ${recap.gym_rating}` }] : []),
-    ];
+    // v20 expedition-postmark card: one template per user from THEIR recap.
+    const inviteCode =
+      me.invite_code && isValidInviteCode(normalizeInviteCode(me.invite_code))
+        ? normalizeInviteCode(me.invite_code)
+        : null;
+    const cardData = buildSessionCardData({
+      sessionTitle: session.title,
+      startsAt: session.starts_at,
+      area: session.area,
+      ownerId: me.id,
+      participants: [me, ...partners].map((p): CardParticipant => {
+        const npc =
+          p.id === me.id
+            ? undefined
+            : users.find((u) => u.id === p.id);
+        return {
+          id: p.id,
+          displayName: p.display_name,
+          photoUrl: photoOn ? p.photo_url : null,
+          avatarConfig: p.avatar,
+          archetypeId:
+            p.id === me.id
+              ? me.quiz_result_type ?? null
+              : ((npc as { quiz_result_type?: string } | undefined)
+                  ?.quiz_result_type ?? null),
+        };
+      }),
+      recap: {
+        durationLabel: duration?.label,
+        feltLabel: felt?.label,
+        vibeLabel: vibe?.label,
+        note: recap?.note,
+      },
+      gym: gym
+        ? {
+            id: gym.id,
+            name: gym.name,
+            shortName: gym.short_name,
+            city: gym.city,
+            lat: (gym as { lat?: number }).lat,
+            lng: (gym as { lng?: number }).lng,
+          }
+        : null,
+      inviteCode,
+    });
     // Image-first share: the card as a PNG via navigator.share({files}),
     // download fallback, and the deep link stays as the invite mechanism.
     const shareCard = async () => {
@@ -223,19 +249,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
       <Sheet open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
         <SheetContent title="Session complete">
           <ShareableCardFrame nodeRef={artRef}>
-            <SessionCardArtwork
-              data={{
-                number: sessionNumber,
-                dateLabel: formatCardDate(session.starts_at),
-                headlineA: 'Session',
-                headlineB: 'complete.',
-                crew: cardCrew,
-                crewLine: `${crew.length} climbed together`,
-                crewSub: 'Crew showed up. That is the whole point.',
-                chips,
-                gymLine: (gym?.name ?? session.area ?? 'Outdoors').toUpperCase(),
-              }}
-            />
+            <SessionCardArtwork data={cardData} />
           </ShareableCardFrame>
 
           <div className="mt-4 flex flex-col gap-2">
@@ -426,6 +440,21 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
               );
             })}
           </div>
+
+          {/* One line for your card — prints on YOUR share card in your hand */}
+          <p className="text-[11px] font-semibold text-ink-700 mb-1.5">
+            One line for your card{' '}
+            <span className="font-normal text-ink-400">(optional)</span>
+          </p>
+          <input
+            value={recap?.note ?? ''}
+            maxLength={90}
+            onChange={(e) =>
+              setRecapSummary(session.id, { note: e.target.value || undefined })
+            }
+            placeholder="e.g. So close on the blue crimp. Next time."
+            className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-300 mb-4"
+          />
 
           {/* Sends logger — per grade */}
           <p className="text-[11px] font-semibold text-ink-700 mb-1.5">

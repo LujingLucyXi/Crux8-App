@@ -349,7 +349,7 @@ interface Store {
   setRecapSummary: (
     sessionId: string,
     patch: Partial<
-      Pick<SessionRecap, 'felt' | 'vibe_pick' | 'duration_bucket' | 'sends_count' | 'sends_log' | 'gym_rating'>
+      Pick<SessionRecap, 'felt' | 'vibe_pick' | 'duration_bucket' | 'sends_count' | 'sends_log' | 'gym_rating' | 'note'>
     >,
   ) => void;
 
