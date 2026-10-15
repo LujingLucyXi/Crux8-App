@@ -100,13 +100,24 @@ export function ShareSessionSheet({ session, open, onOpenChange }: Props) {
           ← Done — back to the session
         </Button>
 
-        {invitable.length > 0 && (
+        {invitable.length > 0 ? (
           <>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mt-5 mb-2">
               Invite a cruxmate
             </h3>
             <CruxmatePicker invitable={invitable} invited={invited} onInvite={handleInvite} />
           </>
+        ) : (
+          // No cruxmates yet: the link + QR below ARE the invite path.
+          // Anyone who scans lands on the session roster, where the host
+          // can add them as a cruxmate (front door, 2026-10-14).
+          <div className="rounded-2xl border border-dashed border-ink-100 bg-paper-100 p-4 mt-5">
+            <p className="text-sm font-semibold text-ink-900">No cruxmates yet — your first crew starts at the gym</p>
+            <p className="mt-1 text-xs text-ink-500">
+              Show the QR code below. Anyone who scans it lands on this session's roster,
+              where you can add them as a cruxmate.
+            </p>
+          </div>
         )}
 
         {myGroups.length > 0 && (

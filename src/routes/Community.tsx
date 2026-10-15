@@ -1,4 +1,5 @@
 import { CrewsBrowser } from '@/components/crews/CrewsBrowser';
+import { PeopleFinder } from '@/components/PeopleFinder';
 
 /**
  * Standalone /community route. Kept reachable so deep links + Home's
@@ -9,6 +10,7 @@ export function Community() {
   return (
     <div className="pb-4">
       <h1 className="text-2xl font-semibold text-ink-900 mb-4">Crews</h1>
+      <PeopleFinder />
       <CrewsBrowser />
     </div>
   );
