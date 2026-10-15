@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ShieldCheck, EyeClosed } from 'iconoir-react';
@@ -15,6 +15,8 @@ import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
 import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
 import { LogSendSheet } from '@/components/sheets/LogSendSheet';
 import { useAppStore, type BadgeId } from '@/store/useAppStore';
+import { InviteSection } from '@/components/InviteSection';
+import { normalizeInviteCode } from '@/lib/inviteCode';
 import { sessionPhase } from '@/lib/sessionPhase';
 import type { VerificationCategory } from '@/seed/types';
 import { cn } from '@/lib/utils';
@@ -65,6 +67,13 @@ export function Profile() {
   const xp = useAppStore((s) => s.xp);
   const sends = useAppStore((s) => s.sends);
   const updateProfile = useAppStore((s) => s.updateProfile);
+  const ensureInviteCode = useAppStore((s) => s.ensureInviteCode);
+
+  // Personal invite code — generated once, persisted on the profile.
+  useEffect(() => {
+    ensureInviteCode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [logSendOpen, setLogSendOpen] = useState(false);
   const [certOpen, setCertOpen] = useState(false);
@@ -214,6 +223,16 @@ export function Profile() {
           </Button>
         </div>
       </div>
+
+      {/* ── My invite (personal add link + QR, 2026-10-15) ── */}
+      {me.invite_code ? (
+        <section className="mt-6">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
+            My invite
+          </h2>
+          <InviteSection code={normalizeInviteCode(me.invite_code)} displayName={me.display_name} />
+        </section>
+      ) : null}
 
       {/* ── Climber DNA (from the quiz) ── */}
       {me.quiz_result_type && me.quiz_dna ? (

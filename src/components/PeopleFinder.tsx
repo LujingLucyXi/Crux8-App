@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search } from 'iconoir-react';
 import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAppStore } from '@/store/useAppStore';
 import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
+import { normalizeInviteCode, isValidInviteCode } from '@/lib/inviteCode';
 
 /**
  * Add-cruxmates front door (2026-10-14 field report: the add action was
@@ -13,12 +16,29 @@ import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
  * climbers) by name. The session roster remains the primary add path.
  */
 export function PeopleFinder() {
+  const nav = useNavigate();
   const me = useAppStore((s) => s.me);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
   const cruxmates = useAppStore((s) => s.cruxmates);
   const addCruxMate = useAppStore((s) => s.addCruxMate);
   const [q, setQ] = useState('');
+  const [codeInput, setCodeInput] = useState('');
+  const [codeHint, setCodeHint] = useState<string | null>(null);
+
+  const submitCode = () => {
+    const code = normalizeInviteCode(codeInput);
+    if (!code) {
+      setCodeHint(null);
+      return;
+    }
+    if (!isValidInviteCode(code)) {
+      setCodeHint('Codes look like LUCY-8K42 — check it and try again.');
+      return;
+    }
+    setCodeHint(null);
+    nav(`/add/${code}`);
+  };
 
   const people = useMemo<ResolvedUser[]>(() => {
     const ids = new Set<string>([
@@ -53,6 +73,29 @@ export function PeopleFinder() {
           placeholder="Search by name"
           className="pl-10"
         />
+      </div>
+      {/* Invite code entry (2026-10-15): type a code from someone's card → their add page */}
+      <div className="mt-3 rounded-2xl border border-dashed border-ink-100 bg-paper-100 p-3">
+        <p className="text-xs font-semibold text-ink-700">Have an invite code?</p>
+        <div className="mt-2 flex gap-2">
+          <Input
+            value={codeInput}
+            onChange={(e) => {
+              setCodeInput(e.target.value.toUpperCase());
+              setCodeHint(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitCode();
+            }}
+            placeholder="LUCY-8K42"
+            className="font-mono uppercase"
+            aria-label="Invite code"
+          />
+          <Button variant="outline" className="shrink-0" onClick={submitCode}>
+            Add
+          </Button>
+        </div>
+        {codeHint && <p className="mt-1.5 text-xs text-coral-600">{codeHint}</p>}
       </div>
       {people.length === 0 ? (
         <p className="mt-3 text-sm text-ink-500">
