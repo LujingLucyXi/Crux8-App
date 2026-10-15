@@ -54,6 +54,7 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
   const lifecycle = useAppStore((s) => (session ? s.sessionLifecycle[session.id] : undefined));
   const startSession = useAppStore((s) => s.startSession);
   const finishSession = useAppStore((s) => s.finishSession);
+  const recaps = useAppStore((s) => s.recaps);
 
   const [gearOpen, setGearOpen] = useState(false);
   const [certOpen, setCertOpen] = useState(false);
@@ -231,7 +232,16 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
             </div>
           </div>
 
-          {phase === 'live' && !isJoined ? (
+          {phase === 'done' ? (
+            // Lucy's rule (2026-10-14, item 9): end is end. A finished
+            // session never presents as something you're still in — no
+            // RSVP, no Leave session. It lives in Past + recap prompts.
+            !recaps[session.id] && (
+              <Button className="w-full" onClick={() => setRecapOpen(true)}>
+                📓 Log recap · give props
+              </Button>
+            )
+          ) : phase === 'live' && !isJoined ? (
             <Button className="w-full" disabled={isFull} onClick={handleRsvp}>
               {isFull ? 'Full' : "Join session — it's live now"}
             </Button>
