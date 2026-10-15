@@ -36,7 +36,7 @@ export interface ProfileRow {
   weight_kg?: number | null;
   height_cm?: number | null;
   onboarded?: boolean | null;
-  /** Personal invite code (e.g. LUCY-8K42). Present after the 2026-10-15-invite-code migration. */
+  /** Personal invite code (e.g. CLIMB-8K42). Present after the 2026-10-15-invite-code migration. */
   invite_code?: string | null;
   /** Public belay verification statuses: {top_rope: 'self_attested'|'verified', ...} */
   verifications?: Record<string, string> | null;

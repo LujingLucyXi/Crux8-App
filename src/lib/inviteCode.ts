@@ -2,7 +2,7 @@
  * Personal invite codes — the "add me" identity behind
  * crux8.app/add/:code and the code printed on the share card.
  *
- * Format: PREFIX-XXXX, e.g. LUCY-8K42.
+ * Format: PREFIX-XXXX, e.g. CLIMB-8K42.
  * - PREFIX: first word of the display name, letters only, uppercase,
  *   max 6 chars ('CLIMBER' when nothing usable remains).
  * - XXXX: 4 chars from an unambiguous alphabet — no 0/O, 1/I/L.

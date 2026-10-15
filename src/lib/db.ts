@@ -512,7 +512,7 @@ export async function fetchDirectoryProfiles(ids: string[]): Promise<DirectoryPr
 }
 
 /**
- * Resolve a personal invite code (e.g. LUCY-8K42) to a public profile.
+ * Resolve a personal invite code (e.g. CLIMB-8K42) to a public profile.
  *
  * Best-effort by design: the `invite_code` column exists on `profiles`
  * (and the directory_profiles view) only after the 2026-10-15-invite-code

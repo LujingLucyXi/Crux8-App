@@ -33,7 +33,7 @@ export function PeopleFinder() {
       return;
     }
     if (!isValidInviteCode(code)) {
-      setCodeHint('Codes look like LUCY-8K42 — check it and try again.');
+      setCodeHint('Codes look like CLIMB-8K42 — check it and try again.');
       return;
     }
     setCodeHint(null);
@@ -87,7 +87,7 @@ export function PeopleFinder() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') submitCode();
             }}
-            placeholder="LUCY-8K42"
+            placeholder="CLIMB-8K42"
             className="font-mono uppercase"
             aria-label="Invite code"
           />

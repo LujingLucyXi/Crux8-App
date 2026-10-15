@@ -25,7 +25,7 @@ interface AddTarget {
 }
 
 /**
- * Personal add-friend deep link: /add/:code (e.g. /add/LUCY-8K42)
+ * Personal add-friend deep link: /add/:code (e.g. /add/CLIMB-8K42)
  * - Logged in → the person's card with one primary action.
  * - Logged out → guest name form or email sign-in first, then this page.
  * - Unknown code → friendly dead-end.
@@ -216,7 +216,7 @@ export function AddDeepLink() {
         <p className="text-3xl">🧭</p>
         <h2 className="mt-3 text-xl font-semibold text-ink-900">That code didn't lead anywhere</h2>
         <p className="mt-2 text-sm text-ink-500">
-          Invite codes look like <span className="font-mono font-semibold">LUCY-8K42</span> —
+          Invite codes look like <span className="font-mono font-semibold">CLIMB-8K42</span> —
           check it with the person who shared it, or find people in Community.
         </p>
         <Button className="mt-6 w-full" onClick={() => nav('/community')}>
