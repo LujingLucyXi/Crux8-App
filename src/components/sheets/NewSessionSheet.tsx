@@ -466,20 +466,29 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 ))}
               </div>
             </div>
-            {invitable.length > 0 && (
               <div>
                 <Label>Invite cruxmates (optional)</Label>
-                <CruxmatePicker
-                  invitable={invitable}
-                  invited={inviteIds}
-                  selectMode
-                  onInvite={(id) => toggleInvite(id)}
-                />
-                <p className="mt-1.5 text-[11px] text-ink-400">
-                  Cruxy joins the moment you post. Others get an invite they can accept or deny.
-                </p>
+                {invitable.length > 0 ? (
+                  <>
+                    <CruxmatePicker
+                      invitable={invitable}
+                      invited={inviteIds}
+                      selectMode
+                      onInvite={(id) => toggleInvite(id)}
+                    />
+                    <p className="mt-1.5 text-[11px] text-ink-400">
+                      Cruxy joins the moment you post. Others get an invite they can accept or deny.
+                    </p>
+                  </>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-ink-100 bg-paper-100 p-4">
+                    <p className="text-sm font-semibold text-ink-900">No cruxmates yet — invite them once it's posted</p>
+                    <p className="mt-1 text-xs text-ink-500">
+                      Every posted session gets a share link + QR code, and anyone can add you with your invite code.
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
             <div>
               <Label>Style</Label>
               <div className="grid grid-cols-2 gap-2">
@@ -646,20 +655,29 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               </RadioGroup.Root>
             </div>
             {descriptionField(note, setNote)}
-            {invitable.length > 0 && (
               <div>
                 <Label>Invite cruxmates (optional)</Label>
-                <CruxmatePicker
-                  invitable={invitable}
-                  invited={inviteIds}
-                  selectMode
-                  onInvite={(id) => toggleInvite(id)}
-                />
-                <p className="mt-1.5 text-[11px] text-ink-400">
-                  Cruxy joins the moment you post. Others get an invite DM with the link.
-                </p>
+                {invitable.length > 0 ? (
+                  <>
+                    <CruxmatePicker
+                      invitable={invitable}
+                      invited={inviteIds}
+                      selectMode
+                      onInvite={(id) => toggleInvite(id)}
+                    />
+                    <p className="mt-1.5 text-[11px] text-ink-400">
+                      Cruxy joins the moment you post. Others get an invite DM with the link.
+                    </p>
+                  </>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-ink-100 bg-paper-100 p-4">
+                    <p className="text-sm font-semibold text-ink-900">No cruxmates yet — invite them once it's posted</p>
+                    <p className="mt-1 text-xs text-ink-500">
+                      Every posted session gets a share link + QR code, and anyone can add you with your invite code.
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
             <Button onClick={handleSubmitSession}>{discipline === 'hike' ? 'Post hike' : 'Post boulder session'}</Button>
           </div>
         )}

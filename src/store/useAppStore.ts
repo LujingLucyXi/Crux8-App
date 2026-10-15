@@ -857,6 +857,10 @@ export const useAppStore = create<Store>()(
           /* storage unavailable */
         }
         get().seedIfEmpty();
+        // seedIfEmpty early-returns when seededAt is already set — but the
+        // cruxy cruxmate + user-record pair can still be desynced in a
+        // persisted state (regression 2026-10-15), so repair it explicitly.
+        get().ensureCruxyThread();
       },
 
       /** Email OTP login, step 2: verifies the 6-digit code and signs the user in. */
@@ -2713,6 +2717,21 @@ export const useAppStore = create<Store>()(
           }
         }
         return s as never;
+      },
+      /**
+       * Cruxy invariant (regression 2026-10-15): every rehydration repairs
+       * the cruxy cruxmate + user-record pair. The create-session/call forms
+       * hide their entire "Invite cruxmates" section when 'cruxy' no longer
+       * resolves through resolveUser (users record missing) — a desync that
+       * can land in persisted state after auth/guest/account-switch flows,
+       * where seedIfEmpty early-returns on seededAt and never repairs it.
+       * ensureCruxyThread is idempotent and a no-op when the pair is intact,
+       * so this is free on every load. Cruxy is a global seed NPC, not
+       * per-account data, so this never breaks the account-switch isolation
+       * in prepareForUser.
+       */
+      onRehydrateStorage: () => () => {
+        useAppStore.getState().ensureCruxyThread();
       },
     }
   )
