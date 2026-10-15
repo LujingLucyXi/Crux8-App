@@ -7,6 +7,7 @@ import { Onboarding } from '@/routes/Onboarding';
 import { Claim } from '@/routes/Claim'; // quiz → app DNA bridge (public; handles its own auth)
 import { CallDeepLink } from '@/routes/CallDeepLink'; // shared climb call deep link (public; handles its own auth)
 import { SessionDeepLink } from '@/routes/SessionDeepLink'; // shared session deep link (public; handles its own auth)
+import { AddDeepLink } from '@/routes/AddDeepLink'; // personal add-friend link: /add/:code (public; handles its own auth)
 import { UpdatePassword } from '@/routes/UpdatePassword'; // password-reset landing (public)
 import { Home } from '@/routes/Home';
 import { Find } from '@/routes/Find';
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
   { path: '/claim', element: <Claim />, errorElement: <RouteError /> },
   { path: '/call/:callId', element: <CallDeepLink />, errorElement: <RouteError /> },
   { path: '/session/:sessionId', element: <SessionDeepLink />, errorElement: <RouteError /> },
+  { path: '/add/:code', element: <AddDeepLink />, errorElement: <RouteError /> },
   { path: '/update-password', element: <UpdatePassword />, errorElement: <RouteError /> },
   { path: '/lab', element: <Lab />, errorElement: <RouteError /> },
   {
