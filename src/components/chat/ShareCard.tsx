@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { useAppStore } from '@/store/useAppStore';
 import type { ClimbCall, Session } from '@/seed/types';
 import { formatSessionWhen } from '@/lib/date';
-import { hasStarted } from '@/lib/sessionPhase';
+import { hasStarted, sessionPhase } from '@/lib/sessionPhase';
 import { ClimbCallDetailSheet } from '@/components/sheets/ClimbCallDetailSheet';
 import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
 import { cn } from '@/lib/utils';
@@ -65,14 +65,14 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
               {place} · {formatSessionWhen(call.starts_at)}
             </p>
             <p className="text-xs text-ink-500">
-              {call.participant_ids.length} / {call.capacity} people
+              {call.participant_ids.length} in
             </p>
             {isMine || joined ? (
               <button
                 onClick={() => setDetailOpen(true)}
                 className="mt-2.5 w-full rounded-xl border border-ink-100 py-2 text-sm font-semibold text-ink-700"
               >
-                {isMine ? 'View your call' : "✓ You're in — view"}
+                {isMine ? 'View your call' : 'View call →'}
               </button>
             ) : closed ? (
               <button disabled className="mt-2.5 w-full rounded-xl bg-ink-100 py-2 text-sm font-semibold text-ink-500">
@@ -105,7 +105,7 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
     const place = gym?.short_name ?? session.area ?? 'Location TBD';
     const joined = session.participant_ids.includes(me.id);
     const started = hasStarted(session, sessionLifecycle[session.id]);
-    const finished = !!session.finished_at;
+    const done = sessionPhase(session, sessionLifecycle[session.id]) === 'done';
     const full = session.participant_ids.length >= session.capacity;
     const gated =
       session.is_verified_only ||
@@ -122,18 +122,24 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
               {place} · {formatSessionWhen(session.starts_at)}
             </p>
             <p className="text-xs text-ink-500">
-              {session.participant_ids.length} / {session.capacity} people
+              {session.participant_ids.length} {done ? 'climbed' : 'climbing'}
             </p>
-            {joined ? (
+            {done ? (
+              <>
+                <p className="mt-1.5 text-xs font-semibold text-brand-600">🎉 Session completed</p>
+                <button
+                  onClick={() => setDetailOpen(true)}
+                  className="mt-2.5 w-full rounded-xl border border-ink-100 py-2 text-sm font-semibold text-ink-700"
+                >
+                  View session →
+                </button>
+              </>
+            ) : joined ? (
               <button
                 onClick={() => setDetailOpen(true)}
                 className="mt-2.5 w-full rounded-xl border border-ink-100 py-2 text-sm font-semibold text-ink-700"
               >
-                ✓ You're in — view
-              </button>
-            ) : finished ? (
-              <button disabled className="mt-2.5 w-full rounded-xl bg-ink-100 py-2 text-sm font-semibold text-ink-500">
-                Finished
+                View session →
               </button>
             ) : full ? (
               <button disabled className="mt-2.5 w-full rounded-xl bg-ink-100 py-2 text-sm font-semibold text-ink-500">

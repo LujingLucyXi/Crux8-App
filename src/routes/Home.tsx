@@ -416,7 +416,7 @@ export function Home() {
               subtitle={upNext.data.subtitle}
               when={formatSessionWhen(upNext.data.starts_at)}
               where={gymName(upNext.data.gym_id) || upNext.data.area || 'TBD'}
-              countLabel={`${upNext.data.participant_ids.length} of ${upNext.data.capacity} climbers in`}
+              countLabel={`${upNext.data.participant_ids.length} climbing`}
               onClick={() => setDetailSession(upNext.data)}
             />
           ) : upNext.kind === 'call' ? (
@@ -426,7 +426,7 @@ export function Home() {
               subtitle={upNext.data.grade}
               when={formatSessionWhen(upNext.data.starts_at)}
               where={gymName(upNext.data.gym_id)}
-              countLabel={`${upNext.data.participant_ids.length} of ${upNext.data.capacity} paired`}
+              countLabel={`${upNext.data.participant_ids.length} paired`}
               onClick={() => setDetailCall(upNext.data)}
             />
           ) : (

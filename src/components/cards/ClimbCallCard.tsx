@@ -131,7 +131,7 @@ export function ClimbCallCard({
         <div className="flex flex-col items-end gap-1 shrink-0">
           <AvatarStack users={participants} max={3} size={22} />
           <span className="text-[11px] font-bold text-white">
-            {call.participant_ids.length} / {call.capacity} people
+            {call.participant_ids.length} in
           </span>
         </div>
       </div>
