@@ -23,24 +23,11 @@ const HEAD = 'Archivo, "Helvetica Neue", Arial, sans-serif';
 
 function MotifGlyph({ motif }: { motif: GymMotif }) {
   if (motif === 'boulder') {
-    // an irregular rounded rock seen from the front — lumpy silhouette, no perfect arcs
+    // a round boulder with a hold on it
     return (
-      <g>
-        <path
-          d="M121 37
-             C131 37 137 42 140 49
-             C143 56 141 64 136 69
-             C130 75 120 76 113 73
-             C105 70 100 64 99 57
-             C98 50 101 43 107 40
-             C111 37 116 37 121 37 Z"
-          fill="none"
-          stroke={SEAL}
-          strokeWidth="3"
-          strokeLinejoin="round"
-        />
+      <g fill="none" stroke={SEAL} strokeWidth="3">
+        <circle cx="121" cy="56" r="21" />
         <circle cx="127" cy="50" r="5" fill={SEAL} stroke="none" />
-        <circle cx="109" cy="65" r="3.5" fill={SEAL} stroke="none" />
       </g>
     );
   }
