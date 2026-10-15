@@ -13,8 +13,8 @@
  * without any storage, so their cards work before any DB migration.
  */
 
-/** Crockford-ish alphabet with ambiguous glyphs removed. */
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+/** Unambiguous alphabet: no 0/O, 1/I/L (31 glyphs). */
+const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 export function normalizeInviteCode(raw: string): string {
   return raw.trim().toUpperCase();
@@ -24,12 +24,14 @@ export function isValidInviteCode(code: string): boolean {
   return /^[A-Z]{1,6}-[A-HJKMNP-Z2-9]{4}$/.test(code);
 }
 
-/** 'Lucy Xi' → 'LUCY'; '李静' → 'CLIMBER'. */
+/** 'Lucy Xi' → 'LUCY'; '李静' → 'CLIMBR'. */
 export function inviteCodePrefix(displayName: string): string {
   const first = (displayName.split(/\s+/)[0] ?? '')
     .toUpperCase()
     .replace(/[^A-Z]/g, '');
-  return first.slice(0, 6) || 'CLIMBER';
+  // 'CLIMBER' is 7 chars — the fallback must fit the 6-char cap so every
+  // generated code passes isValidInviteCode.
+  return first.slice(0, 6) || 'CLIMBR';
 }
 
 function randomSuffix(): string {
