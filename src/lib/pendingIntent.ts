@@ -9,7 +9,8 @@
  * sign-in flow and lands back on the session with a join button.
  */
 export interface PendingIntent {
-  type: 'session' | 'call';
+  type: 'session' | 'call' | 'add';
+  /** session id | call id | invite code — whatever the target route needs. */
   id: string;
 }
 
@@ -28,7 +29,11 @@ export function getPendingIntent(): PendingIntent | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const p = JSON.parse(raw) as Partial<PendingIntent>;
-    if ((p.type === 'session' || p.type === 'call') && typeof p.id === 'string' && p.id) {
+    if (
+      (p.type === 'session' || p.type === 'call' || p.type === 'add') &&
+      typeof p.id === 'string' &&
+      p.id
+    ) {
       return { type: p.type, id: p.id };
     }
   } catch {
@@ -60,5 +65,7 @@ export function consumePendingIntentFor(type: PendingIntent['type'], id: string)
 
 /** Where a consumed intent should take the user. */
 export function pendingIntentPath(intent: PendingIntent): string {
-  return intent.type === 'session' ? `/session/${intent.id}` : `/call/${intent.id}`;
+  if (intent.type === 'session') return `/session/${intent.id}`;
+  if (intent.type === 'call') return `/call/${intent.id}`;
+  return `/add/${intent.id}`;
 }

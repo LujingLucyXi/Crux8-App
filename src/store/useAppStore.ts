@@ -77,6 +77,7 @@ import {
   type DirectoryProfile,
 } from '@/lib/db';
 import { resolveUser } from '@/lib/resolveUser';
+import { normalizeInviteCode, isValidInviteCode, randomInviteCode } from '@/lib/inviteCode';
 import { hasStarted, sessionPhase, type SessionLifecycle } from '@/lib/sessionPhase';
 
 export type Verification = { status: VerificationStatus; photo_url?: string; verified_at?: string; attested_at?: string };
@@ -244,6 +245,13 @@ interface Store {
   initAuth: () => Promise<void>;
   completeOnboarding: (patch: Partial<Profile>) => void;
   updateProfile: (patch: Partial<Profile>) => void;
+  /**
+   * Personal invite code (2026-10-15): returns my code, generating +
+   * persisting it on first need. Persists through the normal profile
+   * write-through; when the DB column doesn't exist yet the write
+   * fails gracefully and the code stays local-only.
+   */
+  ensureInviteCode: () => string | null;
   signOut: () => Promise<void>;
   resetAll: () => void;
 
@@ -1047,6 +1055,16 @@ export const useAppStore = create<Store>()(
         if (!cur) return;
         set({ me: { ...cur, ...patch } });
         void persistProfilePatch(cur.id, patch);
+      },
+
+      ensureInviteCode: () => {
+        const cur = get().me;
+        if (!cur) return null;
+        const existing = cur.invite_code ? normalizeInviteCode(cur.invite_code) : '';
+        if (existing && isValidInviteCode(existing)) return existing;
+        const code = randomInviteCode(cur.display_name);
+        get().updateProfile({ invite_code: code });
+        return code;
       },
 
       signOut: async () => {

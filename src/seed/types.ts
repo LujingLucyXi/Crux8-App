@@ -212,6 +212,10 @@ export interface Profile {
   isGuest?: boolean;         // true for anonymous-sign-in guests (front door, 2026-10-14).
                              // Local-only: guests join friction-free and are prompted to
                              // claim/finish their profile after their first session.
+  // ── personal invite code (add link / share card, 2026-10-15) ──
+  invite_code?: string;      // e.g. LUCY-8K42; resolves via /add/:code.
+                             // Persisted to profiles.invite_code when the column
+                             // exists (fire-and-forget), else local-only.
   // ── hiking (set during onboarding; section is skippable) ──
   hike_distance?: string;    // e.g. '5-10'
   hike_pace?: string;        // e.g. 'steady'

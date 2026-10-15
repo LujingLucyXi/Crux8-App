@@ -511,6 +511,34 @@ export async function fetchDirectoryProfiles(ids: string[]): Promise<DirectoryPr
   return asRows<DirectoryProfile>(data);
 }
 
+/**
+ * Resolve a personal invite code (e.g. LUCY-8K42) to a public profile.
+ *
+ * Best-effort by design: the `invite_code` column exists on `profiles`
+ * (and the directory_profiles view) only after the 2026-10-15-invite-code
+ * migration. When the column is missing PostgREST rejects the select —
+ * callers catch the null and fall back to the local people list
+ * (seed users carry deterministic codes and always resolve locally).
+ */
+export async function fetchProfileByInviteCode(
+  code: string,
+): Promise<(DirectoryProfile & { invite_code?: string | null }) | null> {
+  const normalized = code.trim().toUpperCase();
+  if (!/^[A-Z]{1,6}-[A-HJKMNP-Z2-9]{4}$/.test(normalized)) return null;
+  try {
+    const { data, error } = await supabase
+      .from('directory_profiles')
+      .select('id,display_name,photo_url,top_grade,home_gym_id,invite_code')
+      .eq('invite_code', normalized)
+      .maybeSingle();
+    if (error || !data) return null;
+    const rows = asRows<DirectoryProfile & { invite_code?: string | null }>([data]);
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Invites (public.invites): personal call/session invites that reach the
 // invitee's device. Create is an upsert (re-inviting resets to pending);
