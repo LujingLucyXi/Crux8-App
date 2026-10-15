@@ -1,10 +1,11 @@
-import { Menu, ChatBubbleEmpty } from 'iconoir-react';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Menu, ChatBubbleEmpty, UserPlus } from 'iconoir-react';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore, countUnreadThreads, countActionableInvites } from '@/store/useAppStore';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { InfoSheet } from '@/components/sheets/InfoSheet';
 import { FeedbackSheet } from '@/components/sheets/FeedbackSheet';
+import { PeopleFinder } from '@/components/PeopleFinder';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Logo } from './Logo';
@@ -13,7 +14,14 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoKind, setInfoKind] = useState<'about' | 'trust' | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const nav = useNavigate();
+  const { pathname } = useLocation();
+  // The add-friends sheet navigates to /add/:code on code submit — a route
+  // change doesn't auto-dismiss sheets, so close it whenever we navigate.
+  useEffect(() => {
+    setAddOpen(false);
+  }, [pathname]);
   const me = useAppStore((s) => s.me);
   const signOut = useAppStore((s) => s.signOut);
   // Real per-thread unread: a thread counts only when its latest message is
@@ -71,6 +79,13 @@ export function Header() {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setAddOpen(true)}
+              aria-label="Add friends"
+              className="relative p-1.5 rounded-lg text-ink-700 hover:bg-paper-50"
+            >
+              <UserPlus width={22} height={22} />
+            </button>
             <button onClick={() => nav('/profile')} aria-label="Profile">
               <Avatar photoUrl={me?.photo_url} config={me?.avatar} alt={me?.display_name} size={30} fallback={me?.display_name} />
             </button>
@@ -120,6 +135,13 @@ export function Header() {
             >
               Sign out
             </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+      <Sheet open={addOpen} onOpenChange={setAddOpen}>
+        <SheetContent title="Add friends">
+          <div className="mt-2">
+            <PeopleFinder />
           </div>
         </SheetContent>
       </Sheet>
