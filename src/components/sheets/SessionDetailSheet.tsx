@@ -350,10 +350,7 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
       <SessionRecapSheet
         session={session}
         open={recapOpen}
-        onOpenChange={(o) => {
-          setRecapOpen(o);
-          if (!o) setSummaryOpen(true);
-        }}
+        onOpenChange={setRecapOpen}
       />
 
       {/* Attestation dialog */}
