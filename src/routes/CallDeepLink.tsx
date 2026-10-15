@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { AuthSheet } from '@/components/AuthSheet';
 import { Logo } from '@/components/layout/Logo';
+import { GuestJoinForm } from '@/components/GuestJoinForm';
 import { ClimbCallDetailSheet } from '@/components/sheets/ClimbCallDetailSheet';
 import { savePendingIntent, consumePendingIntentFor } from '@/lib/pendingIntent';
 import { useAppStore } from '@/store/useAppStore';
@@ -72,11 +73,22 @@ export function CallDeepLink() {
             <p className="text-3xl">🧗</p>
             <h2 className="mt-3 text-xl font-semibold text-ink-900">Someone wants a partner</h2>
             <p className="mt-2 text-sm text-ink-500">
-              Sign in to see this climb call and request to pair up.
+              See this climb call with just your name — no sign-up.
             </p>
-            <Button className="mt-6 w-full" size="lg" onClick={() => setSheetOpen(true)}>
-              Sign in to view
+            <div className="mt-5 text-left">
+              <GuestJoinForm buttonLabel="View as a guest" />
+            </div>
+            <div className="my-5 flex items-center gap-3">
+              <div className="h-px flex-1 bg-ink-100" />
+              <span className="text-xs text-ink-400">or</span>
+              <div className="h-px flex-1 bg-ink-100" />
+            </div>
+            <Button variant="outline" className="w-full" onClick={() => setSheetOpen(true)}>
+              Sign in with email
             </Button>
+            <p className="mt-2 text-[11px] text-ink-400">
+              Guests view instantly; sign in anytime to keep your history on this device.
+            </p>
           </div>
         </div>
         <AuthSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Sign in" initialTab="code" />

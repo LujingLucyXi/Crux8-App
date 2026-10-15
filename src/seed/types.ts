@@ -209,6 +209,9 @@ export interface Profile {
   activities?: Activity[];   // preferred top-level activities
   onboarded?: boolean;       // false right after signup; true once onboarding completes.
                              // undefined = pre-existing user (treated as onboarded).
+  isGuest?: boolean;         // true for anonymous-sign-in guests (front door, 2026-10-14).
+                             // Local-only: guests join friction-free and are prompted to
+                             // claim/finish their profile after their first session.
   // ── hiking (set during onboarding; section is skippable) ──
   hike_distance?: string;    // e.g. '5-10'
   hike_pace?: string;        // e.g. 'steady'

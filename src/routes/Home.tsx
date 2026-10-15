@@ -208,7 +208,7 @@ export function Home() {
   // Orientation is a nudge, not a gate (Lucy, 2026-10-14): new accounts
   // land in the app immediately; this banner is the in-app reminder.
   // Guests get their prompt from the session-complete card instead.
-  const showProfileNudge = me.onboarded === false && !nudgeDismissed;
+  const showProfileNudge = me.onboarded === false && !me.isGuest && !nudgeDismissed;
   const dismissProfileNudge = () => {
     try {
       localStorage.setItem('crux8-profile-nudge-dismissed', '1');

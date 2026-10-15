@@ -222,6 +222,24 @@ interface Store {
   >;
   signInWithPassword: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   resetPassword: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /**
+   * Guest join (front door, 2026-10-14): Supabase anonymous sign-in with a
+   * name only. The guest gets a real UID, joins the scanned session, and
+   * is prompted to claim/finish their profile after the session ends —
+   * orientation is a post-value conversion step, never an entry gate.
+   * Requires the project's "Allow anonymous sign-ins" toggle; when it is
+   * off this returns code 'anonymous_disabled' and callers fall back to
+   * the email-code sign-in path.
+   */
+  signInAsGuest: (
+    displayName: string,
+  ) => Promise<{ ok: true } | { ok: false; error: string; code?: 'anonymous_disabled' }>;
+  /**
+   * Convert an anonymous guest account to a permanent one by email.
+   * Same UID, so the session joins and history carry over. E2E depends
+   * on the anonymous-sign-ins toggle being on (unverifiable until then).
+   */
+  claimGuestAccount: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   /** Reconcile persisted state with the Supabase session on app boot. */
   initAuth: () => Promise<void>;
   completeOnboarding: (patch: Partial<Profile>) => void;
@@ -1021,6 +1039,78 @@ export const useAppStore = create<Store>()(
       signOut: async () => {
         await supabase.auth.signOut().catch(() => {});
         set({ me: null });
+      },
+
+      /**
+       * Guest join via Supabase anonymous sign-in (front door, 2026-10-14).
+       * Name only, no email, no password, no OTP round-trip. The anonymous
+       * user gets a real auth.users row (is_anonymous=true) and the
+       * `authenticated` role; the profile name is written through so the
+       * host's phone can resolve it in the roster. When the project
+       * toggle is off, returns code 'anonymous_disabled' — the caller
+       * falls back to email-code sign-in. (Probe 2026-10-14: the toggle
+       * is OFF on njthgcbvmlavhwvcwqqx — Lucy's ~2 min dashboard action.)
+       */
+      signInAsGuest: async (displayName) => {
+        const name = displayName.trim() || 'Guest climber';
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error || !data.user) {
+          const msg = (error?.message ?? '').toLowerCase();
+          if (msg.includes('anonymous') && msg.includes('disabled')) {
+            return {
+              ok: false as const,
+              code: 'anonymous_disabled' as const,
+              error: 'Guest sign-in is not enabled yet — please sign in with email instead.',
+            };
+          }
+          return {
+            ok: false as const,
+            error: 'Could not start a guest session — please sign in with email instead.',
+          };
+        }
+        const user = data.user;
+        await ensureProfileRow(user.id, null);
+        const guestMe: Profile = {
+          id: user.id,
+          display_name: name,
+          avatar: avatarFromSeed(name),
+          home_gym_id: 'gym_vertical_world',
+          top_grade: '5.10c',
+          preferred_styles: ['top_rope', 'lead'],
+          about: '',
+          onboarded: false,
+          isGuest: true,
+        };
+        set({ me: guestMe });
+        // Write the name through so OTHER devices (e.g. the host's)
+        // resolve this guest in the roster. Fire-and-forget by design.
+        void persistProfilePatch(user.id, { display_name: name });
+        get().ensureCruxyThread();
+        return { ok: true as const };
+      },
+
+      /**
+       * Convert an anonymous guest account into a permanent one by email
+       * (same UID — session joins and history carry over). Supabase sends
+       * a confirmation to the address; the account converts on click.
+       */
+      claimGuestAccount: async (email) => {
+        const me = get().me;
+        if (!me?.isGuest) {
+          return { ok: false as const, error: 'Only guest accounts need claiming.' };
+        }
+        const normalized = email.trim().toLowerCase();
+        if (!normalized.includes('@')) {
+          return { ok: false as const, error: "That email doesn't look right — check it and try again." };
+        }
+        const { error } = await supabase.auth.updateUser({ email: normalized });
+        if (error) {
+          return {
+            ok: false as const,
+            error: 'Could not send the claim email — check the address and try again.',
+          };
+        }
+        return { ok: true as const };
       },
 
       resetAll: () => {

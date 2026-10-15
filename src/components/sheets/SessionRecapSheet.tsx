@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ShieldCheck, WarningTriangle, Calendar, MapPin, Check } from 'iconoir-react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
-import { Textarea } from '@/components/ui/Input';
+import { Input, Textarea } from '@/components/ui/Input';
 import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { useAppStore } from '@/store/useAppStore';
 import { REACTIONS } from '@/lib/reactions';
@@ -56,11 +57,13 @@ const ROPE_GRADES = ['5.8', '5.9', '5.10', '5.11', '5.12', '5.13+'];
  *    PRIVATE flag never shown to the flagged person. Only patterns matter.
  */
 export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
+  const nav = useNavigate();
   const me = useAppStore((s) => s.me);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
   const gyms = useAppStore((s) => s.gyms);
   const recaps = useAppStore((s) => s.recaps);
+  const claimGuestAccount = useAppStore((s) => s.claimGuestAccount);
   const logSessionRecap = useAppStore((s) => s.logSessionRecap);
   const togglePartnerProp = useAppStore((s) => s.togglePartnerProp);
   const setPartnerCheck = useAppStore((s) => s.setPartnerCheck);
@@ -72,6 +75,11 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
   const [flagNote, setFlagNote] = useState('');
   // After Done: the shareable finish card step.
   const [showCard, setShowCard] = useState(false);
+  // Guest claim-by-email inline form (front door, 2026-10-14).
+  const [claimOpen, setClaimOpen] = useState(false);
+  const [claimEmail, setClaimEmail] = useState('');
+  const [claimBusy, setClaimBusy] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
   const groups = useAppStore((s) => s.groups);
   const myGroupMemberships = useAppStore((s) => s.myGroupMemberships);
   const shareSessionToGroup = useAppStore((s) => s.shareSessionToGroup);
@@ -104,6 +112,9 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
     setFlagFor(null);
     setFlagNote('');
     setShowCard(false);
+    setClaimOpen(false);
+    setClaimEmail('');
+    setClaimError(null);
     onOpenChange(false);
   };
 
@@ -205,6 +216,64 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
+            {/* Post-value orientation prompt (Lucy, 2026-10-14): the card
+                is the guest's/skipped user's first trophy — this is the
+                moment a profile is worth claiming, not before. */}
+            {me.onboarded === false && !claimOpen && (
+              <Button
+                variant="punch"
+                onClick={() => {
+                  if (me.isGuest) {
+                    setClaimOpen(true);
+                  } else {
+                    close();
+                    nav('/onboarding');
+                  }
+                }}
+              >
+                {me.isGuest ? 'Claim your crew card →' : 'Finish your profile →'}
+              </Button>
+            )}
+            {me.isGuest && claimOpen && (
+              <div className="rounded-2xl border border-ink-100 bg-paper-100 p-4">
+                <p className="text-sm font-semibold text-ink-900">Keep your card — add your email</p>
+                <p className="mt-1 text-xs text-ink-500">
+                  We email you a claim link. Same account, your session history stays.
+                </p>
+                <Input
+                  className="mt-3"
+                  type="email"
+                  inputMode="email"
+                  placeholder="you@email.com"
+                  value={claimEmail}
+                  onChange={(e) => setClaimEmail(e.target.value)}
+                />
+                <div className="mt-3 flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setClaimOpen(false)}>
+                    Later
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    disabled={claimBusy || !claimEmail.includes('@')}
+                    onClick={async () => {
+                      setClaimBusy(true);
+                      setClaimError(null);
+                      const res = await claimGuestAccount(claimEmail);
+                      setClaimBusy(false);
+                      if (!res.ok) {
+                        setClaimError(res.error);
+                        return;
+                      }
+                      toast.success('Claim link sent — check your inbox ✉️');
+                      setClaimOpen(false);
+                    }}
+                  >
+                    {claimBusy ? 'Sending…' : 'Send link'}
+                  </Button>
+                </div>
+                {claimError && <p className="mt-2 text-xs text-red-600">{claimError}</p>}
+              </div>
+            )}
             <Button onClick={() => void doShare()}>Share…</Button>
             {houseCrew && (
               <Button
