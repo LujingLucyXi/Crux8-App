@@ -1,5 +1,6 @@
 import { useAppStore } from '@/store/useAppStore';
 import { getArchetype, getHouse } from '@/lib/quizMeta';
+import { ArchetypeEmblem } from '@/components/ArchetypeEmblem';
 import { resolveUser } from '@/lib/resolveUser';
 
 /** Grid of DNA cards collected from cruxmates and sessions. */
@@ -45,7 +46,13 @@ export function CollectionBook() {
                   borderColor: house?.color ?? '#e5ddc8',
                 }}
               >
-                <p className="text-3xl">{arch?.emoji ?? '🧬'}</p>
+                <div className="flex justify-center">
+                  <ArchetypeEmblem
+                    archetypeId={card.archetype_id}
+                    className="h-12 w-12"
+                    fallbackClassName="text-3xl"
+                  />
+                </div>
                 <p className="mt-1 text-[11px] font-bold text-ink-900 leading-tight truncate">
                   {arch?.name_en ?? 'Mystery'}
                 </p>

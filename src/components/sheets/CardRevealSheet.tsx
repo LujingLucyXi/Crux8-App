@@ -3,6 +3,7 @@ import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { getArchetype, getHouse } from '@/lib/quizMeta';
+import { ArchetypeEmblem } from '@/components/ArchetypeEmblem';
 import { resolveUser } from '@/lib/resolveUser';
 
 /**
@@ -48,7 +49,13 @@ export function CardRevealSheet() {
             border: `2px solid ${house?.color ?? '#d4c5a0'}`,
           }}
         >
-          <p className="text-6xl">{arch?.emoji ?? '🧬'}</p>
+          <div className="flex justify-center">
+            <ArchetypeEmblem
+              archetypeId={card.archetype_id}
+              className="h-40 w-40"
+              fallbackClassName="text-6xl"
+            />
+          </div>
           <h3 className="mt-3 text-lg font-bold text-ink-900">
             {arch?.name_en ?? 'Mystery Climber'}
           </h3>

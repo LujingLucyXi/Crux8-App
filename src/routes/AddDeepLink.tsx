@@ -11,6 +11,7 @@ import { savePendingIntent, consumePendingIntentFor } from '@/lib/pendingIntent'
 import { normalizeInviteCode, isValidInviteCode, seedInviteCode } from '@/lib/inviteCode';
 import { fetchProfileByInviteCode } from '@/lib/db';
 import { getArchetype } from '@/lib/quizMeta';
+import { ArchetypeEmblem } from '@/components/ArchetypeEmblem';
 import { useAppStore } from '@/store/useAppStore';
 import type { AvatarConfig } from '@/lib/avatar';
 
@@ -161,7 +162,12 @@ export function AddDeepLink() {
           <h2 className="mt-3 text-xl font-semibold text-ink-900">{t.display_name}</h2>
           {arch && (
             <span className="mt-2 rounded-full border border-gold-500 text-gold-500 text-[11px] font-medium px-2.5 py-0.5">
-              {arch.emoji} {arch.name_en}
+              <ArchetypeEmblem
+                archetypeId={t.archetypeId}
+                className="mr-1 inline-block h-4 w-4 align-[-2px]"
+                fallbackClassName="text-xs"
+              />
+              {arch.name_en}
             </span>
           )}
         </div>

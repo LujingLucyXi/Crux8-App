@@ -10,6 +10,7 @@ import { DEFAULT_AVATAR } from '@/lib/avatar';
 import { SessionCard } from '@/components/cards/SessionCard';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
 import { ProfileEditSheet } from '@/components/sheets/ProfileEditSheet';
+import { ArchetypeEmblem } from '@/components/ArchetypeEmblem';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
 import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
@@ -256,7 +257,11 @@ export function Profile() {
               return (
                 <>
                   <div className="flex items-center gap-3">
-                    <span className="text-4xl">{arch?.emoji ?? '🧬'}</span>
+                    <ArchetypeEmblem
+                      archetypeId={me.quiz_result_type}
+                      className="h-14 w-14 shrink-0"
+                      fallbackClassName="text-4xl"
+                    />
                     <div className="min-w-0">
                       <h3 className="font-bold text-ink-900">{arch?.name_en ?? 'Climber'}</h3>
                       {arch?.tagline_en && (
