@@ -20,11 +20,21 @@ export function SheetContent({
       <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/40 animate-fade-in" />
       <DialogPrimitive.Content
         className={cn(
-          // dvh (not vh): in-app browsers and mobile Safari chrome shrink the
-          // visible viewport; vh overruns it and the sheet top becomes
-          // unreachable. Header is a fixed flex row, only the body scrolls —
-          // so the close button can never scroll away.
-          'fixed bottom-0 left-0 right-0 z-50 mx-auto flex max-h-[92dvh] max-w-[560px] flex-col overflow-hidden rounded-t-2xl bg-paper-100 border-t border-ink-100 animate-slide-up',
+          // svh (not vh, not dvh): the panel is bottom-anchored, so the cap must
+          // NEVER exceed the actually visible viewport. vh uses the large
+          // viewport and overruns shrunken in-app-browser chrome (sheet top
+          // unreachable). dvh tracks the dynamic viewport, but in webviews /
+          // in-app browsers it can resolve LARGER than the visible area —
+          // then the panel overshoots downward, its bottom (Sign out, etc.)
+          // sits below the fold, and because the content fits the oversized
+          // panel, the inner scroller never engages: bottom items are cut off
+          // with no way to scroll to them (bit the header Menu twice).
+          // svh is the SMALLEST the viewport can be, so the cap can never
+          // overshoot. Same support as dvh; where unsupported the declaration
+          // drops and the panel sizes to content (also fully visible).
+          // Header is a fixed flex row, only the body scrolls — so the close
+          // button can never scroll away.
+          'fixed bottom-0 left-0 right-0 z-50 mx-auto flex max-h-[92svh] max-w-[560px] flex-col overflow-hidden rounded-t-2xl bg-paper-100 border-t border-ink-100 animate-slide-up',
           className,
         )}
         {...props}

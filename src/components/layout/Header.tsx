@@ -16,7 +16,6 @@ export function Header() {
   const nav = useNavigate();
   const me = useAppStore((s) => s.me);
   const signOut = useAppStore((s) => s.signOut);
-  const resetAll = useAppStore((s) => s.resetAll);
   // Real per-thread unread: a thread counts only when its latest message is
   // incoming and arrived after I last opened it. Clears as I read each thread.
   const unreadThreads = useAppStore((s) =>
@@ -120,19 +119,6 @@ export function Header() {
               }}
             >
               Sign out
-            </Button>
-            <Button
-              variant="destructive"
-              className="justify-start"
-              onClick={() => {
-                if (confirm('Reset everything and start over?')) {
-                  resetAll();
-                  setMenuOpen(false);
-                  nav('/');
-                }
-              }}
-            >
-              Reset all data (dev)
             </Button>
           </div>
         </SheetContent>
