@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { AuthSheet } from '@/components/AuthSheet';
 import { Logo } from '@/components/layout/Logo';
 import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
+import { savePendingIntent, consumePendingIntentFor } from '@/lib/pendingIntent';
 import { useAppStore } from '@/store/useAppStore';
 
 /**
@@ -11,6 +12,8 @@ import { useAppStore } from '@/store/useAppStore';
  * - Logged in → opens the session detail sheet directly (RSVP works).
  * - Logged out → sign-in prompt first, then the session.
  * - Unknown/finished session → friendly empty state.
+ * - The join intent is stashed before any auth detour and consumed on
+ *   return, so a scanned QR survives sign-in and lands back here.
  */
 export function SessionDeepLink() {
   const { sessionId } = useParams();
@@ -21,6 +24,20 @@ export function SessionDeepLink() {
   const [detailOpen, setDetailOpen] = useState(true);
 
   const session = sessions.find((s) => s.id === sessionId);
+
+  // Stash the join target before any auth detour so the QR survives
+  // sign-in + onboarding and lands back on this session.
+  useEffect(() => {
+    if (!me && session) savePendingIntent({ type: 'session', id: session.id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.id, session?.id]);
+
+  // Back from the detour: consume the intent (the session detail below
+  // already carries the join button for live/upcoming sessions).
+  useEffect(() => {
+    if (me && session) consumePendingIntentFor('session', session.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.id, session?.id]);
 
   if (!session) {
     return (

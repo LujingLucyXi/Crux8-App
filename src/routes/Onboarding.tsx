@@ -11,6 +11,7 @@ import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { lbsToKg, ftInToCm, kgToLbs } from '@/lib/weight';
+import { getPendingIntent, clearPendingIntent, pendingIntentPath } from '@/lib/pendingIntent';
 import type { Style, Activity } from '@/seed/types';
 
 const GRADE_BANDS = [
@@ -90,6 +91,7 @@ export function Onboarding() {
   const me = useAppStore((s) => s.me);
   const gyms = useAppStore((s) => s.gyms);
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
+  const updateProfile = useAppStore((s) => s.updateProfile);
 
   // Onboarding draft: form state lives in useState and is only committed at
   // Finish. If the user detours (e.g. takes the quiz in a new tab and claims
@@ -157,6 +159,38 @@ export function Onboarding() {
   const climbs = activities.includes('climb');
   const hikes = activities.includes('hike');
 
+  /** Where to send the user after onboarding ends (finish or skip). */
+  const afterOnboarding = () => {
+    const intent = getPendingIntent();
+    if (intent) {
+      clearPendingIntent();
+      nav(pendingIntentPath(intent));
+    } else {
+      nav('/home');
+    }
+  };
+
+  /**
+   * Soft-skip (Lucy, 2026-10-14): orientation is a post-value conversion
+   * step, not an entry gate. Skipping keeps whatever the user already
+   * typed (name at minimum), marks the account deferred, and sends them
+   * on their way — the pending deep-link join (if any) is honored first.
+   * They're reminded again after their first finished session.
+   */
+  const skip = () => {
+    // Keep any typed name, but do NOT mark onboarding complete — the
+    // account stays in the "nudge me later" state (onboarded stays false).
+    if (displayName.trim()) updateProfile({ display_name: displayName.trim() });
+    try {
+      localStorage.setItem('crux8-onboarding-deferred', String(Date.now()));
+      localStorage.removeItem('crux8-onboarding-draft');
+    } catch {
+      /* ok */
+    }
+    toast('Skipped — you can finish your profile anytime');
+    afterOnboarding();
+  };
+
   const finish = () => {
     const weightKg = weightLbs ? lbsToKg(Number(weightLbs)) : undefined;
     const heightCm = heightFt || heightIn ? ftInToCm(Number(heightFt || 0), Number(heightIn || 0)) : undefined;
@@ -181,8 +215,9 @@ export function Onboarding() {
       height_cm: heightCm,
     });
     try { localStorage.removeItem('crux8-onboarding-draft'); } catch { /* ok */ }
+    try { localStorage.removeItem('crux8-onboarding-deferred'); } catch { /* ok */ }
     toast('Welcome to Crux8! 🎉');
-    nav('/home');
+    afterOnboarding();
   };
 
   const toggleStyle = (s: Style) =>
@@ -270,6 +305,14 @@ export function Onboarding() {
               </div>
             </div>
             <Button className="w-full mt-8" onClick={() => go(2)}>Next</Button>
+            {/* Soft-skip (Lucy, 2026-10-14): orientation is a post-value
+                conversion step, not an entry gate. */}
+            <button
+              onClick={skip}
+              className="mt-3 w-full text-center text-sm font-semibold text-ink-500 underline"
+            >
+              Skip for now — I'll finish later
+            </button>
           </>
         )}
 

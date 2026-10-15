@@ -193,9 +193,30 @@ export function Home() {
   const nextBadges = nextUpBadges(badgeProgress, 5);
   const earnedCount = badgeProgress.filter((b) => b.earned).length;
 
+  const [nudgeDismissed, setNudgeDismissed] = useState(() => {
+    try {
+      return !!localStorage.getItem('crux8-profile-nudge-dismissed');
+    } catch {
+      return false;
+    }
+  });
+
   const myGroups = groups.filter((g) => myGroupMemberships.includes(g.id));
 
   if (!me) return null;
+
+  // Orientation is a nudge, not a gate (Lucy, 2026-10-14): new accounts
+  // land in the app immediately; this banner is the in-app reminder.
+  // Guests get their prompt from the session-complete card instead.
+  const showProfileNudge = me.onboarded === false && !nudgeDismissed;
+  const dismissProfileNudge = () => {
+    try {
+      localStorage.setItem('crux8-profile-nudge-dismissed', '1');
+    } catch {
+      /* ok */
+    }
+    setNudgeDismissed(true);
+  };
 
   const openAgenda = (it: AgendaItem) => {
     if (it.kind === 'session') setDetailSession(it.data);
@@ -229,6 +250,29 @@ export function Home() {
           🔥 Log a send
         </button>
       </header>
+
+      {/* ── Profile nudge (soft orientation) ── */}
+      {showProfileNudge && (
+        <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-100/40 p-4 flex items-center gap-3">
+          <p className="min-w-0 flex-1 text-sm text-ink-900">
+            <span className="font-bold">Almost set up.</span> Finish your profile (2 min) —
+            you can skip anything and come back later.
+          </p>
+          <button
+            onClick={() => nav('/onboarding')}
+            className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
+          >
+            Finish →
+          </button>
+          <button
+            onClick={dismissProfileNudge}
+            aria-label="Dismiss"
+            className="shrink-0 text-ink-400 hover:text-ink-700 text-lg leading-none"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* ── On the wall now (check-in) ── */}
       {(() => {

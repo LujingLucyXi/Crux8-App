@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { AuthSheet } from '@/components/AuthSheet';
 import { Logo } from '@/components/layout/Logo';
 import { ClimbCallDetailSheet } from '@/components/sheets/ClimbCallDetailSheet';
+import { savePendingIntent, consumePendingIntentFor } from '@/lib/pendingIntent';
 import { useAppStore } from '@/store/useAppStore';
 
 /**
@@ -11,6 +12,8 @@ import { useAppStore } from '@/store/useAppStore';
  * - Logged in → opens the call detail sheet directly (request-to-pair works).
  * - Logged out → sign-in prompt first, then the call.
  * - Unknown/expired call → friendly empty state.
+ * - The join intent is stashed before any auth detour and consumed on
+ *   return, so a shared link survives sign-in and lands back here.
  */
 export function CallDeepLink() {
   const { callId } = useParams();
@@ -21,6 +24,20 @@ export function CallDeepLink() {
   const [detailOpen, setDetailOpen] = useState(true);
 
   const call = climbCalls.find((c) => c.id === callId);
+
+  // Stash the join target before any auth detour so the shared link
+  // survives sign-in + onboarding and lands back on this call.
+  useEffect(() => {
+    if (!me && call) savePendingIntent({ type: 'call', id: call.id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.id, call?.id]);
+
+  // Back from the detour: consume the intent (the call detail below
+  // already carries the request-to-pair action).
+  useEffect(() => {
+    if (me && call) consumePendingIntentFor('call', call.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.id, call?.id]);
 
   if (!call) {
     return (

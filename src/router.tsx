@@ -23,20 +23,21 @@ import { Lab } from '@/routes/Lab';
 function RequireAuth() {
   const me = useAppStore((s) => s.me);
   if (!me) return <Navigate to="/" replace />;
-  // Orientation is mandatory for brand-new accounts no matter which
-  // door they came in — landing, quiz claim, or a shared call/session
-  // link all used to be able to skip it because the check only lived
-  // on '/'. onboarded === false happens only right after signup;
-  // returning users are true/undefined and pass straight through.
-  if (me.onboarded === false) return <Navigate to="/onboarding" replace />;
+  // Orientation is no longer an entry gate (2026-10-14 front-door build,
+  // Lucy's rule: orientation is a post-value conversion step, never a
+  // gate). New accounts land in the app immediately; the hard redirect
+  // used to eat deep-link joins — scanners were yanked to /onboarding
+  // and lost the session they came for. They are now nudged to finish
+  // their profile after they have something worth keeping (e.g. the
+  // session-complete card).
   return <Outlet />;
 }
 
 function LandingOrHome() {
   const me = useAppStore((s) => s.me);
-  // A brand-new signup has onboarded === false → send them through onboarding.
-  // Returning users (onboarded true or undefined) go straight to Home.
-  if (me) return <Navigate to={me.onboarded === false ? '/onboarding' : '/home'} replace />;
+  // Brand-new signups (onboarded === false) go straight to Home like
+  // everyone else; the onboarding nudge lives in-app, not in the router.
+  if (me) return <Navigate to="/home" replace />;
   return <Landing />;
 }
 
