@@ -45,7 +45,13 @@ export function Header() {
       sessionLifecycle: s.sessionLifecycle,
     }),
   );
-  const unreadCount = unreadThreads + pendingInvites;
+  // Pending cruxmate requests ride the same badge.
+  const pendingMateRequests = useAppStore((s) =>
+    s.me
+      ? s.mateRequests.filter((r) => r.status === 'pending' && r.to_id === s.me!.id).length
+      : 0,
+  );
+  const unreadCount = unreadThreads + pendingInvites + pendingMateRequests;
 
   return (
     <>

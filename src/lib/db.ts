@@ -18,6 +18,7 @@ import type {
   LocationType,
   HikeType,
   Invite,
+  MateRequest,
 } from '@/seed/types';
 
 export interface DirectoryProfile {
@@ -575,4 +576,46 @@ export async function setInviteStatusRemote(
 ): Promise<void> {
   const { error } = await supabase.from('invites').update({ status }).eq('id', id);
   if (error) throw new Error(`setInviteStatusRemote: ${error.message}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cruxmate requests (public.cruxmate_requests): person-to-person add requests.
+// The sender inserts with a client-generated id (so optimistic local rows
+// and remote rows share the id); the recipient reads and answers.
+// Best-effort by design: the table exists only after the
+// 2026-10-15-cruxmate-requests migration. When it's missing the calls below
+// throw and callers fall back to local-only rows (same-device works).
+
+export async function createMateRequestRemote(row: {
+  id: string;
+  from_id: string;
+  to_id: string;
+}): Promise<void> {
+  const { error } = await supabase
+    .from('cruxmate_requests')
+    .insert({ id: row.id, from_id: row.from_id, to_id: row.to_id, status: 'pending' });
+  if (error) throw new Error(`createMateRequestRemote: ${error.message}`);
+}
+
+export async function fetchMyMateRequests(userId: string): Promise<MateRequest[]> {
+  const { data, error } = await supabase
+    .from('cruxmate_requests')
+    .select('id,from_id,to_id,status,created_at')
+    .or(`to_id.eq.${userId},from_id.eq.${userId}`)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(`fetchMyMateRequests: ${error.message}`);
+  return asRows<MateRequest>(data);
+}
+
+export async function setMateRequestStatusRemote(
+  id: string,
+  status: 'accepted' | 'denied',
+): Promise<void> {
+  const { error } = await supabase.from('cruxmate_requests').update({ status }).eq('id', id);
+  if (error) throw new Error(`setMateRequestStatusRemote: ${error.message}`);
+}
+
+export async function deleteMateRequestRemote(id: string): Promise<void> {
+  const { error } = await supabase.from('cruxmate_requests').delete().eq('id', id);
+  if (error) throw new Error(`deleteMateRequestRemote: ${error.message}`);
 }

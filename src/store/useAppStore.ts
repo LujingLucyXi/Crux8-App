@@ -22,6 +22,7 @@ import type {
   Style,
   CollectedCard,
   Invite,
+  MateRequest,
 } from '@/seed/types';
 import {
   SEED_GYMS,
@@ -70,6 +71,10 @@ import {
   createInviteRemote,
   fetchMyInvites,
   setInviteStatusRemote,
+  createMateRequestRemote,
+  fetchMyMateRequests,
+  setMateRequestStatusRemote,
+  deleteMateRequestRemote,
   isUuid,
   type ClimbCallPatch,
   setCallPairing,
@@ -178,6 +183,19 @@ interface Store {
   fetchInvites: () => Promise<void>;
   acceptInvite: (invite: Invite) => void;
   denyInvite: (invite: Invite) => void;
+  /** Cruxmate requests, both directions (public.cruxmate_requests). The
+   *  card is collected on accept, never on send. */
+  mateRequests: MateRequest[];
+  fetchMateRequests: () => Promise<void>;
+  /** Send a cruxmate add: real users get a request; seed NPCs (incl.
+   *  Cruxy) auto-accept instantly, exactly like the old addCruxMate.
+   *  Returns what happened so callers can pick the right copy. */
+  requestCruxmate: (userId: string) => 'sent' | 'requested' | 'accepted' | 'already' | 'instant';
+  cancelMateRequest: (userId: string) => void;
+  acceptMateRequest: (id: string) => void;
+  denyMateRequest: (id: string) => void;
+  /** Pending request between me and userId, if any. */
+  mateRequestFor: (userId: string) => 'outgoing' | 'incoming' | null;
   pairRequests: string[];               // callIds we've requested to pair on
   checkin: CheckIn | null;              // my current gym check-in
   gymPresence: Record<string, number>; // gymId -> people here now
@@ -310,8 +328,11 @@ interface Store {
   /**
    * Collect someone's DNA card. Returns the card (new or updated), or null if
    * they have no DNA to collect. Repeat collections bump sessions_together.
+   * `silent` collects into the collection without opening the reveal sheet
+   * (used when the requester observes an accept on sync — the accepter gets
+   * the reveal moment, the requester gets the card quietly).
    */
-  collectCard: (userId: string, source: 'cruxmate' | 'session') => CollectedCard | null;
+  collectCard: (userId: string, source: 'cruxmate' | 'session', opts?: { silent?: boolean }) => CollectedCard | null;
   clearLastCollectedCard: () => void;
   removeCruxMate: (userId: string) => void;
 
@@ -593,6 +614,7 @@ export const useAppStore = create<Store>()(
       gymSuggestions: [],
       leftSessions: [],
       invites: [],
+      mateRequests: [],
       pairRequests: [],
       checkin: null,
       gymPresence: {},
@@ -669,6 +691,7 @@ export const useAppStore = create<Store>()(
         void get().fetchSessions();
         void get().fetchClimbCalls();
         void get().fetchInvites();
+        void get().fetchMateRequests();
         get().ensureCruxyThread();
       },
 
@@ -843,6 +866,7 @@ export const useAppStore = create<Store>()(
           gymSuggestions: [],
           leftSessions: [],
           invites: [],
+          mateRequests: [],
           checkin: null,
           gymPresence: {},
           xp: 0,
@@ -1174,6 +1198,7 @@ export const useAppStore = create<Store>()(
           gymSuggestions: [],
           leftSessions: [],
           invites: [],
+          mateRequests: [],
           checkin: null,
           gymPresence: {},
           xp: 0,
@@ -1812,8 +1837,9 @@ export const useAppStore = create<Store>()(
         get().collectCard(userId, 'cruxmate');
       },
 
-      collectCard: (userId, source) => {
+      collectCard: (userId, source, opts) => {
         const me = get().me;
+        const silent = opts?.silent === true;
         // Resolve DNA: real profile first, then NPC, then deterministic fallback.
         let archetypeId: string | undefined;
         let houseId: string | undefined;
@@ -1848,7 +1874,7 @@ export const useAppStore = create<Store>()(
           };
           set({
             collectedCards: get().collectedCards.map((c) => (c.user_id === userId ? updated : c)),
-            lastCollectedCard: updated,
+            ...(silent ? {} : { lastCollectedCard: updated }),
           });
           return updated;
         }
@@ -1862,7 +1888,7 @@ export const useAppStore = create<Store>()(
         };
         set({
           collectedCards: [card, ...get().collectedCards],
-          lastCollectedCard: card,
+          ...(silent ? {} : { lastCollectedCard: card }),
         });
         return card;
       },
@@ -2036,6 +2062,112 @@ export const useAppStore = create<Store>()(
           ),
         });
         void setInviteStatusRemote(invite.id, 'denied').catch(() => {});
+      },
+
+      // ── Cruxmate requests: adding someone is a request they accept. ──
+      fetchMateRequests: async () => {
+        const me = get().me;
+        if (!me || !isUuid(me.id)) return;
+        try {
+          const rows = await fetchMyMateRequests(me.id);
+          const remoteIds = new Set(rows.map((r) => r.id));
+          // Keep local-only optimistic rows the remote fetch can't know yet
+          // (created while the migration was still missing on the server).
+          const localOnly = get().mateRequests.filter(
+            (r) => r.from_id === me.id && r.status === 'pending' && !remoteIds.has(r.id),
+          );
+          const keep: MateRequest[] = [];
+          for (const r of rows) {
+            if (r.from_id === me.id) {
+              if (r.status === 'accepted') {
+                // Their accept landed: we become cruxmates and quietly take
+                // their card into the collection (no second reveal moment).
+                if (!get().cruxmates.includes(r.to_id)) {
+                  set({ cruxmates: [...get().cruxmates, r.to_id] });
+                  get().collectCard(r.to_id, 'cruxmate', { silent: true });
+                }
+                continue; // processed — drop from the working set
+              }
+              if (r.status === 'denied') continue; // button reverts to Add
+            }
+            keep.push(r);
+          }
+          set({ mateRequests: [...keep, ...localOnly] });
+        } catch {
+          // Table may not exist until the cruxmate-requests migration runs —
+          // local rows still work same-device; never break boot over it.
+        }
+      },
+
+      mateRequestFor: (userId) => {
+        const me = get().me;
+        if (!me) return null;
+        const rows = get().mateRequests.filter((r) => r.status === 'pending');
+        if (rows.some((r) => r.from_id === me.id && r.to_id === userId)) return 'outgoing';
+        if (rows.some((r) => r.to_id === me.id && r.from_id === userId)) return 'incoming';
+        return null;
+      },
+
+      requestCruxmate: (userId) => {
+        const me = get().me;
+        if (!me || userId === me.id) return 'already';
+        // Seed NPCs (Cruxy included) auto-accept: instant, exactly like the
+        // old addCruxMate. Real people get a request instead.
+        if (get().users.some((u) => u.id === userId)) {
+          get().addCruxMate(userId);
+          return 'instant';
+        }
+        if (get().cruxmates.includes(userId)) return 'already';
+        const rows = get().mateRequests.filter((r) => r.status === 'pending');
+        if (rows.some((r) => r.from_id === me.id && r.to_id === userId)) return 'requested';
+        const incoming = rows.find((r) => r.to_id === me.id && r.from_id === userId);
+        if (incoming) {
+          get().acceptMateRequest(incoming.id);
+          return 'accepted';
+        }
+        const row: MateRequest = {
+          id: crypto.randomUUID(),
+          from_id: me.id,
+          to_id: userId,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+        };
+        set({ mateRequests: [...get().mateRequests, row] });
+        if (isUuid(me.id) && isUuid(userId)) {
+          void createMateRequestRemote(row).catch(() => {});
+        }
+        return 'sent';
+      },
+
+      cancelMateRequest: (userId) => {
+        const me = get().me;
+        if (!me) return;
+        const row = get().mateRequests.find(
+          (r) => r.from_id === me.id && r.to_id === userId && r.status === 'pending',
+        );
+        if (!row) return;
+        set({ mateRequests: get().mateRequests.filter((r) => r.id !== row.id) });
+        void deleteMateRequestRemote(row.id).catch(() => {});
+      },
+
+      acceptMateRequest: (id) => {
+        const me = get().me;
+        const req = get().mateRequests.find((r) => r.id === id);
+        if (!req || !me) return;
+        if (!get().cruxmates.includes(req.from_id)) {
+          set({ cruxmates: [...get().cruxmates, req.from_id] });
+        }
+        // The accepter gets the card-reveal moment now.
+        get().collectCard(req.from_id, 'cruxmate');
+        set({ mateRequests: get().mateRequests.filter((r) => r.id !== id) });
+        void setMateRequestStatusRemote(id, 'accepted').catch(() => {});
+      },
+
+      denyMateRequest: (id) => {
+        const req = get().mateRequests.find((r) => r.id === id);
+        if (!req) return;
+        set({ mateRequests: get().mateRequests.filter((r) => r.id !== id) });
+        void setMateRequestStatusRemote(id, 'denied').catch(() => {});
       },
 
       markThreadRead: (key: string) => {

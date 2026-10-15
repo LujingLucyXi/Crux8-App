@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'iconoir-react';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
@@ -23,7 +24,10 @@ export function PeopleFinder() {
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
   const cruxmates = useAppStore((s) => s.cruxmates);
-  const addCruxMate = useAppStore((s) => s.addCruxMate);
+  const requestCruxmate = useAppStore((s) => s.requestCruxmate);
+  const cancelMateRequest = useAppStore((s) => s.cancelMateRequest);
+  const mateRequestFor = useAppStore((s) => s.mateRequestFor);
+  const mateRequests = useAppStore((s) => s.mateRequests);
   const [q, setQ] = useState('');
   const [codeInput, setCodeInput] = useState('');
   const [codeHint, setCodeHint] = useState<string | null>(null);
@@ -108,6 +112,7 @@ export function PeopleFinder() {
         <div className="mt-3 space-y-2">
           {people.map((p) => {
             const isFriend = cruxmates.includes(p.id);
+            const reqDir = isFriend ? null : mateRequestFor(p.id);
             return (
               <div
                 key={p.id}
@@ -120,9 +125,34 @@ export function PeopleFinder() {
                 </div>
                 {isFriend ? (
                   <span className="text-xs font-bold text-teal-600 shrink-0">✓ Cruxmate</span>
+                ) : reqDir === 'incoming' ? (
+                  <button
+                    onClick={() => {
+                      if (requestCruxmate(p.id) === 'accepted') {
+                        toast.success(`You're cruxmates with ${p.display_name.split(' ')[0]} 🤝`);
+                      }
+                    }}
+                    className="shrink-0 rounded-full bg-teal-600 px-4 py-2 text-xs font-bold text-white"
+                  >
+                    Accept
+                  </button>
+                ) : reqDir === 'outgoing' ? (
+                  <button
+                    onClick={() => {
+                      cancelMateRequest(p.id);
+                      toast('Request canceled');
+                    }}
+                    className="shrink-0 rounded-full border border-ink-100 px-4 py-2 text-xs font-semibold text-ink-500"
+                  >
+                    Requested
+                  </button>
                 ) : (
                   <button
-                    onClick={() => addCruxMate(p.id)}
+                    onClick={() => {
+                      const res = requestCruxmate(p.id);
+                      if (res === 'sent') toast.success(`Request sent to ${p.display_name.split(' ')[0]}`);
+                      else if (res === 'accepted') toast.success(`You're cruxmates with ${p.display_name.split(' ')[0]} 🤝`);
+                    }}
                     className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
                   >
                     Add

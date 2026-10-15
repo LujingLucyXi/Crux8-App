@@ -41,7 +41,10 @@ export function AddDeepLink() {
   const me = useAppStore((s) => s.me);
   const users = useAppStore((s) => s.users);
   const cruxmates = useAppStore((s) => s.cruxmates);
-  const addCruxMate = useAppStore((s) => s.addCruxMate);
+  const requestCruxmate = useAppStore((s) => s.requestCruxmate);
+  const cancelMateRequest = useAppStore((s) => s.cancelMateRequest);
+  const mateRequestFor = useAppStore((s) => s.mateRequestFor);
+  const mateRequests = useAppStore((s) => s.mateRequests);
   const ensureInviteCode = useAppStore((s) => s.ensureInviteCode);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [target, setTarget] = useState<AddTarget | null>(null);
@@ -130,9 +133,13 @@ export function AddDeepLink() {
 
   const handleAdd = () => {
     if (!target || target.via === 'me') return;
-    addCruxMate(target.id);
-    setAdded(true);
-    toast.success(`${target.display_name} added as a CruxMate`);
+    const res = requestCruxmate(target.id);
+    if (res === 'instant' || res === 'accepted' || res === 'already') {
+      setAdded(true);
+    }
+    if (res === 'sent') toast.success(`Request sent to ${target.display_name.split(' ')[0]}`);
+    else if (res === 'instant') toast.success(`${target.display_name} added as a CruxMate`);
+    else if (res === 'accepted') toast.success(`You're cruxmates with ${target.display_name.split(' ')[0]} 🤝`);
   };
 
   const shell = (body: React.ReactNode) => (
@@ -199,7 +206,7 @@ export function AddDeepLink() {
             Sign in with email
           </Button>
           <p className="mt-2 text-[11px] text-ink-400">
-            Guests add instantly; sign in anytime to keep your history on this device.
+            Guests can send a request with just a name — no sign-up.
           </p>
         </div>
         <AuthSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Sign in" initialTab="code" />
@@ -251,6 +258,7 @@ export function AddDeepLink() {
   }
 
   const isCruxmate = cruxmates.includes(target.id);
+  const reqDir = isCruxmate ? null : mateRequestFor(target.id);
 
   return shell(
     <>
@@ -267,6 +275,28 @@ export function AddDeepLink() {
               Message {target.display_name.split(' ')[0]}
             </Button>
           </>
+        ) : reqDir === 'outgoing' ? (
+          <>
+            <div className="rounded-2xl border border-ink-100 bg-paper-100 p-4 text-center">
+              <p className="text-sm font-semibold text-ink-700">
+                Request sent — waiting for {target.display_name.split(' ')[0]} to accept.
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => {
+                cancelMateRequest(target.id);
+                toast('Request canceled');
+              }}
+            >
+              Cancel request
+            </Button>
+          </>
+        ) : reqDir === 'incoming' ? (
+          <Button variant="punch" className="w-full" onClick={handleAdd}>
+            Accept request
+          </Button>
         ) : (
           <Button variant="punch" className="w-full" onClick={handleAdd}>
             Add as Cruxmate

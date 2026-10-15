@@ -21,8 +21,11 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
   const gyms = useAppStore((s) => s.gyms);
   const cruxmates = useAppStore((s) => s.cruxmates);
   const directoryVerifications = useAppStore((s) => s.directoryVerifications);
-  const addCruxMate = useAppStore((s) => s.addCruxMate);
   const removeCruxMate = useAppStore((s) => s.removeCruxMate);
+  const requestCruxmate = useAppStore((s) => s.requestCruxmate);
+  const cancelMateRequest = useAppStore((s) => s.cancelMateRequest);
+  const mateRequestFor = useAppStore((s) => s.mateRequestFor);
+  const mateRequests = useAppStore((s) => s.mateRequests);
 
   const user = userId ? resolveUser(userId, me, users, directory) : undefined;
   if (!user) return null;
@@ -34,6 +37,25 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
   const homeGymId = npcUser?.home_gym_id ?? (user.id === me?.id ? me?.home_gym_id : undefined);
   const gym = gyms.find((g) => g.id === homeGymId);
   const isCruxmate = cruxmates.includes(user.id);
+  const reqDir = isCruxmate ? null : mateRequestFor(user.id);
+
+  const handleAddButton = () => {
+    if (reqDir === 'incoming') {
+      if (requestCruxmate(user.id) === 'accepted') {
+        toast.success(`You're cruxmates with ${user.display_name.split(' ')[0]} 🤝`);
+      }
+      return;
+    }
+    if (reqDir === 'outgoing') {
+      cancelMateRequest(user.id);
+      toast('Request canceled');
+      return;
+    }
+    const res = requestCruxmate(user.id);
+    if (res === 'sent') toast.success(`Request sent to ${user.display_name.split(' ')[0]}`);
+    else if (res === 'accepted') toast.success(`You're cruxmates with ${user.display_name.split(' ')[0]} 🤝`);
+    else if (res === 'instant') toast(`${user.display_name} added as a CruxMate`);
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -91,12 +113,17 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
                 removeCruxMate(user.id);
                 toast('Removed CruxMate');
               } else {
-                addCruxMate(user.id);
-                toast(`${user.display_name} added as a CruxMate`);
+                handleAddButton();
               }
             }}
           >
-            {isCruxmate ? 'Remove CruxMate' : 'Add as CruxMate'}
+            {isCruxmate
+              ? 'Remove CruxMate'
+              : reqDir === 'incoming'
+                ? 'Accept request'
+                : reqDir === 'outgoing'
+                  ? 'Requested — tap to cancel'
+                  : 'Add as CruxMate'}
           </Button>
           {isCruxmate && (
             <Button

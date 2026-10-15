@@ -366,3 +366,17 @@ export interface Invite {
   status: 'pending' | 'accepted' | 'denied';
   created_at: string;
 }
+
+/**
+ * A cruxmate request: person-to-person, needs the other side's accept.
+ * Server-backed in public.cruxmate_requests; the recipient answers from
+ * the same Invites inbox as call/session invites. Card collection happens
+ * on accept, not on send.
+ */
+export interface MateRequest {
+  id: string;
+  from_id: string;
+  to_id: string;
+  status: 'pending' | 'accepted' | 'denied';
+  created_at: string;
+}
