@@ -1,17 +1,25 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ShieldCheck, WarningTriangle, Calendar, MapPin, Check } from 'iconoir-react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Input, Textarea } from '@/components/ui/Input';
-import { Avatar, AvatarStack } from '@/components/ui/Avatar';
+import { Avatar } from '@/components/ui/Avatar';
 import { useAppStore } from '@/store/useAppStore';
 import { REACTIONS } from '@/lib/reactions';
 import { formatSessionWhen } from '@/lib/date';
 import type { Session, PartnerFlag, SessionRecap, Vibe } from '@/seed/types';
 import { cn } from '@/lib/utils';
 import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
+import {
+  SessionCardArtwork,
+  type CardChip,
+  type CardCrewMember,
+} from '@/components/SessionCardArtwork';
+import { ShareableCardFrame } from '@/components/ShareableCardFrame';
+import { shareCardImage } from '@/lib/shareCardImage';
+import { getSessionNumber, formatCardDate, initialsOf } from '@/lib/sessionCard';
 
 interface Props {
   session: Session | null;
@@ -75,6 +83,11 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
   const [flagNote, setFlagNote] = useState('');
   // After Done: the shareable finish card step.
   const [showCard, setShowCard] = useState(false);
+  // Card artwork capture + image share state.
+  const artRef = useRef<HTMLDivElement | null>(null);
+  const [photoOn, setPhotoOn] = useState(true);
+  const [sharingCard, setSharingCard] = useState(false);
+  const sessions = useAppStore((s) => s.sessions);
   // Guest claim-by-email inline form (front door, 2026-10-14).
   const [claimOpen, setClaimOpen] = useState(false);
   const [claimEmail, setClaimEmail] = useState('');
@@ -140,22 +153,65 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
     const crew = [me, ...partners].map((p) => ({
       id: p.id,
       display_name: p.id === me.id ? 'You' : p.display_name,
-      avatar: p.avatar,
+      real_name: p.display_name,
       photo_url: p.photo_url ?? undefined,
     }));
+    const sessionNumber = getSessionNumber(sessions, me.id, session.id);
     const houseCrew =
       groups.find((g) => g.id === session.posted_by_group_id) ??
       groups.find((g) => g.kind === 'house_hangout' && myGroupMemberships.includes(g.id));
     const shareText = `🧗 ${session.title} at ${gym?.short_name ?? session.area ?? 'the gym'} — ${partners.length + 1} climbed. Join us next time!`;
-    const doShare = async () => {
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: 'Crux8 session', text: shareText, url });
-          return;
-        } catch {
-          /* dismissed — fall through to copy */
+    const cardCrew: CardCrewMember[] = crew.map((p) => ({
+      id: p.id,
+      name: p.real_name,
+      photoUrl: photoOn ? p.photo_url : undefined,
+      initials: initialsOf(p.real_name),
+    }));
+    const chips: CardChip[] = [
+      ...(felt ? [{ label: `FELT ${felt.label.toUpperCase()}`, gold: true }] : []),
+      ...(vibe ? [{ label: vibe.label.toUpperCase() }] : []),
+      ...(duration ? [{ label: duration.label.toUpperCase() }] : []),
+      ...(sendsTotal > 0
+        ? [{ label: `${sendsTotal} SEND${sendsTotal === 1 ? '' : 'S'}` }]
+        : []),
+      ...(recap?.gym_rating ? [{ label: `GYM ★ ${recap.gym_rating}` }] : []),
+    ];
+    // Image-first share: the card as a PNG via navigator.share({files}),
+    // download fallback, and the deep link stays as the invite mechanism.
+    const shareCard = async () => {
+      const node = artRef.current;
+      if (!node || sharingCard) return;
+      setSharingCard(true);
+      try {
+        let photoFailedOnce = false;
+        for (;;) {
+          try {
+            const r = await shareCardImage({
+              node,
+              fileName: `crux8-session-${sessionNumber}.png`,
+              title: 'Crux8 session',
+              text: shareText,
+            });
+            if (r === 'downloaded') toast('Image saved — post it anywhere 📸');
+            return;
+          } catch {
+            if (!photoFailedOnce) {
+              // Likely a tainted canvas from a cross-origin photo — retry
+              // once with the branded panel instead.
+              photoFailedOnce = true;
+              setPhotoOn(false);
+              await new Promise((r) => setTimeout(r, 200));
+              continue;
+            }
+            toast('Could not render the image — copy the link instead');
+            return;
+          }
         }
+      } finally {
+        setSharingCard(false);
       }
+    };
+    const copyLink = async () => {
       try {
         await navigator.clipboard.writeText(`${shareText} ${url}`);
         toast('Link copied — share it anywhere');
@@ -166,54 +222,21 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
     return (
       <Sheet open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
         <SheetContent title="Session complete">
-          <div
-            className="enamel overflow-hidden rounded-3xl p-5 text-white"
-            style={{ backgroundImage: 'linear-gradient(140deg, #7A5F24 0%, #B08D3E 100%)' }}
-          >
-            <p className="text-[10px] font-black tracking-[0.22em] text-white/85">SESSION COMPLETE</p>
-            <h3 className="mt-1.5 text-xl font-extrabold leading-tight">{session.title}</h3>
-            <p className="text-[13px] text-white/85 font-medium mt-0.5">
-              {gym?.name ?? session.area ?? 'Outdoors'} · {formatSessionWhen(session.starts_at)}
-            </p>
-            <div className="mt-3 flex items-center gap-2">
-              <AvatarStack users={crew} max={5} size={26} />
-              <span className="text-[12px] font-bold text-white">
-                {crew.length} climbed
-              </span>
-            </div>
-            {(felt || vibe || duration || sendsTotal > 0 || recap?.gym_rating) && (
-              <div className="mt-3.5 flex flex-wrap gap-1.5">
-                {felt && (
-                  <span className="rounded-full bg-white/20 ring-1 ring-white/25 px-2.5 py-1 text-[11px] font-bold">
-                    {felt.emoji} Felt {felt.label.toLowerCase()}
-                  </span>
-                )}
-                {vibe && (
-                  <span className="rounded-full bg-white/20 ring-1 ring-white/25 px-2.5 py-1 text-[11px] font-bold">
-                    {vibe.emoji} {vibe.label}
-                  </span>
-                )}
-                {duration && (
-                  <span className="rounded-full bg-white/20 ring-1 ring-white/25 px-2.5 py-1 text-[11px] font-bold">
-                    ⏱ {duration.label}
-                  </span>
-                )}
-                {sendsTotal > 0 && (
-                  <span className="rounded-full bg-white/20 ring-1 ring-white/25 px-2.5 py-1 text-[11px] font-bold">
-                    🎯 {sendsTotal} send{sendsTotal === 1 ? '' : 's'}
-                  </span>
-                )}
-                {recap?.gym_rating ? (
-                  <span className="rounded-full bg-white/20 ring-1 ring-white/25 px-2.5 py-1 text-[11px] font-bold">
-                    {'⭐'.repeat(recap.gym_rating)} {gym?.short_name ?? 'gym'}
-                  </span>
-                ) : null}
-              </div>
-            )}
-            <p className="mt-4 text-[10px] font-black tracking-[0.22em] text-white/70">
-              CRUX8 · CRUX8.APP
-            </p>
-          </div>
+          <ShareableCardFrame nodeRef={artRef}>
+            <SessionCardArtwork
+              data={{
+                number: sessionNumber,
+                dateLabel: formatCardDate(session.starts_at),
+                headlineA: 'Session',
+                headlineB: 'complete.',
+                crew: cardCrew,
+                crewLine: `${crew.length} climbed together`,
+                crewSub: 'Crew showed up. That is the whole point.',
+                chips,
+                gymLine: (gym?.name ?? session.area ?? 'Outdoors').toUpperCase(),
+              }}
+            />
+          </ShareableCardFrame>
 
           <div className="mt-4 flex flex-col gap-2">
             {/* Post-value orientation prompt (Lucy, 2026-10-14): the card
@@ -274,7 +297,12 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
                 {claimError && <p className="mt-2 text-xs text-red-600">{claimError}</p>}
               </div>
             )}
-            <Button onClick={() => void doShare()}>Share…</Button>
+            <Button onClick={() => void shareCard()} disabled={sharingCard}>
+              {sharingCard ? 'Rendering…' : 'Share card'}
+            </Button>
+            <Button variant="outline" onClick={() => void copyLink()}>
+              Copy link
+            </Button>
             {houseCrew && (
               <Button
                 variant="outline"
