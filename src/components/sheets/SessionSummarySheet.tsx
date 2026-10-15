@@ -1,10 +1,19 @@
+import { useRef, useState } from 'react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/store/useAppStore';
-import { getArchetype, getHouse } from '@/lib/quizMeta';
+import { getArchetype } from '@/lib/quizMeta';
 import { resolveUser } from '@/lib/resolveUser';
 import { toast } from 'sonner';
 import type { Session } from '@/seed/types';
+import {
+  SessionCardArtwork,
+  type CardChip,
+  type CardCrewMember,
+} from '@/components/SessionCardArtwork';
+import { ShareableCardFrame } from '@/components/ShareableCardFrame';
+import { shareCardImage } from '@/lib/shareCardImage';
+import { getSessionNumber, formatCardDate } from '@/lib/sessionCard';
 
 interface Props {
   session: Session | null;
@@ -45,21 +54,18 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
   const sessions = useAppStore((s) => s.sessions);
   const collectedCards = useAppStore((s) => s.collectedCards);
   const recaps = useAppStore((s) => s.recaps);
+  const artRef = useRef<HTMLDivElement | null>(null);
+  const [sharingCard, setSharingCard] = useState(false);
 
   if (!session || !me) return null;
 
-  // Session number: chronological order of user's sessions
-  const mySessions = sessions
-    .filter((s) => s.participant_ids.includes(me.id) || s.host_id === me.id)
-    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
-  const sessionNumber = mySessions.findIndex((s) => s.id === session.id) + 1;
+  // Session number: chronological order of user's sessions (shared helper —
+  // the same numbering feeds the recap finish card).
+  const sessionNumber = getSessionNumber(sessions, me.id, session.id);
 
   const participants = session.participant_ids.filter((id) => id !== me.id);
   const gym = session.gym_id ? gyms.find((g) => g.id === session.gym_id) : undefined;
   const where = gym?.short_name ?? session.area ?? 'Somewhere';
-  const when = new Date(session.starts_at).toLocaleDateString(undefined, {
-    month: 'short', day: 'numeric',
-  });
 
   // Cards collected from this session's participants
   const sessionCards = collectedCards.filter((c) => participants.includes(c.user_id));
@@ -78,14 +84,6 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
     .map(([g, n]) => `${n}×${g}`)
     .join(' · ');
 
-  // Dominant house among participants for theming
-  const houseCounts = new Map<string, number>();
-  for (const c of sessionCards) {
-    houseCounts.set(c.house_id, (houseCounts.get(c.house_id) ?? 0) + 1);
-  }
-  const topHouseId = [...houseCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-  const topHouse = topHouseId ? getHouse(topHouseId) : null;
-
   const link = `https://crux8.app/session/${session.id}`;
 
   const handleCopy = async () => {
@@ -97,150 +95,138 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
     }
   };
 
-  const handleNativeShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Session #${sessionNumber} on Crux8`,
-          text:
-            participants.length === 0
-              ? `Solo session at ${where} 🧗`
-              : `Climbed with ${participants.length} ${participants.length === 1 ? 'cruxmate' : 'cruxmates'} at ${where}`,
-          url: link,
-        });
-      } catch { /* dismissed */ }
-    } else {
-      handleCopy();
+  const shareCardText =
+    participants.length === 0
+      ? `Solo session at ${where} 🧗`
+      : `Climbed with ${participants.length} ${participants.length === 1 ? 'cruxmate' : 'cruxmates'} at ${where}`;
+
+  // Image-first share: the card as a PNG via navigator.share({files}),
+  // download fallback; the deep link stays as the invite mechanism.
+  const shareCard = async () => {
+    const node = artRef.current;
+    if (!node || sharingCard) return;
+    setSharingCard(true);
+    try {
+      const r = await shareCardImage({
+        node,
+        fileName: `crux8-session-${sessionNumber}.png`,
+        title: `Session #${sessionNumber} on Crux8`,
+        text: shareCardText,
+      });
+      if (r === 'downloaded') toast.success('Image saved — post it anywhere 📸');
+    } catch {
+      toast('Could not render the image — copy the link instead');
+    } finally {
+      setSharingCard(false);
     }
   };
+
+  // Same card template as the recap finish card (one-card decision).
+  const cardCrew: CardCrewMember[] = participants.slice(0, 5).map((id) => {
+    const u = resolveUser(id, me, users, directory);
+    const card = collectedCards.find((c) => c.user_id === id);
+    const arch = card ? getArchetype(card.archetype_id) : null;
+    return {
+      id,
+      name: u?.display_name ?? 'Cruxmate',
+      emoji: arch?.emoji ?? '🧗',
+    };
+  });
+  const chips: CardChip[] = [
+    ...(recap?.felt
+      ? [{ label: `FELT ${FELT_LABELS[recap.felt].toUpperCase()}`, gold: true }]
+      : []),
+    ...(recap?.duration_bucket
+      ? [{ label: DURATION_LABELS[recap.duration_bucket].toUpperCase() }]
+      : []),
+    ...(sendsTotal !== undefined
+      ? [{ label: `${sendsTotal} ${sendsTotal === 1 ? 'SEND' : 'SENDS'}` }]
+      : []),
+    ...(recap?.gym_rating ? [{ label: `GYM ★ ${recap.gym_rating}` }] : []),
+    { label: (recap?.vibe_pick ?? session.vibe).toUpperCase() },
+  ];
+  const extraRow = (
+    <>
+      {sessionCards.length > 0 && (
+        <div>
+          <p
+            style={{
+              fontSize: 24,
+              fontWeight: 700,
+              letterSpacing: 3,
+              color: '#6d675a',
+            }}
+          >
+            🃏 {sessionCards.length} CARD
+            {sessionCards.length === 1 ? '' : 'S'} COLLECTED
+          </p>
+          <div style={{ marginTop: 16, display: 'flex', gap: 14 }}>
+            {sessionCards.map((c) => {
+              const arch = getArchetype(c.archetype_id);
+              return (
+                <span
+                  key={c.user_id}
+                  style={{ fontSize: 56 }}
+                  title={arch?.name_en}
+                >
+                  {arch?.emoji ?? '🧬'}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {sendsBreakdown && (
+        <p
+          style={{
+            marginTop: 16,
+            fontSize: 27,
+            fontWeight: 600,
+            color: '#6d675a',
+          }}
+        >
+          {sendsBreakdown}
+        </p>
+      )}
+    </>
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">
-          Session #{sessionNumber || '—'}
-        </p>
-
-        {/* Collectible card */}
-        <div
-          className="mx-auto mt-4 rounded-3xl p-6 shadow-xl text-left"
-          style={{
-            background: topHouse
-              ? `linear-gradient(135deg, ${topHouse.color}30, ${topHouse.color}70)`
-              : 'linear-gradient(135deg, #2A2210, #16161A)',
-            border: `2px solid ${topHouse?.color ?? '#C9A24B'}`,
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-ink-900">{session.title}</h3>
-              <p className="text-xs text-ink-500">{where} · {when}</p>
-            </div>
-            {topHouse && (
-              <span className="text-3xl">{topHouse.emoji}</span>
-            )}
-          </div>
-
-          {/* Crew — cruxmates, or the solo framing (never "0 partners") */}
-          <div className="mt-4 flex items-center gap-2">
-            {participants.length > 0 ? (
-              <>
-                <div className="flex -space-x-2">
-                  {participants.slice(0, 5).map((id) => {
-                    const u = resolveUser(id, me, users, directory);
-                    const card = collectedCards.find((c) => c.user_id === id);
-                    const arch = card ? getArchetype(card.archetype_id) : null;
-                    return (
-                      <span
-                        key={id}
-                        title={u?.display_name}
-                        className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-paper-100 text-xl shadow"
-                      >
-                        {arch?.emoji ?? '🧗'}
-                      </span>
-                    );
-                  })}
-                </div>
-                <span className="text-xs text-ink-600 font-medium">
-                  Climbed with {participants.length}{' '}
-                  {participants.length === 1 ? 'cruxmate' : 'cruxmates'}
-                </span>
-              </>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-ink-700">
-                🧗 Solo session
-              </span>
-            )}
-          </div>
-
-          {/* Your session stats — only what they answered (all optional) */}
-          {(recap?.felt ||
-            recap?.duration_bucket ||
-            sendsTotal !== undefined ||
-            recap?.gym_rating) && (
-            <div className="mt-4">
-              <div className="flex flex-wrap gap-1.5">
-                {recap?.felt && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
-                    {FELT_FACES[recap.felt]} {FELT_LABELS[recap.felt]}
-                  </span>
-                )}
-                {recap?.duration_bucket && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
-                    ⏱ {DURATION_LABELS[recap.duration_bucket]}
-                  </span>
-                )}
-                {sendsTotal !== undefined && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
-                    🔥 {sendsTotal} {sendsTotal === 1 ? 'send' : 'sends'}
-                  </span>
-                )}
-                {recap?.gym_rating && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-black/25 px-3 py-1.5 text-xs font-semibold text-ink-900">
-                    ⭐ {recap.gym_rating}/5 gym
-                  </span>
-                )}
-              </div>
-              {sendsBreakdown && (
-                <p className="mt-2 text-xs font-medium text-ink-600">{sendsBreakdown}</p>
-              )}
-            </div>
-          )}
-
-          {/* Cards collected */}
-          {sessionCards.length > 0 && (
-            <div className="mt-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">
-                🃏 {sessionCards.length} card{sessionCards.length === 1 ? '' : 's'} collected
-              </p>
-              <div className="mt-1.5 flex gap-1.5">
-                {sessionCards.map((c) => {
-                  const arch = getArchetype(c.archetype_id);
-                  return (
-                    <span key={c.user_id} className="text-2xl" title={arch?.name_en}>
-                      {arch?.emoji ?? '🧬'}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Vibe — the user's felt vibe from the recap wins over the plan */}
-          <div className="mt-4 flex items-center justify-between">
-            <span className="inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-ink-700 capitalize">
-              {recap?.vibe_pick ?? session.vibe} vibes
-            </span>
-            <span className="text-[10px] text-ink-400 font-medium">crux8.app</span>
-          </div>
-        </div>
+        <ShareableCardFrame nodeRef={artRef}>
+          <SessionCardArtwork
+            data={{
+              number: sessionNumber,
+              dateLabel: formatCardDate(session.starts_at),
+              headlineA: 'Session',
+              headlineB: 'complete.',
+              crew: cardCrew,
+              crewLine:
+                participants.length === 0
+                  ? 'Solo session'
+                  : `Climbed with ${participants.length} ${
+                      participants.length === 1 ? 'cruxmate' : 'cruxmates'
+                    }`,
+              crewSub:
+                participants.length === 0 ? 'just you and the wall 🧗' : undefined,
+              chips,
+              extraRow,
+              gymLine: (gym?.name ?? session.area ?? 'Outdoors').toUpperCase(),
+            }}
+          />
+        </ShareableCardFrame>
 
         <div className="mt-5 flex gap-2">
           <Button variant="outline" className="flex-1" onClick={handleCopy}>
             Copy link
           </Button>
-          <Button className="flex-1" onClick={handleNativeShare}>
-            Share session
+          <Button
+            className="flex-1"
+            onClick={() => void shareCard()}
+            disabled={sharingCard}
+          >
+            {sharingCard ? 'Rendering…' : 'Share card'}
           </Button>
         </div>
         <p className="mt-2 text-[11px] text-ink-400 break-all">{link}</p>
