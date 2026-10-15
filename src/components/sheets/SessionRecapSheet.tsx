@@ -107,6 +107,13 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
     session.category === 'boulder' || session.category === 'outdoor_boulder'
       ? BOULDER_GRADES
       : ROPE_GRADES;
+  // Belay-cert confirmation only makes sense on roped disciplines.
+  const isRoped =
+    session.category === 'top_rope' ||
+    session.category === 'lead' ||
+    session.category === 'outdoor_sport' ||
+    session.category === 'trad' ||
+    session.category === 'multi_pitch';
   const sendsLog = recap?.sends_log ?? {};
   const sendsTotal = Object.values(sendsLog).reduce((a, b) => a + b, 0);
   const bumpSend = (grade: string, delta: number) => {
@@ -589,7 +596,9 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
                       })}
                     </div>
 
-                    {/* Peer belay-cert confirmation — turns self-reported into peer-confirmed */}
+                    {/* Peer belay-cert confirmation — turns self-reported into peer-confirmed.
+                        Only on roped sessions; boulder/outdoor_boulder/hiking recaps skip it. */}
+                    {isRoped && (
                     <div className="mt-3 rounded-xl bg-paper-50 border border-ink-100 p-3">
                       <p className="text-[11px] font-semibold text-ink-700 mb-2">
                         Does {p.display_name.split(' ')[0]} have a belay cert / belay safely?
@@ -620,6 +629,7 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
                         })}
                       </div>
                     </div>
+                    )}
 
                     {/* Safety check — all-good default + private flag */}
                     {flagFor === p.id ? (
