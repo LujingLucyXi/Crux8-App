@@ -156,7 +156,7 @@ export function buildSessionCardData(input: BuildCardInput): SessionCardData {
       photoUrl: p.photoUrl ?? null,
       avatarConfig: p.avatarConfig,
       archetypeId: arch?.id ?? null,
-      archetypeLabel: arch ? `THE ${arch.name_en.toUpperCase()}` : undefined,
+      archetypeLabel: arch ? `THE ${arch.name_en.replace(/^the\s+/i, '').toUpperCase()}` : undefined,
     };
   });
   const MAX_ROWS = 6;
