@@ -2,18 +2,21 @@ import { useRef, useState } from 'react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/store/useAppStore';
-import { getArchetype } from '@/lib/quizMeta';
 import { resolveUser } from '@/lib/resolveUser';
 import { toast } from 'sonner';
 import type { Session } from '@/seed/types';
 import {
   SessionCardArtwork,
-  type CardChip,
-  type CardCrewMember,
 } from '@/components/SessionCardArtwork';
+import {
+  buildSessionCardData,
+  vibeLabelFor,
+  type CardParticipant,
+} from '@/lib/cardData';
+import { normalizeInviteCode, isValidInviteCode } from '@/lib/inviteCode';
 import { ShareableCardFrame } from '@/components/ShareableCardFrame';
 import { shareCardImage } from '@/lib/shareCardImage';
-import { getSessionNumber, formatCardDate } from '@/lib/sessionCard';
+import { getSessionNumber } from '@/lib/sessionCard';
 
 interface Props {
   session: Session | null;
@@ -67,22 +70,68 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
   const gym = session.gym_id ? gyms.find((g) => g.id === session.gym_id) : undefined;
   const where = gym?.short_name ?? session.area ?? 'Somewhere';
 
-  // Cards collected from this session's participants
-  const sessionCards = collectedCards.filter((c) => participants.includes(c.user_id));
+  // v20 expedition-postmark card: one template per user from THEIR recap.
+  // Crew = ALL participants (owner first); chips + field note = owner's recap only.
+  // Never prints: grades, sends, session numbers.
   const recap = recaps[session.id];
-
-  // Sends: the per-grade log wins over the quick count when present.
-  const sendsLogEntries = recap?.sends_log
-    ? Object.entries(recap.sends_log).filter(([, n]) => n > 0)
-    : [];
-  const sendsTotal =
-    sendsLogEntries.length > 0
-      ? sendsLogEntries.reduce((a, [, n]) => a + n, 0)
-      : recap?.sends_count;
-  const sendsBreakdown = sendsLogEntries
-    .sort((a, b) => gradeRank(b[0]) - gradeRank(a[0]))
-    .map(([g, n]) => `${n}×${g}`)
-    .join(' · ');
+  const cardParticipants: CardParticipant[] = [
+    {
+      id: me.id,
+      displayName: me.display_name,
+      photoUrl: me.photo_url ?? null,
+      avatarConfig: me.avatar,
+      archetypeId:
+        collectedCards.find((c) => c.user_id === me.id)?.archetype_id ??
+        me.quiz_result_type ??
+        null,
+    },
+    ...participants.map((id): CardParticipant => {
+      const u = resolveUser(id, me, users, directory);
+      const npc = users.find((x) => x.id === id) as
+        | { quiz_result_type?: string }
+        | undefined;
+      return {
+        id,
+        displayName: u?.display_name ?? 'Cruxmate',
+        photoUrl: u?.photo_url ?? null,
+        avatarConfig: u?.avatar,
+        archetypeId:
+          collectedCards.find((c) => c.user_id === id)?.archetype_id ??
+          npc?.quiz_result_type ??
+          null,
+      };
+    }),
+  ];
+  const inviteCode =
+    me.invite_code && isValidInviteCode(normalizeInviteCode(me.invite_code))
+      ? normalizeInviteCode(me.invite_code)
+      : null;
+  const cardData = buildSessionCardData({
+    sessionTitle: session.title,
+    startsAt: session.starts_at,
+    area: session.area,
+    ownerId: me.id,
+    participants: cardParticipants,
+    recap: {
+      durationLabel: recap?.duration_bucket
+        ? DURATION_LABELS[recap.duration_bucket]
+        : undefined,
+      feltLabel: recap?.felt ? FELT_LABELS[recap.felt] : undefined,
+      vibeLabel: vibeLabelFor(recap?.vibe_pick ?? session.vibe),
+      note: recap?.note,
+    },
+    gym: gym
+      ? {
+          id: gym.id,
+          name: gym.name,
+          shortName: gym.short_name,
+          city: gym.city,
+          lat: (gym as { lat?: number }).lat,
+          lng: (gym as { lng?: number }).lng,
+        }
+      : null,
+    inviteCode,
+  });
 
   const link = `https://crux8.app/session/${session.id}`;
 
@@ -95,13 +144,6 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
     }
   };
 
-  const shareCardText =
-    participants.length === 0
-      ? `Solo session at ${where} 🧗`
-      : `Climbed with ${participants.length} ${participants.length === 1 ? 'cruxmate' : 'cruxmates'} at ${where}`;
-
-  // Image-first share: the card as a PNG via navigator.share({files}),
-  // download fallback; the deep link stays as the invite mechanism.
   const shareCard = async () => {
     const node = artRef.current;
     if (!node || sharingCard) return;
@@ -109,8 +151,8 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
     try {
       const r = await shareCardImage({
         node,
-        fileName: `crux8-session-${sessionNumber}.png`,
-        title: `Session #${sessionNumber} on Crux8`,
+        fileName: `crux8-session-${session.id}.png`,
+        title: 'Crux8 session',
         text: shareCardText,
       });
       if (r === 'downloaded') toast.success('Image saved — post it anywhere 📸');
@@ -121,100 +163,17 @@ export function SessionSummarySheet({ session, open, onOpenChange }: Props) {
     }
   };
 
-  // Same card template as the recap finish card (one-card decision).
-  const cardCrew: CardCrewMember[] = participants.slice(0, 5).map((id) => {
-    const u = resolveUser(id, me, users, directory);
-    const card = collectedCards.find((c) => c.user_id === id);
-    const arch = card ? getArchetype(card.archetype_id) : null;
-    return {
-      id,
-      name: u?.display_name ?? 'Cruxmate',
-      emoji: arch?.emoji ?? '🧗',
-    };
-  });
-  const chips: CardChip[] = [
-    ...(recap?.felt
-      ? [{ label: `FELT ${FELT_LABELS[recap.felt].toUpperCase()}`, gold: true }]
-      : []),
-    ...(recap?.duration_bucket
-      ? [{ label: DURATION_LABELS[recap.duration_bucket].toUpperCase() }]
-      : []),
-    ...(sendsTotal !== undefined
-      ? [{ label: `${sendsTotal} ${sendsTotal === 1 ? 'SEND' : 'SENDS'}` }]
-      : []),
-    ...(recap?.gym_rating ? [{ label: `GYM ★ ${recap.gym_rating}` }] : []),
-    { label: (recap?.vibe_pick ?? session.vibe).toUpperCase() },
-  ];
-  const extraRow = (
-    <>
-      {sessionCards.length > 0 && (
-        <div>
-          <p
-            style={{
-              fontSize: 24,
-              fontWeight: 700,
-              letterSpacing: 3,
-              color: '#6d675a',
-            }}
-          >
-            🃏 {sessionCards.length} CARD
-            {sessionCards.length === 1 ? '' : 'S'} COLLECTED
-          </p>
-          <div style={{ marginTop: 16, display: 'flex', gap: 14 }}>
-            {sessionCards.map((c) => {
-              const arch = getArchetype(c.archetype_id);
-              return (
-                <span
-                  key={c.user_id}
-                  style={{ fontSize: 56 }}
-                  title={arch?.name_en}
-                >
-                  {arch?.emoji ?? '🧬'}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      {sendsBreakdown && (
-        <p
-          style={{
-            marginTop: 16,
-            fontSize: 27,
-            fontWeight: 600,
-            color: '#6d675a',
-          }}
-        >
-          {sendsBreakdown}
-        </p>
-      )}
-    </>
-  );
-
+  const shareCardText =
+    participants.length === 0
+      ? `Solo session at ${where} 🧗`
+      : `Climbed with ${participants.length} ${
+          participants.length === 1 ? 'cruxmate' : 'cruxmates'
+        } at ${where}`;
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="text-center">
         <ShareableCardFrame nodeRef={artRef}>
-          <SessionCardArtwork
-            data={{
-              number: sessionNumber,
-              dateLabel: formatCardDate(session.starts_at),
-              headlineA: 'Session',
-              headlineB: 'complete.',
-              crew: cardCrew,
-              crewLine:
-                participants.length === 0
-                  ? 'Solo session'
-                  : `Climbed with ${participants.length} ${
-                      participants.length === 1 ? 'cruxmate' : 'cruxmates'
-                    }`,
-              crewSub:
-                participants.length === 0 ? 'just you and the wall 🧗' : undefined,
-              chips,
-              extraRow,
-              gymLine: (gym?.name ?? session.area ?? 'Outdoors').toUpperCase(),
-            }}
-          />
+          <SessionCardArtwork data={cardData} />
         </ShareableCardFrame>
 
         <div className="mt-5 flex gap-2">
