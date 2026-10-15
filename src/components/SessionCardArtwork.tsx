@@ -466,10 +466,10 @@ export function SessionCardArtwork({ data }: { data: SessionCardData }) {
               height="224"
               opacity="0.13"
             />
-            <MotifGlyph motif={data.stamp.motif} />
             <text
-              x="150"
+              x="360"
               y="66"
+              textAnchor="middle"
               fontFamily={MONO}
               fontSize="24"
               letterSpacing="6"
