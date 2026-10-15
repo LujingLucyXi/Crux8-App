@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Sparks as SparksIcon, SearchEngine } from 'iconoir-react';
-import { hasStarted } from '@/lib/sessionPhase';
+import { hasStarted, sessionPhase } from '@/lib/sessionPhase';
 import { SessionCard } from '@/components/cards/SessionCard';
 import { EventCard } from '@/components/cards/EventCard';
 import { ClimbCallCard } from '@/components/cards/ClimbCallCard';
@@ -129,10 +129,15 @@ export function Find() {
     if (l1 !== 'climb') return [];
     const styles = filters.climb_styles;
     const envCats = env === 'indoor' ? ['boulder'] : ['outdoor_sport', 'trad', 'multi_pitch', 'outdoor_boulder'];
+    const now = Date.now();
     return sessions
       .filter((s) => s.participant_ids.length > 0)
       // Started sessions are closed: only participants still see them.
       .filter((s) => !hasStarted(s, sessionLifecycle[s.id]) || (me ? s.participant_ids.includes(me.id) : false))
+      // Expired unstarted sessions (past start + grace, never started)
+      // must not surface in discovery at all (2026-10-14 field report:
+      // a brand-new user saw a host's long-expired sessions in feeds).
+      .filter((s) => sessionPhase(s, sessionLifecycle[s.id], now) !== 'expired')
       .filter((s) => s.location_type === env && envCats.includes(s.category))
       .filter((s) => {
         if (styles.length > 0 && !styles.includes(s.category)) return false;
@@ -147,9 +152,12 @@ export function Find() {
   const hikesFiltered = useMemo(() => {
     if (l1 !== 'hike') return [];
     const types = filters.hike_types;
+    const now = Date.now();
     return sessions
       .filter((s) => s.participant_ids.length > 0)
       .filter((s) => !hasStarted(s, sessionLifecycle[s.id]) || (me ? s.participant_ids.includes(me.id) : false))
+      // Expired unstarted sessions never surface in discovery (2026-10-14).
+      .filter((s) => sessionPhase(s, sessionLifecycle[s.id], now) !== 'expired')
       .filter((s) => s.category === 'hiking')
       .filter((s) => {
         if (types.length > 0 && !(s.hike_type && types.includes(s.hike_type))) return false;
