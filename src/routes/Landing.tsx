@@ -77,12 +77,8 @@ export function Landing() {
           CHALK UP. SEND TOGETHER.
         </p>
 
-        <p className="mt-7 text-[30px] font-extrabold leading-tight tracking-tight">
-          Buddy hunt, gamified.
-          <br />
-          <span className="bg-[linear-gradient(90deg,#8A6D2F,#C9A24B_45%,#7FB800)] bg-clip-text text-transparent">
-            Electrify your climb.
-          </span>
+        <p className="mt-7 text-[26px] font-bold leading-snug">
+          Find your people. Climb stronger.
         </p>
         <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-ink-500">
           Crux8 finds you partners for the gym, the crag, and the trail — a crew
@@ -153,6 +149,15 @@ export function Landing() {
           >
             Or take the 2-minute DNA quiz first →
           </a>
+          {/* Demoted from the hero slot (Lucy 2026-10-16): the buddy-hunt
+              line works as an accent under the quiz invite, not as the
+              headline. */}
+          <p className="mt-4 text-[17px] font-extrabold leading-snug tracking-tight">
+            Buddy hunt, gamified.{' '}
+            <span className="bg-[linear-gradient(90deg,#8A6D2F,#C9A24B_45%,#7FB800)] bg-clip-text text-transparent">
+              Electrify your climb.
+            </span>
+          </p>
         </div>
 
         {/* ── Free, with an optional tip jar ── */}
