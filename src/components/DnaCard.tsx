@@ -4,10 +4,11 @@ import { ArchetypeEmblem } from '@/components/ArchetypeEmblem';
 /**
  * A climber DNA card as a collectible object, styled after the Crux8
  * Play result card (play.crux8.app): near-black body, gold-gradient
- * frame, letterspaced CRUX8 header, medallion emblem lit by a
+ * frame, letterspaced CRUX8 header, a big medallion emblem lit by a
  * house-color glow, archetype name in the house accent, tagline in
- * parchment. This is THE card everywhere — reveal, the Vault grid,
- * the Vault detail. `locked` renders the uncollected silhouette.
+ * parchment. (No stripe texture — Lucy 2026-10-15: stripes read as a
+ * card BACK, this is a front.) This is THE card everywhere — reveal,
+ * the Vault grid, the Vault detail. `locked` renders the silhouette.
  */
 export function DnaCard({
   archetypeId,
@@ -28,7 +29,7 @@ export function DnaCard({
   const house = arch ? getHouse(arch.house_id) : null;
   if (!arch || !house) return null;
   const mini = size === 'mini';
-  const emblemPx = mini ? 84 : 148;
+  const emblemPx = mini ? 110 : 192;
 
   return (
     <div
@@ -43,15 +44,6 @@ export function DnaCard({
           mini ? 'px-3 py-4' : 'px-5 py-6'
         }`}
       >
-        {/* Diagonal sheen, same texture as the Play card back. */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.10]"
-          style={{
-            background:
-              'repeating-linear-gradient(135deg, transparent 0 14px, rgba(255,255,255,0.9) 14px 16px)',
-          }}
-          aria-hidden
-        />
         <p className="relative text-[10px] font-extrabold tracking-[0.45em] text-[#C9A24B]">
           CRUX8
         </p>
