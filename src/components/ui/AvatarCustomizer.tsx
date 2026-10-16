@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { CartoonAvatar, hairBucket, type HairBucket } from './CartoonAvatar';
+import { CartoonAvatar, type HairBucket } from './CartoonAvatar';
 import { Button } from './Button';
 import { fileToAvatarDataUrl } from '@/lib/image';
 import {
@@ -160,7 +160,7 @@ export function AvatarCustomizer({ value: rawValue, onChange, photoUrl, onPhotoC
         {/* Hair style — grouped by the 6 silhouettes the cartoon actually draws */}
         <Row label="Hair">
           {HAIR_OPTIONS.map((h) => (
-            <Pill key={h.value} active={hairBucket(value.hair) === h.bucket} onClick={() => set('hair', h.value)}>
+            <Pill key={h.value} active={value.hair === h.value} onClick={() => set('hair', h.value)}>
               {h.label}
             </Pill>
           ))}
