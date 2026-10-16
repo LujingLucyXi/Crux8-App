@@ -13,23 +13,38 @@ import {
 } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
 
-// The cartoon renderer draws only these 6 hair silhouettes and 4 accessories —
-// so we present exactly those, one representative value per bucket. This keeps
-// every control visibly changing the avatar (no inert options).
+// The cartoon renderer draws a DISTINCT silhouette per style (the
+// 2026-10-16 expansion gave wavy/straight/pigtails/braids/curtains/
+// bangs/spacebuns/locs/halfshave their own art), so the picker offers
+// the full list — every control visibly changes the avatar.
 const HAIR_OPTIONS: { value: HairStyle; label: string; bucket: HairBucket }[] = [
   { value: 'mohawk', label: 'Spikes', bucket: 'spikes' },
   { value: 'buzz', label: 'Buzz', bucket: 'buzz' },
   { value: 'bob', label: 'Bob', bucket: 'bob' },
+  { value: 'bangs', label: 'Bangs', bucket: 'bob' },
+  { value: 'curtain', label: 'Curtains', bucket: 'bob' },
   { value: 'topknot', label: 'Bun', bucket: 'bun' },
+  { value: 'spacebuns', label: 'Space buns', bucket: 'bun' },
+  { value: 'ponytail', label: 'Ponytail', bucket: 'long' },
+  { value: 'pigtails', label: 'Double pony', bucket: 'long' },
+  { value: 'braids', label: 'Braids', bucket: 'long' },
+  { value: 'locs', label: 'Locs', bucket: 'long' },
   { value: 'long', label: 'Long', bucket: 'long' },
+  { value: 'straight', label: 'Straight', bucket: 'long' },
+  { value: 'wavy', label: 'Wavy', bucket: 'long' },
+  { value: 'halfshave', label: 'Half-shave', bucket: 'bob' },
   { value: 'bald', label: 'Bald', bucket: 'bald' },
 ];
 const ACCESSORY_OPTIONS: { value: Accessory; label: string }[] = [
   { value: 'none', label: 'None' },
-  { value: 'nosering', label: 'Nose ring' },
   { value: 'bandana', label: 'Bandana' },
   { value: 'beanie', label: 'Beanie' },
+  { value: 'cap', label: 'Cap' },
+  { value: 'headlamp', label: 'Headlamp' },
   { value: 'shades', label: 'Shades' },
+  { value: 'chalkdust', label: 'Chalk dust' },
+  { value: 'hoops', label: 'Hoop earrings' },
+  { value: 'gauges', label: 'Ear gauges' },
 ];
 
 interface Props {

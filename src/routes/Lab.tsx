@@ -97,12 +97,12 @@ export function Lab() {
         <h1 className="text-2xl font-extrabold text-ink-900 tracking-tight">Design lab</h1>
         <p className="mt-1 text-sm text-ink-500">Tap around, then tell me which direction to ship.</p>
 
-        {/* ─────────── TEMP (2026-10-16): production avatar beanie check ─────────── */}
-        <SectionLabel>Avatar · beanie fix + polish (production)</SectionLabel>
+        {/* ─────────── TEMP (2026-10-16): production avatar expansion check ─────────── */}
+        <SectionLabel>Avatar · hairstyles + accessories (production)</SectionLabel>
         <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
           <p className="text-xs text-ink-500 mb-3">
-            Same hair, left without / right with the beanie. Hair now stays under the hat — long and bob
-            pour out below the brim, spikes flatten, the bun tucks in. Beanie has a pom + ribbed brim.
+            Every hairstyle now has its own silhouette (wavy, straight, double pony, braids…), long hair
+            stays inside the ring, hair shows under hats, and the nose ring is gone. Rows: plain / + beanie / small.
           </p>
           <div className="flex flex-col gap-3">
             {([
@@ -110,7 +110,11 @@ export function Lab() {
               { label: 'Bob', cfg: { skin: 'honey', hair: 'bob', hairColor: 'jet', eyes: 'sharp', backdrop: 'ink' } },
               { label: 'Bun', cfg: { skin: 'clay', hair: 'topknot', hairColor: 'cherry', eyes: 'stoked', backdrop: 'gold' } },
               { label: 'Buzz', cfg: { skin: 'porcelain', hair: 'buzz', hairColor: 'bleach', eyes: 'deadpan', backdrop: 'sky' } },
-              { label: 'Long', cfg: { skin: 'umber', hair: 'wavy', hairColor: 'hazard', eyes: 'wink', backdrop: 'coral' } },
+              { label: 'Long', cfg: { skin: 'umber', hair: 'long', hairColor: 'hazard', eyes: 'wink', backdrop: 'coral' } },
+              { label: 'Straight', cfg: { skin: 'sand', hair: 'straight', hairColor: 'jet', eyes: 'sharp', backdrop: 'teal' } },
+              { label: 'Wavy', cfg: { skin: 'honey', hair: 'wavy', hairColor: 'cherry', eyes: 'sharp', backdrop: 'gold' } },
+              { label: '2 pony', cfg: { skin: 'clay', hair: 'pigtails', hairColor: 'cyan', eyes: 'stoked', backdrop: 'ink' } },
+              { label: 'Braids', cfg: { skin: 'espresso', hair: 'braids', hairColor: 'jet', eyes: 'sharp', backdrop: 'sky' } },
               { label: 'Bald', cfg: { skin: 'espresso', hair: 'bald', hairColor: 'jet', eyes: 'sharp', backdrop: 'slate' } },
             ] as { label: string; cfg: Omit<AvatarConfig, 'accessory'> }[]).map(({ label, cfg }) => (
               <div key={label} className="flex items-center gap-4">
@@ -118,6 +122,18 @@ export function Lab() {
                 <ProdCartoonAvatar config={{ ...cfg, accessory: 'none' }} size={72} />
                 <ProdCartoonAvatar config={{ ...cfg, accessory: 'beanie' }} size={72} />
                 <ProdCartoonAvatar config={{ ...cfg, accessory: 'beanie' }} size={30} />
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 mb-2 text-[10px] font-bold uppercase tracking-wider text-ink-300">Accessories (new: cap, headlamp, chalk dust, hoops, gauges)</p>
+          <div className="flex flex-wrap gap-3">
+            {(['cap', 'headlamp', 'chalkdust', 'hoops', 'gauges', 'bandana', 'shades'] as const).map((acc) => (
+              <div key={acc} className="flex flex-col items-center gap-1">
+                <ProdCartoonAvatar
+                  config={{ skin: 'honey', hair: 'straight', hairColor: 'jet', eyes: 'sharp', backdrop: 'ink', accessory: acc }}
+                  size={56}
+                />
+                <span className="text-[10px] font-semibold text-ink-500">{acc}</span>
               </div>
             ))}
           </div>

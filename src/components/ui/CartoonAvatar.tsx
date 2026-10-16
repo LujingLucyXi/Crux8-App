@@ -40,7 +40,7 @@ export function CartoonAvatar({
   const hairCol = HAIR_HEX[config.hairColor];
   const bg = BACKDROP_HEX[config.backdrop] ?? '#FDE9C8';
   const bucket = hairBucket(config.hair);
-  const beanie = config.accessory === 'beanie';
+  const hatOn = config.accessory === 'beanie' || config.accessory === 'cap';
 
   const dot = (cx: number) => <circle cx={cx} cy="52" r="2.6" fill={OUTLINE} />;
   const eyes = (() => {
@@ -87,51 +87,166 @@ export function CartoonAvatar({
     }
   })();
 
-  const hair = (() => {
-    // Under a beanie (Lucy 2026-10-16: "the beanie hides any hair
-    // right now" — it did: hair wasn't rendered at all). Hair now
-    // renders in every case and the beanie sits ON it: long/bob sides
-    // pour out below the brim. Two adaptations: spikes flatten to
-    // their buzz base (tips would poke through the knit), and a bun
-    // is tied under the hat (top circle suppressed).
-    if (beanie && bucket === 'spikes') {
-      return <path d="M28 44 Q30 26 50 26 Q70 26 72 44 Q60 36 50 36 Q40 36 28 44 Z" fill={hairCol} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />;
-    }
-    switch (bucket) {
+  // Hair art, keyed by the EXACT style (2026-10-16 expansion, Lucy:
+  // "add more hairstyles — wavy, straight, double pony, braid etc").
+  // Styles used to collapse into 6 buckets, so Wavy/Pigtails/Braids
+  // all rendered as the same generic long hair. Each named style now
+  // has its own silhouette; the bucket mapping remains only as a
+  // fallback. Two layers: `back` (drawn under the face — caps, sides,
+  // tails, braids) and `front` (drawn over the face — bangs fringe,
+  // curtain swoops, a straight part line).
+  // Frame rule: silhouettes stay inside the backdrop ring — the old
+  // long path spilled past the ring at the bottom corners (Lucy:
+  // "long hair runs out of the frame"); every path now keeps its
+  // bottom at y<=80 and its sides inside the circle there.
+  // Hats (beanie/cap) sit ON the hair: sides below the brim stay
+  // visible; spikes flatten to buzz; buns tuck under.
+  const HS = { fill: hairCol, stroke: OUTLINE, strokeWidth: SW, strokeLinejoin: 'round' as const };
+  const CAP_D = 'M28 46 Q28 26 50 26 Q72 26 72 46 Q60 36 50 36 Q40 36 28 46 Z';
+  const BOB_D = 'M26 58 Q24 28 50 26 Q76 28 74 58 Q70 50 64 50 L64 44 Q58 36 50 36 Q42 36 36 44 L36 50 Q30 50 26 58 Z';
+  const BUZZ_D = 'M28 44 Q30 26 50 26 Q70 26 72 44 Q60 36 50 36 Q40 36 28 44 Z';
+  const SPIKES_D = 'M28 44 L30 24 L38 36 L44 20 L50 34 L56 20 L62 36 L70 24 L72 44 Q60 34 50 34 Q40 34 28 44 Z';
+  const LONG_D = 'M26 80 Q22 32 50 25 Q78 32 74 80 Q70 69 66 72 L66 44 Q58 36 50 36 Q42 36 34 44 L34 72 Q30 69 26 80 Z';
+  const tie = (cx: number, cy: number) => (
+    <circle cx={cx} cy={cy} r="3.2" fill="#FF6B6B" stroke={OUTLINE} strokeWidth="2.4" />
+  );
+
+  const hairBack = (() => {
+    switch (config.hair) {
       case 'bald':
         return null;
       case 'buzz':
-        return <path d="M28 44 Q30 26 50 26 Q70 26 72 44 Q60 36 50 36 Q40 36 28 44 Z" fill={hairCol} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />;
-      case 'spikes':
+        return <path d={BUZZ_D} {...HS} />;
+      case 'mohawk':
+      case 'liberty':
+      case 'shaved':
+      case 'undercut':
+        return <path d={hatOn ? BUZZ_D : SPIKES_D} {...HS} />;
+      case 'topknot':
         return (
-          <path d="M28 44 L30 24 L38 36 L44 20 L50 34 L56 20 L62 36 L70 24 L72 44 Q60 34 50 34 Q40 34 28 44 Z"
-            fill={hairCol} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />
-        );
-      case 'bun':
-        return (
-          <g fill={hairCol} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round">
-            {!beanie && <circle cx="50" cy="20" r="8" />}
-            <path d="M28 46 Q28 26 50 26 Q72 26 72 46 Q60 36 50 36 Q40 36 28 46 Z" />
+          <g {...HS}>
+            {!hatOn && <circle cx="50" cy="20" r="8" />}
+            <path d={CAP_D} />
           </g>
         );
-      case 'long':
-        // Drapes past the jaw (y≈74) so it actually reads as long hair.
+      case 'spacebuns':
         return (
-          <path d="M22 84 Q18 30 50 25 Q82 30 78 84 Q74 72 66 74 L66 44 Q58 36 50 36 Q42 36 34 44 L34 74 Q26 72 22 84 Z"
-            fill={hairCol} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />
+          <g {...HS}>
+            {!hatOn && <circle cx="32" cy="21" r="7" />}
+            {!hatOn && <circle cx="68" cy="21" r="7" />}
+            <path d={CAP_D} />
+          </g>
+        );
+      case 'bob':
+      case 'bangs':
+        return <path d={BOB_D} {...HS} />;
+      case 'curtain':
+        return <path d="M27 54 Q25 28 50 26 Q75 28 73 54 Q68 47 64 48 L64 44 Q58 36 50 36 Q42 36 36 44 L36 48 Q32 47 27 54 Z" {...HS} />;
+      case 'long':
+        return <path d={LONG_D} {...HS} />;
+      case 'straight':
+        return <path d="M27 79 L25 42 Q25 25 50 24 Q75 25 75 42 L73 79 Q68 73 66 73 L66 44 Q58 36 50 36 Q42 36 34 44 L34 73 Q32 73 27 79 Z" {...HS} />;
+      case 'wavy':
+        return <path d="M26 80 Q20 68 26 59 Q20 50 26 42 Q23 27 50 25 Q77 27 74 42 Q80 50 74 59 Q80 68 74 80 Q70 69 66 72 L66 44 Q58 36 50 36 Q42 36 34 44 L34 72 Q30 69 26 80 Z" {...HS} />;
+      case 'pigtails':
+        return (
+          <g>
+            <g {...HS}>
+              <path d={CAP_D} />
+              <path d="M28 44 Q15 50 17 70 Q18 79 25 77 Q29 64 28 50 Z" />
+              <path d="M72 44 Q85 50 83 70 Q82 79 75 77 Q71 64 72 50 Z" />
+            </g>
+            {tie(25, 47)}
+            {tie(75, 47)}
+          </g>
+        );
+      case 'ponytail':
+        return (
+          <g>
+            <path d={CAP_D} {...HS} />
+            <path d="M70 40 Q86 46 84 66 Q83 77 75 75 Q70 60 69 48 Z" {...HS} />
+            {tie(70, 42)}
+          </g>
+        );
+      case 'braids':
+        return (
+          <g>
+            <path d={CAP_D} {...HS} />
+            <g {...HS}>
+              <path d="M19 46 L31 46 L30 78 Q24.5 82 20 78 Z" />
+              <path d="M69 46 L81 46 L80 78 Q75.5 82 70 78 Z" />
+            </g>
+            <g stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4">
+              <path d="M20 56 L30 52" /><path d="M20 66 L30 62" /><path d="M20.5 76 L30 72" />
+              <path d="M80 56 L70 52" /><path d="M80 66 L70 62" /><path d="M79.5 76 L70 72" />
+            </g>
+            {tie(25, 80)}
+            {tie(75, 80)}
+          </g>
+        );
+      case 'locs':
+        return (
+          <g>
+            <g {...HS}>
+              <path d={CAP_D} />
+              <path d="M23 42 Q20 60 23 79 Q27 82 30 78 L30 44 Q26 40 23 42 Z" />
+              <path d="M77 42 Q80 60 77 79 Q73 82 70 78 L70 44 Q74 40 77 42 Z" />
+            </g>
+            <g stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.35">
+              <path d="M26.5 46 L26.5 75" /><path d="M73.5 46 L73.5 75" />
+            </g>
+          </g>
+        );
+      case 'halfshave':
+        return (
+          <g>
+            <path d={BUZZ_D} {...HS} />
+            <path d="M27 80 Q21 46 29 29 Q35 40 35 73 Q31 71 27 80 Z" {...HS} />
+          </g>
         );
       default:
+        switch (bucket) {
+          case 'spikes':
+            return <path d={hatOn ? BUZZ_D : SPIKES_D} {...HS} />;
+          case 'bun':
+            return (
+              <g {...HS}>
+                {!hatOn && <circle cx="50" cy="20" r="8" />}
+                <path d={CAP_D} />
+              </g>
+            );
+          case 'long':
+            return <path d={LONG_D} {...HS} />;
+          case 'buzz':
+            return <path d={BUZZ_D} {...HS} />;
+          case 'bald':
+            return null;
+          default:
+            return <path d={BOB_D} {...HS} />;
+        }
+    }
+  })();
+
+  const hairFront = (() => {
+    switch (config.hair) {
+      case 'bangs':
+        return <path d="M30 37.5 Q50 32.5 70 37.5 L70 44 Q50 39.5 30 44 Z" {...HS} />;
+      case 'curtain':
         return (
-          <path d="M26 58 Q24 28 50 26 Q76 28 74 58 Q70 50 64 50 L64 44 Q58 36 50 36 Q42 36 36 44 L36 50 Q30 50 26 58 Z"
-            fill={hairCol} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />
+          <g {...HS}>
+            <path d="M30.5 37 Q40 32.5 49.5 36.5 Q46.5 44.5 38 45.5 Q31.5 44.5 30.5 37 Z" />
+            <path d="M69.5 37 Q60 32.5 50.5 36.5 Q53.5 44.5 62 45.5 Q68.5 44.5 69.5 37 Z" />
+          </g>
         );
+      case 'straight':
+        return <path d="M50 25.5 L50 34" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4" />;
+      default:
+        return null;
     }
   })();
 
   const accessory = (() => {
     switch (config.accessory) {
-      case 'nosering':
-        return <circle cx="50" cy="63" r="2.4" fill="none" stroke={OUTLINE} strokeWidth="2" />;
       case 'bandana':
         return <path d="M30 42 Q50 34 70 42 L70 48 Q50 42 30 48 Z" fill="#FF6B6B" stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />;
       case 'beanie':
@@ -148,6 +263,50 @@ export function CartoonAvatar({
               <path d="M50 35.9 L50 40.4" />
               <path d="M61 36.8 L60.6 40.6" />
             </g>
+          </g>
+        );
+      case 'cap':
+        // Five-panel cap (2026-10-16): gold crown + a darker visor
+        // band that wraps wider than the head. Hair rules match the
+        // beanie (hatOn) — sides pour out below the visor.
+        return (
+          <g strokeLinejoin="round">
+            <path d="M29 41 Q31 25 50 25 Q69 25 71 41 Z" fill="#C9A24B" stroke={OUTLINE} strokeWidth={SW} />
+            <path d="M21 45 Q50 37 79 45 Q79 50.5 71 48.5 Q50 42.5 29 48.5 Q21 50.5 21 45 Z" fill="#A8823A" stroke={OUTLINE} strokeWidth={SW} />
+          </g>
+        );
+      case 'headlamp':
+        // Dawn-patrol headlamp (2026-10-16): ink strap over the hair,
+        // volt lens. The strap is thin enough to sit over any style.
+        return (
+          <g strokeLinejoin="round">
+            <path d="M28 41 Q50 35 72 41 L72 46 Q50 40 28 46 Z" fill="#2A2140" />
+            <circle cx="50" cy="35.5" r="6" fill="#B4FF3A" opacity="0.25" />
+            <rect x="43.5" y="30.5" width="13" height="10" rx="3" fill="#161310" stroke={OUTLINE} strokeWidth="2.4" />
+            <circle cx="50" cy="35.5" r="3" fill="#B4FF3A" />
+          </g>
+        );
+      case 'chalkdust':
+        return (
+          <g fill="#FFFFFF">
+            <ellipse cx="64" cy="42" rx="5" ry="3.2" opacity="0.38" />
+            <ellipse cx="33" cy="69" rx="4" ry="2.6" opacity="0.3" />
+          </g>
+        );
+      case 'hoops':
+        return (
+          <g fill="none" stroke="#C9992F" strokeWidth="2.2">
+            <circle cx="26.5" cy="58" r="3" />
+            <circle cx="73.5" cy="58" r="3" />
+          </g>
+        );
+      case 'gauges':
+        return (
+          <g>
+            <circle cx="26.5" cy="58" r="3.2" fill={OUTLINE} />
+            <circle cx="73.5" cy="58" r="3.2" fill={OUTLINE} />
+            <circle cx="26.5" cy="58" r="1.2" fill="#F7F3EA" />
+            <circle cx="73.5" cy="58" r="1.2" fill="#F7F3EA" />
           </g>
         );
       case 'shades':
@@ -170,7 +329,7 @@ export function CartoonAvatar({
       <circle cx="50" cy="50" r="48" fill="none" stroke="#C9992F" strokeWidth="1.5" />
       <circle cx="50" cy="50" r="43" fill={bg} stroke={OUTLINE} strokeWidth="2" />
 
-      {hair}
+      {hairBack}
 
       <path d="M28 52 Q28 34 50 34 Q72 34 72 52 Q72 72 50 74 Q28 72 28 52 Z"
         fill={skin} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />
@@ -183,6 +342,8 @@ export function CartoonAvatar({
 
       {/* a whisper of a nose — grounds the face (and the nose ring) */}
       <path d="M50 56 q2.6 3.2 0 5.4" fill="none" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+
+      {hairFront}
 
       {eyes}
       {accessory}
