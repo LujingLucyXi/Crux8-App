@@ -9,19 +9,33 @@ interface Props {
 }
 
 /**
- * "My invite" — the personal add-friend surface: QR code encoding the
- * personal add link, the invite code in mono, copy + native share.
- * Share/copy patterns mirror ShareSessionSheet's session sharing.
+ * Two SEPARATE things, presented separately (Lucy 2026-10-16):
+ * 1. "My Crux ID" — my identity card. Members scan or type it to FIND
+ *    me; following each other is what makes cruxmates. [Copy code]
+ * 2. The join invite — its own line below the card. For people NOT on
+ *    Crux8 yet: the link brings them INTO the app. [Invite a friend…]
+ * The QR and the link still point at /add/:code under the hood (the
+ * landing sorts newcomers from members), but the two jobs are never
+ * blended in one label or one button again.
  */
 export function InviteSection({ code, displayName }: Props) {
   const link = inviteLink(code);
 
-  const handleCopy = async () => {
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      toast.success('Crux ID copied');
+    } catch {
+      toast.error('Could not copy — long-press the code to select it');
+    }
+  };
+
+  const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(link);
       toast.success('Invite link copied');
     } catch {
-      toast.error('Could not copy — long-press the code to select it');
+      toast.error('Could not copy the link');
     }
   };
 
@@ -41,36 +55,45 @@ export function InviteSection({ code, displayName }: Props) {
         /* user dismissed */
       }
     } else {
-      handleCopy();
+      handleCopyLink();
     }
   };
 
   return (
-    <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
-      <div className="flex gap-4 items-center">
-        <div className="shrink-0 rounded-xl bg-[#F7F3EA] p-2 border border-ink-100">
-          <QRCode value={link} size={84} bgColor="#F7F3EA" fgColor="#161616" />
+    <div>
+      {/* ── My Crux ID: find me, follow me ── */}
+      <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
+        <div className="flex gap-4 items-center">
+          <div className="shrink-0 rounded-xl bg-[#F7F3EA] p-2 border border-ink-100">
+            <QRCode value={link} size={84} bgColor="#F7F3EA" fgColor="#161616" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">
+              My Crux ID
+            </p>
+            <p className="mt-0.5 font-mono text-xl font-bold tracking-widest text-ink-900">
+              {code}
+            </p>
+            <p className="mt-0.5 text-xs text-ink-500 leading-snug">
+              Scan to find me — follow each other to become cruxmates.
+            </p>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">
-            My invite code
-          </p>
-          <p className="mt-0.5 font-mono text-xl font-bold tracking-widest text-ink-900">
-            {code}
-          </p>
-          <p className="mt-0.5 text-xs text-ink-500 leading-snug">
-            Scan to join Crux8 — this invite is yours.
-          </p>
-        </div>
+        <Button variant="outline" className="mt-3 w-full" onClick={handleCopyCode}>
+          Copy code
+        </Button>
       </div>
-      <div className="mt-3 flex gap-2">
-        <Button variant="outline" className="flex-1" onClick={handleCopy}>
+
+      {/* ── The join invite: a separate line for people not on Crux8 ── */}
+      <Button className="mt-3 w-full" onClick={handleNativeShare}>
+        Invite a friend to join Crux8
+      </Button>
+      <p className="mt-1.5 text-center text-[11px] text-ink-400">
+        New people join Crux8 through your invite link.{' '}
+        <button onClick={handleCopyLink} className="font-semibold text-teal-600 underline">
           Copy link
-        </Button>
-        <Button className="flex-1" onClick={handleNativeShare}>
-          Invite a friend to join
-        </Button>
-      </div>
+        </button>
+      </p>
     </div>
   );
 }

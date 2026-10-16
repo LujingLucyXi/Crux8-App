@@ -258,9 +258,9 @@ export function AddDeepLink() {
       <>
         <div className="mt-8 rounded-2xl bg-paper-100 border border-ink-100 p-6 text-center">
           <p className="text-3xl">🪪</p>
-          <h2 className="mt-3 text-xl font-semibold text-ink-900">This is your invite code</h2>
+          <h2 className="mt-3 text-xl font-semibold text-ink-900">This is your Crux ID</h2>
           <p className="mt-2 text-sm text-ink-500">
-            Share it — anyone who opens it joins Crux8 with your invite.
+            Members find you by it; new people join Crux8 through it.
           </p>
         </div>
         <div className="mt-4">
