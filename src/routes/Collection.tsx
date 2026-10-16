@@ -108,7 +108,7 @@ export function Collection() {
                 {houseCollected}/{archetypes.length}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2.5">
               {archetypes.map((arch) => {
                 const cards = collectedByArchetype.get(arch.id);
                 const got = !!cards && cards.length > 0;
