@@ -153,7 +153,7 @@ export function Landing() {
 
         {/* ── Free, with an optional tip jar ── */}
         <p className="mt-8 max-w-sm text-[13px] leading-relaxed text-ink-500">
-          Crux8 is completely free — no paywalls, ever.
+          Crux8 is completely free to start.
         </p>
         <a
           href={DONATE_URL}
