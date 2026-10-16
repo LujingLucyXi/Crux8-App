@@ -138,10 +138,24 @@ export function CartoonAvatar({
           </g>
         );
       case 'bob':
-      case 'bangs':
         return <path d={BOB_D} {...HS} />;
+      case 'bangs':
+        // One-piece silhouette (v3): the fringe line is the shape's
+        // own inner hairline — fill continuous with the top and sides,
+        // like the bob. (The front-layer patch floated on the forehead
+        // and read as a headband — Lucy's board screenshot.)
+        return (
+          <g>
+            <path d="M26 58 Q24 28 50 26 Q76 28 74 58 Q70 50 64 50 L64 43.5 L36 43.5 L36 50 Q30 50 26 58 Z" {...HS} />
+            <g stroke={OUTLINE} strokeWidth="1.8" strokeLinecap="round" opacity="0.35">
+              <path d="M42 39.5 L42 42.5" /><path d="M50 39.5 L50 42.5" /><path d="M58 39.5 L58 42.5" />
+            </g>
+          </g>
+        );
       case 'curtain':
-        return <path d="M27 54 Q25 28 50 26 Q75 28 73 54 Q68 47 64 48 L64 44 Q58 36 50 36 Q42 36 36 44 L36 48 Q32 47 27 54 Z" {...HS} />;
+        // Same one-piece treatment: the inner hairline dips at the
+        // center part and swoops up at the sides — no floating lobes.
+        return <path d="M26 58 Q24 28 50 26 Q76 28 74 58 Q70 50 64 50 L64 44 Q57 37.5 52.5 39.5 Q50 40.8 50 44 Q50 40.8 47.5 39.5 Q43 37.5 36 44 L36 50 Q30 50 26 58 Z" {...HS} />;
       case 'long':
         return <path d={LONG_D} {...HS} />;
       case 'straight':
@@ -226,32 +240,10 @@ export function CartoonAvatar({
   })();
 
   const hairFront = (() => {
-    // Fringe masses MERGE with the cap: same fill, no outline of their
-    // own (an outlined shape floating on the forehead read as a band /
-    // two blobs — Lucy's "bangs, curtains have problem" note). Only the
-    // bottom edge gets a stroked line, like a real hairline.
+    // Bangs/curtains live entirely in the back layer now (one-piece
+    // silhouettes — see hairBack). The front layer keeps only overlays
+    // that must sit on the face: the straight part line and the braid.
     switch (config.hair) {
-      case 'bangs':
-        // Deep fringe (pixel-checked against Lucy's screenshot: the
-        // first fringe sat too high, leaving a wide strip of bare
-        // forehead that read as a skin-colored band under the hair).
-        // The fringe now covers down to ~y47 — unmistakably hair.
-        return (
-          <g>
-            <path d="M29 30 Q50 25.5 71 30 L71 48.5 Q50 44 29 48.5 Z" fill={hairCol} />
-            <path d="M29 48.5 Q50 44 71 48.5" fill="none" stroke={OUTLINE} strokeWidth="3.4" strokeLinecap="round" />
-            <g stroke={OUTLINE} strokeWidth="1.8" strokeLinecap="round" opacity="0.35">
-              <path d="M40 45 L40 47.8" /><path d="M50 43.7 L50 46.7" /><path d="M60 45 L60 47.8" />
-            </g>
-          </g>
-        );
-      case 'curtain':
-        return (
-          <g>
-            <path d="M29 30 Q50 25.5 71 30 L71 40 Q64.5 49.5 55.5 47 Q51 45.5 50 39.5 Q49 45.5 44.5 47 Q35.5 49.5 29 40 Z" fill={hairCol} />
-            <path d="M29 40 Q35.5 49.5 44.5 47 Q49 45.5 50 39.5 Q51 45.5 55.5 47 Q64.5 49.5 71 40" fill="none" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
-          </g>
-        );
       case 'straight':
         return <path d="M50 25.5 L50 34" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4" />;
       case 'braids':
