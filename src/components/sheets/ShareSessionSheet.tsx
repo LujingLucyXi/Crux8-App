@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import QRCode from 'react-qr-code';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
@@ -25,11 +25,19 @@ export function ShareSessionSheet({ session, open, onOpenChange }: Props) {
   const me = useAppStore((s) => s.me);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
+  const ensureDirectoryProfiles = useAppStore((s) => s.ensureDirectoryProfiles);
   const inviteCruxmatesToSession = useAppStore((s) => s.inviteCruxmatesToSession);
   const inviteCruxy = useAppStore((s) => s.inviteCruxy);
   const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
   const [sharedTo, setSharedTo] = useState<string | null>(null);
   const [invited, setInvited] = useState<string[]>([]);
+
+  // Picker names resolve through the directory — fetch any cruxmate
+  // profiles this device hasn't loaded yet, or real mates vanish.
+  useEffect(() => {
+    if (open) void ensureDirectoryProfiles(cruxmates);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open ]);
 
   if (!session) return null;
   // An ONGOING session can be shared (crew chat + outside link) so people

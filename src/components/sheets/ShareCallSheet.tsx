@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/store/useAppStore';
@@ -22,10 +22,18 @@ export function ShareCallSheet({ call, open, onOpenChange }: Props) {
   const me = useAppStore((s) => s.me);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
+  const ensureDirectoryProfiles = useAppStore((s) => s.ensureDirectoryProfiles);
   const inviteCruxmatesToCall = useAppStore((s) => s.inviteCruxmatesToCall);
   const inviteCruxyToCall = useAppStore((s) => s.inviteCruxyToCall);
   const [sharedTo, setSharedTo] = useState<string | null>(null);
   const [invited, setInvited] = useState<string[]>([]);
+
+  // Picker names resolve through the directory — fetch any cruxmate
+  // profiles this device hasn't loaded yet, or real mates vanish.
+  useEffect(() => {
+    if (open) void ensureDirectoryProfiles(cruxmates);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open ]);
 
   if (!call) return null;
   const link = `https://crux8.app/call/${call.id}`;

@@ -53,6 +53,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const cruxmates = useAppStore((s) => s.cruxmates);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
+  const ensureDirectoryProfiles = useAppStore((s) => s.ensureDirectoryProfiles);
   const inviteCruxmatesToCall = useAppStore((s) => s.inviteCruxmatesToCall);
   const inviteCruxyToCall = useAppStore((s) => s.inviteCruxyToCall);
   const inviteCruxmatesToSession = useAppStore((s) => s.inviteCruxmatesToSession);
@@ -67,6 +68,13 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     : [];
   const toggleInvite = (id: string) =>
     setInviteIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  // The picker resolves cruxmates through the directory — make sure
+  // every cruxmate's profile is fetched when this form opens, or real
+  // (non-seed) mates silently vanish from the list.
+  useEffect(() => {
+    if (open) void ensureDirectoryProfiles(cruxmates);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open ]);
 
   // Taxonomy mirrors Find: INDOOR / OUTDOOR / EVENT, with BELAY / BOULDER
   // under the two climb modes. Belay => climb call, Boulder => session.

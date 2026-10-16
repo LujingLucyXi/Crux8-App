@@ -2175,6 +2175,12 @@ export const useAppStore = create<Store>()(
             }
           }
           if (changed) set({ cruxmates: mates });
+          // Names/photos for everyone the follow graph touches. Without
+          // this, a cruxmate gained by sync has an id but no directory
+          // entry, so every resolveUser surface (invite pickers, DM
+          // list, Profile strip) silently drops them — Lucy 2026-10-16:
+          // the climb-call invite list showed only Cruxy.
+          void get().ensureDirectoryProfiles([...involved, ...mates]);
         } catch {
           // Table may not exist until the cruxmate-requests migration runs —
           // local rows still work same-device; never break boot over it.
