@@ -68,14 +68,17 @@
 /* ── Landing sign + OG badge motion (2026-10-16) ───────────────────
    The Crux8 sign coin-spins slowly like a hanging shop sign; the OG
    founding badge gets a periodic light sweep so it reads as metal. */
-@keyframes crux-coin-spin {
-  0% { transform: rotateY(0deg); }
-  50% { transform: rotateY(180deg); }
-  100% { transform: rotateY(360deg); }
+/* The sign hangs and sways gently (2026-10-16 lean pass: the full
+   coin-flip kept freezing mid-turn as a tall oval in screenshots and
+   fought the page — a hanging sign's sway is calmer and always
+   readable). Pivot at the top, like it's hung from a bracket. */
+@keyframes crux-sign-sway {
+  from { transform: rotate(-3.2deg); }
+  to { transform: rotate(3.2deg); }
 }
-.crux-sign-spin {
-  animation: crux-coin-spin 7s ease-in-out infinite;
-  transform-style: preserve-3d;
+.crux-sign-sway {
+  animation: crux-sign-sway 5.5s ease-in-out infinite alternate;
+  transform-origin: 50% -12%;
 }
 @keyframes og-shine-sweep {
   0%, 55% { transform: translateX(-160%) skewX(-18deg); }
@@ -85,7 +88,7 @@
   animation: og-shine-sweep 3.8s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .crux-sign-spin, .og-shine-bar { animation: none; }
+  .crux-sign-sway, .og-shine-bar { animation: none; }
 }
 
 /* Founding Register progress bolt (2026-10-16): a snappy electric

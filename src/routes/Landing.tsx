@@ -61,41 +61,36 @@ export function Landing() {
 
   return (
     <div className="min-h-screen bg-paper-50 text-ink-900">
-      <div className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col items-center px-6 py-12 text-center">
-        {/* ── The sign ── */}
-        <div className="relative" style={{ perspective: 700 }}>
-          <div
-            aria-hidden
-            className="absolute inset-0 -z-0 scale-125 rounded-full bg-[radial-gradient(circle,rgba(201,162,75,0.30),transparent_65%)]"
-          />
-          <div className="crux-sign-spin relative flex h-[148px] w-[148px] items-center justify-center rounded-full border-[3px] border-[#C9A24B] bg-paper-100 shadow-[0_18px_36px_-14px_rgba(138,109,47,0.55),inset_0_0_0_5px_#F7F3EA,inset_0_0_0_7px_rgba(201,162,75,0.5)]">
-            <Logo size={96} />
-          </div>
+      <div className="mx-auto flex min-h-screen w-full max-w-[520px] flex-col items-center px-6 py-10 text-center">
+        {/* ── The sign: smaller, and it sways like a hanging sign
+            instead of coin-flipping (lean pass, Lucy 2026-10-16) ── */}
+        <div className="crux-sign-sway flex h-[104px] w-[104px] items-center justify-center rounded-full border-[3px] border-[#C9A24B] bg-paper-100 shadow-[0_12px_26px_-12px_rgba(138,109,47,0.5),inset_0_0_0_4px_#F7F3EA,inset_0_0_0_6px_rgba(201,162,75,0.5)]">
+          <Logo size={66} />
         </div>
-        <h1 className="mt-7 text-4xl font-extrabold tracking-tight">CRUX8</h1>
-        <p className="mt-2 text-xs font-semibold tracking-[0.28em] text-[#8A6D2F]">
+        <h1 className="mt-5 text-[32px] font-extrabold tracking-tight">CRUX8</h1>
+        <p className="mt-1.5 text-[11px] font-semibold tracking-[0.28em] text-[#8A6D2F]">
           CHALK UP. SEND TOGETHER.
         </p>
 
-        <p className="mt-7 text-[26px] font-bold leading-snug">
+        <p className="mt-6 text-[24px] font-bold leading-snug">
           Find your people. Climb stronger.
         </p>
-        <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-ink-500">
+        <p className="mt-2.5 max-w-sm text-[15px] leading-relaxed text-ink-500">
           Crux8 finds you partners for the gym, the crag, and the trail — a crew
           that actually shows up.
         </p>
 
         {/* ── The Founding Register ── */}
-        <div className="mt-10 w-full rounded-[26px] bg-[#161310] px-6 py-6 text-[#F7F3EA] shadow-[0_24px_48px_-20px_rgba(22,19,16,0.6)]">
-          <div className="flex items-center gap-4 text-left">
-            <OGBadge size={78} variant="neon" />
+        <div className="mt-8 w-full rounded-[24px] bg-[#161310] px-5 py-5 text-[#F7F3EA] shadow-[0_20px_40px_-20px_rgba(22,19,16,0.6)]">
+          <div className="flex items-center gap-3.5 text-left">
+            <OGBadge size={62} variant="neon" />
             <div className="min-w-0">
-              <p className="text-[12px] font-extrabold tracking-[0.3em] text-[#B4FF3A]">
+              <p className="text-[11px] font-extrabold tracking-[0.3em] text-[#B4FF3A]">
                 THE FOUNDING REGISTER
               </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-white/65">
-                The first {FOUNDING_CAP} climbers through the door are Founding
-                Members — the OG badge lives on your profile forever.
+              <p className="mt-1 text-[13px] leading-relaxed text-white/65">
+                The first {FOUNDING_CAP} climbers are Founding Members — the OG
+                badge lives on your profile forever.
               </p>
             </div>
           </div>
@@ -132,10 +127,10 @@ export function Landing() {
         </div>
 
         {/* ── Doors ── */}
-        <div className="mt-8 flex w-full max-w-sm flex-col gap-2.5">
+        <div className="mt-7 flex w-full max-w-sm flex-col gap-2.5">
           <button
             onClick={() => openSheet('password', 'signup')}
-            className="w-full rounded-full bg-[linear-gradient(120deg,#F9E29A,#EFC95E,#DFAF37)] py-3.5 text-[15px] font-extrabold text-[#161310] shadow-[0_10px_28px_rgba(201,162,75,0.45)] transition active:translate-y-[2px]"
+            className="w-full rounded-full bg-[linear-gradient(120deg,#F9E29A,#EFC95E,#DFAF37)] py-3.5 text-[15px] font-extrabold text-[#161310] shadow-[0_8px_20px_rgba(201,162,75,0.35)] transition active:translate-y-[2px]"
           >
             Claim your spot. Join FREE NOW!
           </button>
