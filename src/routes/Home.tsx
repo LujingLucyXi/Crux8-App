@@ -253,16 +253,14 @@ export function Home() {
   useEffect(() => {
     if (!meId || meOnboarded !== false || meIsGuest) return;
     if (hasFreshPendingIntent()) return;
-    const key = `crux8-onboarding-prompted-${meId}`;
+    // The once-per-device flag is CONFIRMED by Onboarding itself when
+    // the screen truly mounts (key v2) — Home only checks it here.
+    // Writing it before navigating ate Lucy's prompt on 2026-10-16
+    // when the flow bounced after ~1s: flag set, prompt gone forever.
     try {
-      if (localStorage.getItem(key)) return;
+      if (localStorage.getItem(`crux8-onboarding-prompted-v2-${meId}`)) return;
     } catch {
       return;
-    }
-    try {
-      localStorage.setItem(key, '1');
-    } catch {
-      /* ok */
     }
     nav('/onboarding', { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -153,9 +153,43 @@ export function Onboarding() {
   }, [step, dob, location, displayName, hikeDistance, hikePace, climbSkipped, hikeSkipped, avatar, photoUrl, signature, bio, tags, activities, homeGymId, topGrade, preferredStyles, weightLbs, heightFt, heightIn]);
 
 
+  // Confirm the fresh-signup prompt actually landed (Lucy 2026-10-16):
+  // Home routes here optimistically; the once-per-device flag is only
+  // written once this screen truly mounts with a signed-in user, so a
+  // bounced attempt re-prompts instead of being silently eaten.
+  useEffect(() => {
+    if (!me) return;
+    try {
+      localStorage.setItem(`crux8-onboarding-prompted-v2-${me.id}`, '1');
+    } catch {
+      /* ok */
+    }
+  }, [me?.id]);
+
+  // Transient-null guard: a sign-in's session-apply passes can flicker
+  // `me` (and the profile name) for a beat. Only bail to '/' if the
+  // user is STILL signed out after a grace period — never mid-render
+  // and never on a flicker (this ejected Lucy's prompted flow after
+  // ~1s on 2026-10-16).
+  const [meMissing, setMeMissing] = useState(false);
+  useEffect(() => {
+    if (me) {
+      setMeMissing(false);
+      return;
+    }
+    const t = setTimeout(() => setMeMissing(true), 1200);
+    return () => clearTimeout(t);
+  }, [me]);
+  useEffect(() => {
+    if (meMissing && !me) nav('/');
+  }, [meMissing, me, nav]);
+
   if (!me) {
-    nav('/');
-    return null;
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-paper-50 text-sm text-ink-500">
+        Loading…
+      </div>
+    );
   }
 
   const go = (n: StepN) => setStep(n);

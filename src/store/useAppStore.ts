@@ -606,6 +606,19 @@ const initialFilters: Filters = {
 let initAuthSubscribed = false;
 
 /**
+ * Fresh accounts' profile rows are created by a DB trigger that can
+ * lag the first fetch by a beat — a null row builds a placeholder
+ * profile (the email-prefix name flash Lucy saw on Google sign-in,
+ * 2026-10-16). One short retry when the first read comes back empty.
+ */
+async function fetchProfileRowRetried(userId: string) {
+  const first = await fetchMyProfile(userId).catch(() => null);
+  if (first) return first;
+  await new Promise((r) => setTimeout(r, 700));
+  return fetchMyProfile(userId).catch(() => null);
+}
+
+/**
  * Best-effort write-through of profile changes to the Supabase `profiles`
  * table (RLS: the user can only update their own row). Fire-and-forget: the
  * local store is the source of truth for the UI; a failure only logs.
@@ -1128,7 +1141,7 @@ export const useAppStore = create<Store>()(
         }
         const user = data.user;
         await ensureProfileRow(user.id, user.email);
-        const row = await fetchMyProfile(user.id).catch(() => null);
+        const row = await fetchProfileRowRetried(user.id);
         get().prepareForUser(user.id);
         set({ me: profileRowToProfile(user.id, user.email ?? '', row) });
         get().ensureCruxyThread();
@@ -1162,7 +1175,7 @@ export const useAppStore = create<Store>()(
             return;
           }
           get().prepareForUser(userId);
-          const row = await fetchMyProfile(userId).catch(() => null);
+          const row = await fetchProfileRowRetried(userId);
           get().prepareForUser(userId);
           const profile = profileRowToProfile(userId, email, row);
           // Photo survival (Lucy 2026-10-16: uploaded photo "never got
