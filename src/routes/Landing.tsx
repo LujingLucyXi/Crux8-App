@@ -74,7 +74,7 @@ export function Landing() {
         </div>
         <h1 className="mt-7 text-4xl font-extrabold tracking-tight">CRUX8</h1>
         <p className="mt-2 text-xs font-semibold tracking-[0.28em] text-[#8A6D2F]">
-          TIE IN. SEND TOGETHER.
+          CHALK UP. SEND TOGETHER.
         </p>
 
         <p className="mt-7 text-[26px] font-bold leading-snug">
