@@ -269,8 +269,17 @@ interface Store {
    *  unconfirmed accounts in a dead loop (Lucy 2026-10-16). */
   resendConfirmation: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   /** Continue with Google (OAuth redirect flow). Returns after the
-   *  redirect starts; the session lands via initAuth on return. */
+   *  redirect starts; the session lands via initAuth on return. Kept as
+   *  the fallback when the in-page Google flow can't load. */
   signInWithGoogle: () => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** Clean Google flow (2026-10-16): the Google button runs on
+   *  crux8.app itself (Google Identity Services) and hands Supabase an
+   *  ID token — the consent screen then carries Crux8 branding and the
+   *  project's *.supabase.co domain never appears to users. */
+  signInWithGoogleToken: (
+    token: string,
+    nonce: string,
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
   /**
    * Guest join (front door, 2026-10-14): Supabase anonymous sign-in with a
    * name only. The guest gets a real UID, joins the scanned session, and
@@ -1100,6 +1109,29 @@ export const useAppStore = create<Store>()(
             error: passwordErrorMessage(error, 'Google sign-in could not start — please try again.'),
           };
         }
+        return { ok: true as const };
+      },
+
+      /** Exchange a Google ID token (from the in-page GIS button) for a
+       *  Supabase session. Mirrors signInWithPassword's success tail. */
+      signInWithGoogleToken: async (token, nonce) => {
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token,
+          nonce,
+        });
+        if (error || !data.user) {
+          return {
+            ok: false as const,
+            error: passwordErrorMessage(error, 'Google sign-in failed — please try again.'),
+          };
+        }
+        const user = data.user;
+        await ensureProfileRow(user.id, user.email);
+        const row = await fetchMyProfile(user.id).catch(() => null);
+        get().prepareForUser(user.id);
+        set({ me: profileRowToProfile(user.id, user.email ?? '', row) });
+        get().ensureCruxyThread();
         return { ok: true as const };
       },
 
