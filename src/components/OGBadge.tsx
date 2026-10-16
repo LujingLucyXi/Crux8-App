@@ -1,62 +1,73 @@
 /**
- * OG badge — the Founding Member coin (Lucy 2026-10-16: "make an OG
- * badge, cool design, shiny"). Code-built SVG medallion in the DNA
- * card gold ramp: rope-etched rim, "CRUX8 · FOUNDING MEMBER" engraved
- * around the edge, big OG in the center, and a periodic light sweep
- * across the face so it reads as polished metal at any size.
+ * OG badge — the Founding Member mark (Lucy 2026-10-16, v2 after her
+ * "too complicated — polished and simple" note): a glossy enamel disc,
+ * one gold rim, a big OG, one tiny diamond. Nothing else. The shine
+ * sweep stays — on the dark field it's what makes it read as metal.
+ * Variants exist so the colorway can change with one word: onyx
+ * (default, black + gold), violet (the app's tier enamel), gold.
  */
-export function OGBadge({ size = 64, shine = true }: { size?: number; shine?: boolean }) {
+export type OGBadgeVariant = 'onyx' | 'violet' | 'gold';
+
+const VARIANTS: Record<
+  OGBadgeVariant,
+  { field: string; rim: string; letters: string; diamond: string }
+> = {
+  onyx: { field: '#161412', rim: '#C9A24B', letters: 'url(#og-letters-gold)', diamond: '#C9A24B' },
+  violet: { field: 'url(#og-field-violet)', rim: '#E9E4F5', letters: '#FFFFFF', diamond: '#F9E29A' },
+  gold: { field: 'url(#og-field-gold)', rim: '#8A6D2F', letters: '#161310', diamond: '#161310' },
+};
+
+export function OGBadge({
+  size = 64,
+  shine = true,
+  variant = 'onyx',
+}: {
+  size?: number;
+  shine?: boolean;
+  variant?: OGBadgeVariant;
+}) {
+  const v = VARIANTS[variant];
   return (
     <span
-      className="relative inline-block shrink-0 overflow-hidden rounded-full"
+      className="relative inline-block shrink-0 overflow-hidden rounded-full shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
       style={{ width: size, height: size }}
       role="img"
       aria-label="OG — Founding Member"
     >
       <svg viewBox="0 0 120 120" width={size} height={size} className="block">
         <defs>
-          <radialGradient id="og-gold" cx="38%" cy="32%" r="80%">
+          <linearGradient id="og-letters-gold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#F9E29A" />
+            <stop offset="100%" stopColor="#DFAF37" />
+          </linearGradient>
+          <linearGradient id="og-field-violet" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#8B5CF6" />
+            <stop offset="100%" stopColor="#5B21B6" />
+          </linearGradient>
+          <radialGradient id="og-field-gold" cx="38%" cy="30%" r="85%">
             <stop offset="0%" stopColor="#FDEFC0" />
-            <stop offset="45%" stopColor="#F9E29A" />
-            <stop offset="75%" stopColor="#EFC95E" />
-            <stop offset="100%" stopColor="#C9962E" />
+            <stop offset="55%" stopColor="#F9E29A" />
+            <stop offset="100%" stopColor="#DFAF37" />
           </radialGradient>
-          <path id="og-arc" d="M 60,60 m -45,0 a 45,45 0 1,1 90,0 a 45,45 0 1,1 -90,0" fill="none" />
         </defs>
-        {/* coin body */}
-        <circle cx="60" cy="60" r="58" fill="url(#og-gold)" />
-        <circle cx="60" cy="60" r="58" fill="none" stroke="#8A6D2F" strokeWidth="2" />
-        {/* rope-etched rim */}
-        <circle
-          cx="60" cy="60" r="52.5" fill="none"
-          stroke="#A37F27" strokeWidth="2.5" strokeDasharray="3.5 2.6" opacity="0.75"
-        />
-        {/* inner field */}
-        <circle cx="60" cy="60" r="37" fill="#161310" opacity="0.92" />
-        <circle cx="60" cy="60" r="37" fill="none" stroke="#F9E29A" strokeWidth="1" opacity="0.55" />
-        {/* rim lettering */}
-        <text fontSize="10.5" fontWeight="800" letterSpacing="2.6" fill="#5C4712">
-          <textPath href="#og-arc" startOffset="2%">
-            CRUX8 · FOUNDING MEMBER · EST. 2026 ·
-          </textPath>
-        </text>
-        {/* center mark */}
+        <circle cx="60" cy="60" r="57" fill={v.field} />
+        <circle cx="60" cy="60" r="56" fill="none" stroke={v.rim} strokeWidth="3" />
+        {/* enamel gloss */}
+        <ellipse cx="60" cy="30" rx="40" ry="20" fill="#FFFFFF" opacity="0.10" />
         <text
-          x="60" y="72" textAnchor="middle"
-          fontSize="34" fontWeight="900" letterSpacing="1"
-          fill="#F9E29A"
+          x="60" y="74" textAnchor="middle"
+          fontSize="46" fontWeight="900"
+          fill={v.letters}
           style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}
         >
           OG
         </text>
-        <text x="60" y="86" textAnchor="middle" fontSize="8" fontWeight="700" letterSpacing="1.5" fill="#EFC95E">
-          ★ FIRST 500 ★
-        </text>
+        <path d="M60 88 l5 6 -5 6 -5 -6 z" fill={v.diamond} />
       </svg>
       {shine && (
         <span
           aria-hidden
-          className="og-shine-bar pointer-events-none absolute inset-y-[-10%] left-0 w-[38%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.55),transparent)]"
+          className="og-shine-bar pointer-events-none absolute inset-y-[-10%] left-0 w-[38%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.5),transparent)]"
         />
       )}
     </span>
