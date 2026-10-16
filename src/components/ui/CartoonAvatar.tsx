@@ -138,24 +138,15 @@ export function CartoonAvatar({
           </g>
         );
       case 'bob':
-        return <path d={BOB_D} {...HS} />;
       case 'bangs':
-        // One-piece silhouette (v3): the fringe line is the shape's
-        // own inner hairline — fill continuous with the top and sides,
-        // like the bob. (The front-layer patch floated on the forehead
-        // and read as a headband — Lucy's board screenshot.)
-        return (
-          <g>
-            <path d="M26 58 Q24 28 50 26 Q76 28 74 58 Q70 50 64 50 L64 43.5 L36 43.5 L36 50 Q30 50 26 58 Z" {...HS} />
-            <g stroke={OUTLINE} strokeWidth="1.8" strokeLinecap="round" opacity="0.35">
-              <path d="M42 39.5 L42 42.5" /><path d="M50 39.5 L50 42.5" /><path d="M58 39.5 L58 42.5" />
-            </g>
-          </g>
-        );
       case 'curtain':
-        // Same one-piece treatment: the inner hairline dips at the
-        // center part and swoops up at the sides — no floating lobes.
-        return <path d="M26 58 Q24 28 50 26 Q76 28 74 58 Q70 50 64 50 L64 44 Q57 37.5 52.5 39.5 Q50 40.8 50 44 Q50 40.8 47.5 39.5 Q43 37.5 36 44 L36 50 Q30 50 26 58 Z" {...HS} />;
+        // Back layer is the bob silhouette for all three; bangs and
+        // curtains get their fringe from a front-layer dome (see
+        // hairFront). A back-layer hairline can't work: the face is
+        // drawn over the hair and covers everything below y34, which
+        // is exactly where a fringe lives (v3's mistake — the fringe
+        // hid under the face and both read as buzz cuts).
+        return <path d={BOB_D} {...HS} />;
       case 'long':
         return <path d={LONG_D} {...HS} />;
       case 'straight':
@@ -240,10 +231,29 @@ export function CartoonAvatar({
   })();
 
   const hairFront = (() => {
-    // Bangs/curtains live entirely in the back layer now (one-piece
-    // silhouettes — see hairBack). The front layer keeps only overlays
-    // that must sit on the face: the straight part line and the braid.
+    // Fringes are front-layer DOMES: the dome's outline coincides
+    // with the back hair's cap (same fill, no seam), and only its
+    // bottom edge — the fringe line — gets a stroke. A flat patch
+    // floated like a headband (v2); a back-layer hairline hides under
+    // the face (v3). The dome is the shape that survives both.
     switch (config.hair) {
+      case 'bangs':
+        return (
+          <g>
+            <path d="M36 43.5 L64 43.5 L64 40 Q64 26.5 50 26.5 Q36 26.5 36 40 Z" fill={hairCol} />
+            <path d="M36 43.5 L64 43.5" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
+            <g stroke={OUTLINE} strokeWidth="1.8" strokeLinecap="round" opacity="0.35">
+              <path d="M42 40 L42 42.8" /><path d="M50 40 L50 42.8" /><path d="M58 40 L58 42.8" />
+            </g>
+          </g>
+        );
+      case 'curtain':
+        return (
+          <g>
+            <path d="M36 44 Q43 37.5 47.5 39.5 Q50 40.8 50 44 Q50 40.8 52.5 39.5 Q57 37.5 64 44 L64 40 Q64 26.5 50 26.5 Q36 26.5 36 40 Z" fill={hairCol} />
+            <path d="M36 44 Q43 37.5 47.5 39.5 Q50 40.8 50 44 Q50 40.8 52.5 39.5 Q57 37.5 64 44" fill="none" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
+          </g>
+        );
       case 'straight':
         return <path d="M50 25.5 L50 34" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4" />;
       case 'braids':
