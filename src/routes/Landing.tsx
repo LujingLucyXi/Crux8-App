@@ -77,8 +77,12 @@ export function Landing() {
           CHALK UP. SEND TOGETHER.
         </p>
 
-        <p className="mt-7 text-[26px] font-bold leading-snug">
-          Find your people. Climb stronger.
+        <p className="mt-7 text-[30px] font-extrabold leading-tight tracking-tight">
+          Buddy hunt, gamified.
+          <br />
+          <span className="bg-[linear-gradient(90deg,#8A6D2F,#C9A24B_45%,#7FB800)] bg-clip-text text-transparent">
+            Electrify your climb.
+          </span>
         </p>
         <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-ink-500">
           Crux8 finds you partners for the gym, the crag, and the trail — a crew
