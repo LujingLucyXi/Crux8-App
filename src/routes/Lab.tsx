@@ -105,9 +105,9 @@ export function Lab() {
         <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
           <div className="flex flex-col gap-3">
             {([
-              { label: 'Bangs', cfg: { skin: 'porcelain', hair: 'bangs', hairColor: 'bleach', eyes: 'stoked', backdrop: 'teal' } },
-              { label: 'Curtain', cfg: { skin: 'porcelain', hair: 'curtain', hairColor: 'bleach', eyes: 'stoked', backdrop: 'teal' } },
-              { label: 'Buzz', cfg: { skin: 'porcelain', hair: 'buzz', hairColor: 'bleach', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Bangs', cfg: { skin: 'porcelain', hair: 'bangs', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Curtain', cfg: { skin: 'porcelain', hair: 'curtain', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Buzz', cfg: { skin: 'porcelain', hair: 'buzz', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
             ] as { label: string; cfg: Omit<AvatarConfig, 'accessory'> }[]).map(({ label, cfg }) => (
               <div key={label} className="flex items-center gap-4">
                 <span className="w-14 shrink-0 text-xs font-bold text-ink-700">{label}</span>
