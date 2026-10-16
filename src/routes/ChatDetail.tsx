@@ -9,11 +9,15 @@ import { ReactionPicker } from '@/components/chat/ReactionPicker';
 import { ShareCard, parseShareLink } from '@/components/chat/ShareCard';
 import { useAppStore, dmKey } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
+import { resolveUser } from '@/lib/resolveUser';
 
 export function ChatDetail() {
   const { userId } = useParams<{ userId: string }>();
   const nav = useNavigate();
   const users = useAppStore((s) => s.users);
+  const directory = useAppStore((s) => s.directory);
+  const directoryVerifications = useAppStore((s) => s.directoryVerifications);
+  const ensureDirectoryProfiles = useAppStore((s) => s.ensureDirectoryProfiles);
   const chats = useAppStore((s) => s.chats);
   const climbCalls = useAppStore((s) => s.climbCalls);
   const sessions = useAppStore((s) => s.sessions);
@@ -24,8 +28,21 @@ export function ChatDetail() {
   const [text, setText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const user = users.find((u) => u.id === userId);
+  // Resolve through me/NPC/directory — this page used to search ONLY
+  // the seed roster, so every REAL cruxmate (directory accounts, incl.
+  // guests) dead-ended at "User not found" (Lucy 2026-10-16).
+  const user = userId && me ? resolveUser(userId, me, users, directory) : undefined;
+  const npc = users.find((u) => u.id === userId);
+  const verifMap = npc?.verifications ?? (userId ? directoryVerifications[userId] : undefined) ?? {};
   const messages = userId ? chats[userId] ?? [] : [];
+  const [triedFetch, setTriedFetch] = useState(false);
+  useEffect(() => {
+    if (userId && !user) {
+      setTriedFetch(false);
+      void ensureDirectoryProfiles([userId]).then(() => setTriedFetch(true));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, !!user]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -39,7 +56,7 @@ export function ChatDetail() {
   if (!user) {
     return (
       <div className="pt-10 text-center">
-        <p className="text-sm text-ink-500">User not found.</p>
+        <p className="text-sm text-ink-500">{triedFetch ? 'User not found.' : 'Loading…'}</p>
         <button onClick={() => nav('/chat')} className="mt-3 text-teal-600 text-sm font-medium">
           Back
         </button>
@@ -60,12 +77,12 @@ export function ChatDetail() {
         <button onClick={() => nav('/chat')} aria-label="Back">
           <NavArrowLeft width={22} height={22} className="text-ink-700" />
         </button>
-        <Avatar config={user.avatar} alt={user.display_name} size={36} fallback={user.display_name} />
+        <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={36} fallback={user.display_name} />
         <div className="flex-1">
           <p className="font-semibold text-ink-900">{user.display_name}</p>
           <div className="flex gap-1 mt-0.5">
             {(['top_rope', 'lead', 'trad'] as const)
-              .filter((c) => user.verifications[c] === 'verified')
+              .filter((c) => verifMap[c] === 'verified')
               .map((c) => (
                 <span
                   key={c}
