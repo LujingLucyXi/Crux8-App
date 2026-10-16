@@ -9,6 +9,7 @@ import { CallDeepLink } from '@/routes/CallDeepLink'; // shared climb call deep 
 import { SessionDeepLink } from '@/routes/SessionDeepLink'; // shared session deep link (public; handles its own auth)
 import { AddDeepLink } from '@/routes/AddDeepLink'; // personal add-friend link: /add/:code (public; handles its own auth)
 import { UpdatePassword } from '@/routes/UpdatePassword'; // password-reset landing (public)
+import { PrivacyPolicy, TermsOfService } from '@/routes/Legal'; // public legal pages (Google OAuth publish needs a privacy URL)
 import { Home } from '@/routes/Home';
 import { Find } from '@/routes/Find';
 import { Sessions } from '@/routes/Sessions';
@@ -51,6 +52,8 @@ export const router = createBrowserRouter([
   { path: '/session/:sessionId', element: <SessionDeepLink />, errorElement: <RouteError /> },
   { path: '/add/:code', element: <AddDeepLink />, errorElement: <RouteError /> },
   { path: '/update-password', element: <UpdatePassword />, errorElement: <RouteError /> },
+  { path: '/privacy', element: <PrivacyPolicy />, errorElement: <RouteError /> },
+  { path: '/terms', element: <TermsOfService />, errorElement: <RouteError /> },
   { path: '/lab', element: <Lab />, errorElement: <RouteError /> },
   {
     // Outer boundary: catches crashes in RequireAuth / AppShell itself → full-screen.
