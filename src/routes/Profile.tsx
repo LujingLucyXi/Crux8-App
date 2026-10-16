@@ -21,6 +21,7 @@ import { PeopleFinder } from '@/components/PeopleFinder';
 import { normalizeInviteCode } from '@/lib/inviteCode';
 import { resolveUser } from '@/lib/resolveUser';
 import { sessionPhase } from '@/lib/sessionPhase';
+import { splitPastHistory, isPremiumMember } from '@/lib/pastHistory';
 import type { VerificationCategory } from '@/seed/types';
 import { cn } from '@/lib/utils';
 import { cmToFtIn, kgToLbs, lbsToKg, ftInToCm } from '@/lib/weight';
@@ -84,6 +85,8 @@ export function Profile() {
   const [certPreset, setCertPreset] = useState<VerificationCategory | undefined>(undefined);
   const [recapSessionId, setRecapSessionId] = useState<string | null>(null);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
+  const [showArchivedPast, setShowArchivedPast] = useState(false);
+  const mysteryMemberUntil = useAppStore((s) => s.mysteryMemberUntil);
   const [about, setAbout] = useState(me?.about ?? '');
   const [editingAbout, setEditingAbout] = useState(false);
   const [hwOpen, setHwOpen] = useState(false);
@@ -117,6 +120,26 @@ export function Profile() {
     const ph = sessionPhase(s, sessionLifecycle[s.id], now);
     return ph === 'done' || ph === 'expired';
   });
+  // Same history tiers as My climbs (Lucy 2026-10-15): normal = last 3
+  // days; premium = 8 most recent + archive.
+  const pastSplit = splitPastHistory(past, (s) => s.ends_at, isPremiumMember(mysteryMemberUntil, now), now);
+  const renderPastRow = (s: (typeof past)[number]) => {
+    const gymForCard = s.gym_id ? gyms.find((g) => g.id === s.gym_id) : undefined;
+    const done = !!recaps[s.id];
+    return (
+      <div key={s.id}>
+        <SessionCard session={s} users={users} gymName={gymForCard?.short_name} onClick={() => setDetailSessionId(s.id)} />
+        <Button
+          variant={done ? 'outline' : 'primary'}
+          size="sm"
+          className={cn('mt-2 w-full', !done && 'bg-teal-600 hover:bg-teal-500 border-teal-600')}
+          onClick={() => setRecapSessionId(s.id)}
+        >
+          {done ? 'View recap' : 'Log recap · give props'}
+        </Button>
+      </div>
+    );
+  };
 
   const openCert = (cat: VerificationCategory) => {
     setCertPreset(cat);
@@ -547,29 +570,33 @@ export function Profile() {
         </div>
       </section>
 
-      {/* Past */}
+      {/* Past — tiered history (3 days normal / 8 + archive premium) */}
       {past.length > 0 && (
         <section className="mt-6">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">Past</h2>
           <div className="flex flex-col gap-3">
-            {past.map((s) => {
-              const gymForCard = s.gym_id ? gyms.find((g) => g.id === s.gym_id) : undefined;
-              const done = !!recaps[s.id];
-              return (
-                <div key={s.id}>
-                  <SessionCard session={s} users={users} gymName={gymForCard?.short_name} onClick={() => setDetailSessionId(s.id)} />
-                  <Button
-                    variant={done ? 'outline' : 'primary'}
-                    size="sm"
-                    className={cn('mt-2 w-full', !done && 'bg-teal-600 hover:bg-teal-500 border-teal-600')}
-                    onClick={() => setRecapSessionId(s.id)}
-                  >
-                    {done ? 'View recap' : 'Log recap · give props'}
-                  </Button>
-                </div>
-              );
-            })}
+            {pastSplit.visible.map(renderPastRow)}
           </div>
+          {pastSplit.archived.length > 0 && (
+            <div className="mt-3">
+              <button
+                onClick={() => setShowArchivedPast((v) => !v)}
+                className="w-full rounded-2xl border border-ink-100 bg-paper-100 py-3 text-xs font-bold text-ink-700 active:scale-[0.99] transition"
+              >
+                🗄 Archived sessions · {pastSplit.archived.length} {showArchivedPast ? '▾' : '▸'}
+              </button>
+              {showArchivedPast && (
+                <div className="mt-3 flex flex-col gap-3">
+                  {pastSplit.archived.map(renderPastRow)}
+                </div>
+              )}
+            </div>
+          )}
+          {pastSplit.hiddenCount > 0 && (
+            <p className="mt-3 text-center text-xs text-ink-500">
+              Sessions older than 3 days are archived. Premium keeps your full history.
+            </p>
+          )}
         </section>
       )}
 

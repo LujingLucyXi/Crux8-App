@@ -13,6 +13,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { resolveUser } from '@/lib/resolveUser';
 import { sessionPhase, canStartSession } from '@/lib/sessionPhase';
+import { splitPastHistory, isPremiumMember } from '@/lib/pastHistory';
 import { toast } from 'sonner';
 import type { Session, ClimbCall, EventItem } from '@/seed/types';
 
@@ -42,8 +43,10 @@ export function Sessions() {
   const startSession = useAppStore((s) => s.startSession);
   const finishSession = useAppStore((s) => s.finishSession);
   const sessionsLoading = useAppStore((s) => s.sessionsLoading);
+  const mysteryMemberUntil = useAppStore((s) => s.mysteryMemberUntil);
 
   const [view, setView] = useState<'ongoing' | 'upcoming' | 'past'>('upcoming');
+  const [showArchived, setShowArchived] = useState(false);
   const [viewTouched, setViewTouched] = useState(false);
   const [detailSession, setDetailSession] = useState<Session | null>(null);
   const [detailCall, setDetailCall] = useState<ClimbCall | null>(null);
@@ -109,7 +112,10 @@ export function Sessions() {
   }, [ongoing.length, viewTouched]);
 
   if (!me) return null;
-  const list = view === 'ongoing' ? ongoing : view === 'past' ? past : upcoming;
+  // History tiers (Lucy 2026-10-15): normal accounts see the last 3
+  // days; premium sees the 8 most recent + the rest in the archive.
+  const pastSplit = splitPastHistory(past, (i) => i.end, isPremiumMember(mysteryMemberUntil));
+  const list = view === 'ongoing' ? ongoing : view === 'past' ? pastSplit.visible : upcoming;
 
   const renderItem = (it: Item) => {
     if (it.kind === 'session') {
@@ -206,7 +212,7 @@ export function Sessions() {
           [
             { v: 'ongoing', l: `● Ongoing · ${ongoing.length}` },
             { v: 'upcoming', l: `Upcoming · ${upcoming.length}` },
-            { v: 'past', l: `Past · ${past.length}` },
+            { v: 'past', l: `Past · ${pastSplit.visible.length}` },
           ] as const
         ).map((seg) => (
           <button
@@ -241,7 +247,11 @@ export function Sessions() {
               ? 'Nothing live right now. Sessions you start show up here.'
               : view === 'upcoming'
                 ? 'Nothing booked yet.'
-                : 'No past climbs yet.'}
+                : past.length === 0
+                  ? 'No past climbs yet.'
+                  : pastSplit.archived.length > 0
+                    ? 'Nothing recent — your older climbs are in the archive below.'
+                    : 'Nothing from the last 3 days.'}
           </p>
           {view === 'upcoming' && (
             <button onClick={() => nav('/find')} className="mt-3 text-xs font-semibold text-teal-600">
@@ -249,6 +259,28 @@ export function Sessions() {
             </button>
           )}
         </div>
+      )}
+
+      {/* History tiers: premium archive (one tap away) / normal note */}
+      {view === 'past' && pastSplit.archived.length > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={() => setShowArchived((v) => !v)}
+            className="w-full rounded-2xl border border-ink-100 bg-paper-100 py-3 text-xs font-bold text-ink-700 active:scale-[0.99] transition"
+          >
+            🗄 Archived sessions · {pastSplit.archived.length} {showArchived ? '▾' : '▸'}
+          </button>
+          {showArchived && (
+            <div className="mt-3 flex flex-col gap-3">
+              {pastSplit.archived.map(renderItem)}
+            </div>
+          )}
+        </div>
+      )}
+      {view === 'past' && pastSplit.hiddenCount > 0 && (
+        <p className="mt-4 text-center text-xs text-ink-500">
+          Sessions older than 3 days are archived. Premium keeps your full history.
+        </p>
       )}
 
       <SessionDetailSheet session={detailSession} open={!!detailSession} onOpenChange={(o) => !o && setDetailSession(null)} />
