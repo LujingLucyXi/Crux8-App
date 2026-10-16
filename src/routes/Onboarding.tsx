@@ -12,6 +12,8 @@ import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { lbsToKg, ftInToCm, kgToLbs } from '@/lib/weight';
 import { getPendingIntent, clearPendingIntent, pendingIntentPath } from '@/lib/pendingIntent';
+import { inviteLink } from '@/lib/inviteCode';
+import { DnaCard } from '@/components/DnaCard';
 import type { Style, Activity } from '@/seed/types';
 
 const GRADE_BANDS = [
@@ -92,6 +94,7 @@ export function Onboarding() {
   const gyms = useAppStore((s) => s.gyms);
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
   const updateProfile = useAppStore((s) => s.updateProfile);
+  const ensureInviteCode = useAppStore((s) => s.ensureInviteCode);
 
   // Onboarding draft: form state lives in useState and is only committed at
   // Finish. If the user detours (e.g. takes the quiz in a new tab and claims
@@ -234,17 +237,23 @@ export function Onboarding() {
     });
 
   const shareInvite = async () => {
-    const url = `https://crux8.app/join?ref=${encodeURIComponent(me.id)}`;
-    const text = `Climb with me on Crux8 — find partners, join sessions, send stronger.`;
+    // The REAL personal invite. This used to share a /join?ref= URL —
+    // no such route exists, so invitees landed on the bare homepage
+    // with no inviter attached. Same destination as Profile's invite
+    // (/add/<my code>), link embedded in the text (a separate `url`
+    // field becomes an unopenable file in WeChat — 2026-10-16).
+    const code = ensureInviteCode();
+    const url = code ? inviteLink(code) : 'https://crux8.app';
+    const text = `🧗 Join me on Crux8 — find climbing partners, join sessions, and collect climber DNA cards. Use my invite link to join: ${url}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'Crux8', text, url });
+        await navigator.share({ title: 'Join me on Crux8', text });
         return;
       }
-      await navigator.clipboard.writeText(url);
-      toast('Invite link copied — paste it to your crew!');
+      await navigator.clipboard.writeText(text);
+      toast('Invite copied — paste it to your crew!');
     } catch {
-      toast('Invite link: ' + url);
+      /* share dismissed */
     }
   };
 
@@ -699,33 +708,57 @@ export function Onboarding() {
           </>
         )}
 
-        {/* ── Step 9 · Discover your Climber DNA (skipped if already claimed) ── */}
+        {/* ── Step 9 · The finale: reveal your Climber DNA (Lucy
+            2026-10-16: the quiz is the LAST step and it has to be
+            TEMPTING — a reward moment with the actual golden cards on
+            show, not a form field with a filled "Skip" button competing
+            beside it. Skipping is demoted to a quiet text link.) ── */}
         {step === 9 && (
           <>
-            <h2 className="text-2xl font-semibold text-ink-900">One last thing: your Climber DNA.</h2>
-            <p className="mt-2 text-sm text-ink-500">
-              Take the 60-second quiz to discover your climbing archetype. You'll get sorted into a house and auto-join your house hangout crew — your first crew, on day one.
+            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-teal-600">
+              Last step 🎉
             </p>
-            <div className="mt-6 rounded-2xl p-5 text-white shadow-brand" style={{ background: 'linear-gradient(135deg,#7A5F24,#B08D3E)' }}>
-              <p className="text-3xl">🧬</p>
-              <p className="mt-2 font-semibold">What's your climbing personality?</p>
-              <p className="text-sm text-white/80">
-                15 questions. Your result becomes your DNA card — the one other climbers collect when they meet you.
-              </p>
-              <Button
-                variant="punch"
-                className="mt-4 w-full"
-                onClick={() => window.open('https://play.crux8.app', '_blank')}
-              >
-                Take the quiz 🧗
-              </Button>
-              <p className="mt-2 text-center text-[11px] text-white/70">
-                Finish the quiz, then tap "Continue to the Crux8 app" to claim your DNA here.
-              </p>
+            <h2 className="mt-2 text-2xl font-semibold text-ink-900">Reveal your Climber DNA.</h2>
+            <p className="mt-2 text-sm text-ink-500">
+              One of these 15 golden cards is you. Take the 60-second quiz
+              to find out which — and get sorted into your house.
+            </p>
+
+            <div className="mt-6 grid grid-cols-3 gap-2.5">
+              {['send-machine', 'social-butterfly', 'zen-master'].map((id) => (
+                <DnaCard key={id} archetypeId={id} size="mini" />
+              ))}
             </div>
-            <div className="mt-8 flex gap-2">
+            <p className="mt-2 text-center text-[11px] text-ink-400">
+              Three of the fifteen. Yours is still face-down.
+            </p>
+
+            <div className="mt-6 flex flex-col gap-2.5 text-sm text-ink-700">
+              <p>🎴 <span className="font-semibold text-ink-900">Your DNA card</span> — the one cruxmates collect when they climb with you</p>
+              <p>🏠 <span className="font-semibold text-ink-900">A house + its crew</span> — your hangout, from day one</p>
+              <p>🗄 <span className="font-semibold text-ink-900">The Vault</span> — collect all 15 as you meet climbers</p>
+            </div>
+
+            <Button
+              variant="punch"
+              size="lg"
+              className="mt-6 w-full"
+              onClick={() => window.open('https://play.crux8.app', '_blank')}
+            >
+              Reveal my DNA 🧬
+            </Button>
+            <p className="mt-2 text-center text-[11px] text-ink-400">
+              Finish the quiz, then tap "Continue to the Crux8 app" to claim your card here.
+            </p>
+
+            <div className="mt-8 flex items-center gap-2">
               <Button variant="outline" className="flex-1" onClick={() => go(8)}>Back</Button>
-              <Button className="flex-1" onClick={finish}>Skip for now</Button>
+              <button
+                className="flex-1 text-sm font-medium text-ink-500 underline underline-offset-2"
+                onClick={finish}
+              >
+                Skip — finish without it
+              </button>
             </div>
           </>
         )}
