@@ -41,6 +41,8 @@ export interface ProfileRow {
   invite_code?: string | null;
   /** App-level email-ownership proof (Discord-style, 2026-10-16 migration). */
   email_verified?: boolean | null;
+  /** Row creation time — drives the fresh-signup onboarding prompt. */
+  created_at?: string | null;
   /** Public belay verification statuses: {top_rope: 'self_attested'|'verified', ...} */
   verifications?: Record<string, string> | null;
 }
@@ -105,6 +107,7 @@ export function profileRowToProfile(userId: string, email: string, row: ProfileR
     invite_code: row?.invite_code ?? undefined,
     email: email ?? undefined,
     email_verified: row?.email_verified ?? undefined,
+    created_at: row?.created_at ?? undefined,
   };
 }
 

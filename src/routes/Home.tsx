@@ -17,6 +17,7 @@ import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
 import { GuestClaimForm } from '@/components/GuestClaimForm';
 import { LogSendSheet } from '@/components/sheets/LogSendSheet';
 import { EmailVerifySheet } from '@/components/sheets/EmailVerifySheet';
+import { getPendingIntent } from '@/lib/pendingIntent';
 import { levelFromXp } from '@/lib/rewards';
 import { computeChallenges, daysLeftInWeek } from '@/lib/challenges';
 import { computeBadgeProgress, nextUpBadges } from '@/lib/badges';
@@ -234,6 +235,39 @@ export function Home() {
   }, [me?.id]);
 
   const myGroups = groups.filter((g) => myGroupMemberships.includes(g.id));
+
+  // Fresh-signup onboarding prompt (Lucy, 2026-10-16): a brand-new
+  // account gets orientation STARTED for it once — with the existing
+  // "Skip for now" intact — instead of only ever seeing the banner.
+  // Guards: accounts only (guests keep their post-session prompt), not
+  // while a scanned deep link is still waiting (that target comes
+  // first), only within 10 minutes of the profile row being created,
+  // and only once per account per device — after that, the "Almost set
+  // up" banner below is the reminder (incomplete parts resurface, they
+  // never ambush).
+  const meId = me?.id;
+  const meOnboarded = me?.onboarded;
+  const meIsGuest = me?.isGuest;
+  const meCreatedAt = me?.created_at;
+  useEffect(() => {
+    if (!meId || meOnboarded !== false || meIsGuest) return;
+    if (getPendingIntent()) return;
+    const key = `crux8-onboarding-prompted-${meId}`;
+    try {
+      if (localStorage.getItem(key)) return;
+    } catch {
+      return;
+    }
+    const created = meCreatedAt ? new Date(meCreatedAt).getTime() : NaN;
+    if (!Number.isFinite(created) || Date.now() - created > 10 * 60 * 1000) return;
+    try {
+      localStorage.setItem(key, '1');
+    } catch {
+      /* ok */
+    }
+    nav('/onboarding', { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meId, meOnboarded, meIsGuest, meCreatedAt]);
 
   if (!me) return null;
 

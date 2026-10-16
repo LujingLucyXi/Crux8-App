@@ -1143,7 +1143,12 @@ export const useAppStore = create<Store>()(
        * Also keeps `me` in sync if the session ends elsewhere.
        */
       initAuth: async () => {
-        const applySessionUser = async (userId: string, email: string, isGuest: boolean) => {
+        const applySessionUser = async (
+          userId: string,
+          email: string,
+          isGuest: boolean,
+          emailConfirmedAt?: string | null,
+        ) => {
           // Guest sessions are constructed by signInAsGuest with the chosen
           // name (written to the profile row fire-and-forget). Don't clobber
           // an in-memory guest profile with the email-fallback rebuild —
@@ -1173,6 +1178,18 @@ export const useAppStore = create<Store>()(
             void persistProfilePatch(userId, { photo_url: localBefore.photo_url });
           }
           set({ me: isGuest ? { ...profile, isGuest: true } : profile });
+          // Provider-confirmed emails are proof of inbox ownership by
+          // construction — Google sign-in and email-code sign-in both
+          // arrive with email_confirmed_at set. Mark them verified so
+          // the Discord-style nudge never pesters people who have
+          // nothing left to prove, and persist it for other devices.
+          if (emailConfirmedAt && !isGuest && !profile.email_verified) {
+            const after = get().me;
+            if (after && after.id === userId) {
+              set({ me: { ...after, email_verified: true } });
+            }
+            void persistProfilePatch(userId, { email_verified: true });
+          }
           // Hydrate belay verification status from the profile row (the
           // server is the source of truth; it may have flipped a skill to
           // peer-confirmed since this device last looked).
@@ -1200,7 +1217,7 @@ export const useAppStore = create<Store>()(
         if (!sessionUser) {
           if (get().me) set({ me: null });
         } else {
-          await applySessionUser(sessionUser.id, sessionUser.email ?? '', sessionUser.is_anonymous === true);
+          await applySessionUser(sessionUser.id, sessionUser.email ?? '', sessionUser.is_anonymous === true, sessionUser.email_confirmed_at);
         }
         // The server is the source of truth: pull fresh sessions + calls
         // on EVERY launch, not only at first seed. Without this, a session
@@ -1224,7 +1241,7 @@ export const useAppStore = create<Store>()(
             if (event === 'SIGNED_OUT') {
               set({ me: null });
             } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-              await applySessionUser(session.user.id, session.user.email ?? '', session.user.is_anonymous === true);
+              await applySessionUser(session.user.id, session.user.email ?? '', session.user.is_anonymous === true, session.user.email_confirmed_at);
               void get().fetchSessions();
               void get().fetchClimbCalls();
             }

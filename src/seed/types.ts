@@ -225,6 +225,7 @@ export interface Profile {
   // makes password resets actually reachable.
   email?: string;            // the account email (from the auth user)
   email_verified?: boolean;
+  created_at?: string;       // profile row creation time (fresh-signup detection)
   // ── hiking (set during onboarding; section is skippable) ──
   hike_distance?: string;    // e.g. '5-10'
   hike_pace?: string;        // e.g. 'steady'
