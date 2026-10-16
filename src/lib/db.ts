@@ -591,9 +591,24 @@ export async function createMateRequestRemote(row: {
   from_id: string;
   to_id: string;
 }): Promise<void> {
+  // Upsert on the (from_id, to_id) unique pair: a previous DENIED (or
+  // accepted-then-unfriended) row would otherwise make a fresh request
+  // fail the unique constraint silently — the sender's button would say
+  // "Requested" while the recipient never sees anything. Reviving needs
+  // the sender-side update policy from
+  // 2026-10-15-cruxmate-request-revive.sql.
   const { error } = await supabase
     .from('cruxmate_requests')
-    .insert({ id: row.id, from_id: row.from_id, to_id: row.to_id, status: 'pending' });
+    .upsert(
+      {
+        id: row.id,
+        from_id: row.from_id,
+        to_id: row.to_id,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+      },
+      { onConflict: 'from_id,to_id' },
+    );
   if (error) throw new Error(`createMateRequestRemote: ${error.message}`);
 }
 

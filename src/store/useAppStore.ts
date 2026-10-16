@@ -1141,9 +1141,12 @@ export const useAppStore = create<Store>()(
           isGuest: true,
         };
         set({ me: guestMe });
-        // Write the name through so OTHER devices (e.g. the host's)
-        // resolve this guest in the roster. Fire-and-forget by design.
-        void persistProfilePatch(user.id, { display_name: name });
+        // Write the name through so OTHER devices (e.g. the host's, or
+        // the inbox of someone this guest sends a cruxmate request to)
+        // resolve this guest by name. Awaited: fire-and-forget raced the
+        // request flow and could leave the recipient staring at a
+        // nameless request. A failed write must not block guest entry.
+        await persistProfilePatch(user.id, { display_name: name }).catch(() => {});
         get().ensureCruxyThread();
         return { ok: true as const };
       },
