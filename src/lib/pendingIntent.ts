@@ -18,9 +18,28 @@ const KEY = 'crux8-pending-intent';
 
 export function savePendingIntent(intent: PendingIntent): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(intent));
+    localStorage.setItem(KEY, JSON.stringify({ ...intent, savedAt: Date.now() }));
   } catch {
     /* storage unavailable — intent just won't survive */
+  }
+}
+
+/**
+ * True only when a pending intent exists AND was saved recently
+ * (< 1 hour). The fresh-signup onboarding prompt uses this so a
+ * stale leftover intent (e.g. from testing an invite link hours ago)
+ * can't block it forever; older consumers keep using
+ * getPendingIntent() with its original semantics.
+ */
+export function hasFreshPendingIntent(): boolean {
+  const p = getPendingIntent();
+  if (!p) return false;
+  try {
+    const raw = localStorage.getItem(KEY);
+    const savedAt = raw ? (JSON.parse(raw) as { savedAt?: number }).savedAt : undefined;
+    return typeof savedAt === 'number' && Date.now() - savedAt < 60 * 60 * 1000;
+  } catch {
+    return false;
   }
 }
 

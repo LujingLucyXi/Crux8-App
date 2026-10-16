@@ -17,7 +17,7 @@ import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
 import { GuestClaimForm } from '@/components/GuestClaimForm';
 import { LogSendSheet } from '@/components/sheets/LogSendSheet';
 import { EmailVerifySheet } from '@/components/sheets/EmailVerifySheet';
-import { getPendingIntent } from '@/lib/pendingIntent';
+import { hasFreshPendingIntent } from '@/lib/pendingIntent';
 import { levelFromXp } from '@/lib/rewards';
 import { computeChallenges, daysLeftInWeek } from '@/lib/challenges';
 import { computeBadgeProgress, nextUpBadges } from '@/lib/badges';
@@ -236,30 +236,29 @@ export function Home() {
 
   const myGroups = groups.filter((g) => myGroupMemberships.includes(g.id));
 
-  // Fresh-signup onboarding prompt (Lucy, 2026-10-16): a brand-new
-  // account gets orientation STARTED for it once — with the existing
-  // "Skip for now" intact — instead of only ever seeing the banner.
-  // Guards: accounts only (guests keep their post-session prompt), not
-  // while a scanned deep link is still waiting (that target comes
-  // first), only within 10 minutes of the profile row being created,
-  // and only once per account per device — after that, the "Almost set
-  // up" banner below is the reminder (incomplete parts resurface, they
-  // never ambush).
+  // Fresh-signup onboarding prompt (Lucy, 2026-10-16): an account
+  // that has never finished orientation gets it STARTED once — with
+  // the existing "Skip for now" intact — instead of only ever seeing
+  // the banner. Guards: accounts only (guests keep their post-session
+  // prompt), not while a freshly-scanned deep link is still waiting
+  // (that target comes first; a STALE leftover intent doesn't block),
+  // and only once per account per device — after that, the "Almost
+  // set up" banner below is the reminder (incomplete parts resurface,
+  // they never ambush). No account-age window: Lucy's own test showed
+  // why — an account created during the stuck-signup saga an hour
+  // earlier is still brand-new to the app when Google rescues it.
   const meId = me?.id;
   const meOnboarded = me?.onboarded;
   const meIsGuest = me?.isGuest;
-  const meCreatedAt = me?.created_at;
   useEffect(() => {
     if (!meId || meOnboarded !== false || meIsGuest) return;
-    if (getPendingIntent()) return;
+    if (hasFreshPendingIntent()) return;
     const key = `crux8-onboarding-prompted-${meId}`;
     try {
       if (localStorage.getItem(key)) return;
     } catch {
       return;
     }
-    const created = meCreatedAt ? new Date(meCreatedAt).getTime() : NaN;
-    if (!Number.isFinite(created) || Date.now() - created > 10 * 60 * 1000) return;
     try {
       localStorage.setItem(key, '1');
     } catch {
@@ -267,7 +266,7 @@ export function Home() {
     }
     nav('/onboarding', { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meId, meOnboarded, meIsGuest, meCreatedAt]);
+  }, [meId, meOnboarded, meIsGuest]);
 
   if (!me) return null;
 
