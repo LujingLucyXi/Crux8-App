@@ -107,7 +107,7 @@ export function AvatarCustomizer({ value: rawValue, onChange, photoUrl, onPhotoC
               </Button>
               {photoUrl && (
                 <Button variant="outline" size="sm" onClick={() => onPhotoChange?.(undefined)}>
-                  Use drawn avatar
+                  Use Avatar
                 </Button>
               )}
             </div>
