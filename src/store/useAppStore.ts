@@ -997,11 +997,14 @@ export const useAppStore = create<Store>()(
           return { ok: false as const, error: passwordErrorMessage(error, 'Could not create your account — please try again.') };
         }
         const user = data.user;
-        // Supabase stays silent on existing emails (anti-enumeration): it returns the
-        // existing user with identities populated, no session, and sends no email.
-        // Detect that so the UI can say "already registered, try signing in" instead
-        // of the confusing "check your email" message.
-        if ((user.identities?.length ?? 0) > 0) {
+        // Supabase stays silent on existing emails (anti-enumeration):
+        // the tell is an EMPTY identities array on the returned user.
+        // (This check previously tested `> 0` — inverted: a genuine
+        // fresh signup returns exactly one identity with
+        // email_confirmed_at null and no session, so EVERY first-time
+        // password signup was misreported as "already registered but
+        // not confirmed". Verified against the live API 2026-10-16.)
+        if ((user.identities?.length ?? 0) === 0) {
           if (user.email_confirmed_at) {
             return {
               ok: false as const,
