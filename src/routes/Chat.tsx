@@ -54,9 +54,15 @@ export function Chat() {
     const last = sc.messages[sc.messages.length - 1];
     const unread = isThreadUnread(scKey(sc.id), last);
     // Group threads are keyed by group id — a crew (e.g. a house hangout)
-    // shows its own picture as the profile pic when it has one.
+    // shows its own picture as the profile pic when it has one. House
+    // hangouts fall back to the house cover by id, so the picture shows
+    // even on group records created before avatar/cover backfills ran
+    // (Lucy 2026-10-16: hangout pic sometimes missing/broken).
     const group = sc.source === 'group' ? groups.find((g) => g.id === sc.id) : undefined;
-    const groupPic = group?.avatar_url || group?.cover_url;
+    const groupPic =
+      group?.avatar_url ||
+      group?.cover_url ||
+      (group?.house_id ? `/covers/house-${group.house_id}.jpg` : undefined);
     const participants = sc.participant_ids
       .filter((id) => id !== 'me')
       .map((id) => users.find((u) => u.id === id))

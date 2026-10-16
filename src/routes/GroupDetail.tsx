@@ -99,9 +99,13 @@ export function GroupDetail() {
 
       <div className="px-4 -mt-6 relative">
         <div className="rounded-2xl bg-paper-100 border border-ink-100 p-5">
-          {group.avatar_url && (
+          {(group.avatar_url || group.cover_url || group.house_id) && (
             <img
-              src={group.avatar_url}
+              src={
+                group.avatar_url ||
+                group.cover_url ||
+                `/covers/house-${group.house_id}.jpg`
+              }
               alt=""
               className="h-16 w-16 rounded-2xl object-cover border-2 border-white shadow-sm -mt-11 mb-2"
             />

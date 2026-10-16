@@ -84,9 +84,15 @@ export function SessionChatDetail() {
         </button>
         {(() => {
           // Group threads are keyed by group id — show the crew's own
-          // picture (e.g. the house photo on a hangout) when it has one.
+          // picture (e.g. the house photo on a hangout) when it has one,
+          // with the house cover as the by-id fallback (same chain as
+          // the chat list — a missing group pic must never strand the
+          // placeholder).
           const group = chat.source === 'group' ? groups.find((g) => g.id === chat.id) : undefined;
-          const pic = group?.avatar_url || group?.cover_url;
+          const pic =
+            group?.avatar_url ||
+            group?.cover_url ||
+            (group?.house_id ? `/covers/house-${group.house_id}.jpg` : undefined);
           return pic ? (
             <img
               src={pic}
