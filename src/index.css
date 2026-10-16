@@ -88,16 +88,16 @@
   .crux-sign-spin, .og-shine-bar { animation: none; }
 }
 
-/* Founding Register progress flame (2026-10-16): a gentle flicker on
-   the flame riding the bar's leading edge. */
-@keyframes flame-flicker {
-  from { transform: scale(1) rotate(-4deg); }
-  to { transform: scale(1.16) rotate(5deg); }
+/* Founding Register progress bolt (2026-10-16): a snappy electric
+   jitter on the bolt riding the bar's leading edge. */
+@keyframes bolt-jitter {
+  from { transform: scale(1) rotate(-6deg); }
+  to { transform: scale(1.14) rotate(6deg); }
 }
-.flame-flicker {
-  animation: flame-flicker 0.45s ease-in-out infinite alternate;
+.bolt-jitter {
+  animation: bolt-jitter 0.3s ease-in-out infinite alternate;
   transform-origin: 50% 90%;
 }
 @media (prefers-reduced-motion: reduce) {
-  .flame-flicker { animation: none; }
+  .bolt-jitter { animation: none; }
 }

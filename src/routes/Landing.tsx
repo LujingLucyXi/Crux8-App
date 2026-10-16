@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { TriangleFlag, ShieldCheck, Community, Rhombus } from 'iconoir-react';
 import { AuthSheet } from '@/components/AuthSheet';
 import { Logo } from '@/components/layout/Logo';
-import { OGBadge } from '@/components/OGBadge';
+import { OGBadge, BoltMark } from '@/components/OGBadge';
 import { supabase } from '@/lib/supabase';
 
 const PILLARS = [
@@ -118,13 +118,15 @@ export function Landing() {
             </div>
             <span
               aria-hidden
-              className="absolute -top-[13px] z-10"
+              className="absolute -top-[11px] z-10"
               style={{
                 left: claimed !== null ? `${Math.max(2, (claimed / FOUNDING_CAP) * 100)}%` : '2%',
                 transform: 'translateX(-40%)',
               }}
             >
-              <span className="flame-flicker inline-block text-[17px] leading-none">🔥</span>
+              <span className="bolt-jitter inline-block">
+                <BoltMark size={17} />
+              </span>
             </span>
           </div>
         </div>

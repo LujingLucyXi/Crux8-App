@@ -1,43 +1,40 @@
 /**
- * OG badge — the Founding Member mark. v3 (Lucy 2026-10-16): the
- * round coin fought with the round spinning sign above it ("two
- * circles with different animation is a bit crowded") — so the OG
- * is now a STARBURST SEAL: different silhouette, no motion of its
- * own (the sign is the page's one moving piece), just a static neon
- * glow. Variants remain one-word swaps: neon (live), onyx, gold.
+ * OG badge — the Founding Member mark. v4 (Lucy 2026-10-16): the
+ * badge IS a lightning bolt now — volt green, OG knocked out of its
+ * waist in black. It ties straight into the page's own line,
+ * "Electrify your climb." The same bolt (BoltMark) rides the
+ * Founding Register progress bar where the flame used to be.
+ * Variants: neon (live), gold, onyx.
  */
-export type OGBadgeVariant = 'neon' | 'onyx' | 'gold';
+export type OGBadgeVariant = 'neon' | 'gold' | 'onyx';
 
 const VARIANTS: Record<
   OGBadgeVariant,
-  { field: string; rim: string; letters: string; diamond: string; glow?: string }
+  { bolt: string; letters: string; glow?: string }
 > = {
-  neon: {
-    field: '#0C0F0A',
-    rim: '#B4FF3A',
-    letters: '#B4FF3A',
-    diamond: '#B4FF3A',
-    glow: 'drop-shadow(0 0 10px rgba(180,255,58,0.45))',
-  },
-  onyx: { field: '#161412', rim: '#C9A24B', letters: '#F9E29A', diamond: '#C9A24B' },
-  gold: { field: '#EFC95E', rim: '#8A6D2F', letters: '#161310', diamond: '#161310' },
+  neon: { bolt: '#B4FF3A', letters: '#0C0F0A', glow: 'drop-shadow(0 0 10px rgba(180,255,58,0.5))' },
+  gold: { bolt: '#EFC95E', letters: '#161310' },
+  onyx: { bolt: '#161412', letters: '#F9E29A' },
 };
 
-/** 16-point starburst seal, alternating outer/inner radius. */
-const STAR_POINTS = (() => {
-  const cx = 60;
-  const cy = 60;
-  const spikes = 16;
-  const outer = 58;
-  const inner = 46;
-  const pts: string[] = [];
-  for (let i = 0; i < spikes * 2; i++) {
-    const r = i % 2 === 0 ? outer : inner;
-    const a = (Math.PI * i) / spikes - Math.PI / 2;
-    pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`);
-  }
-  return pts.join(' ');
-})();
+/** Chunky lightning bolt silhouette in a 120 box. */
+const BOLT_PATH = 'M70 4 L24 66 L48 66 L40 116 L98 48 L70 48 Z';
+
+/** The bare bolt, for the Register bar tip and anywhere else. */
+export function BoltMark({ size = 16, color = '#B4FF3A' }: { size?: number; color?: string }) {
+  return (
+    <svg
+      viewBox="0 0 120 120"
+      width={size * 0.72}
+      height={size}
+      className="block"
+      aria-hidden
+      style={{ filter: 'drop-shadow(0 0 5px rgba(180,255,58,0.65))' }}
+    >
+      <path d={BOLT_PATH} fill={color} />
+    </svg>
+  );
+}
 
 export function OGBadge({
   size = 64,
@@ -55,18 +52,17 @@ export function OGBadge({
       aria-label="OG — Founding Member"
     >
       <svg viewBox="0 0 120 120" width={size} height={size} className="block">
-        <polygon points={STAR_POINTS} fill={v.field} stroke={v.rim} strokeWidth="2.5" strokeLinejoin="round" />
-        {/* enamel gloss */}
-        <ellipse cx="60" cy="34" rx="30" ry="13" fill="#FFFFFF" opacity="0.10" />
+        <path d={BOLT_PATH} fill={v.bolt} stroke="rgba(0,0,0,0.18)" strokeWidth="1.5" strokeLinejoin="round" />
+        {/* enamel gloss on the bolt's top facet */}
+        <path d="M70 4 L24 66 L48 66 L62 40 L70 48 Z" fill="#FFFFFF" opacity="0.14" />
         <text
-          x="60" y="73" textAnchor="middle"
-          fontSize="38" fontWeight="900"
+          x="57" y="68" textAnchor="middle"
+          fontSize="21" fontWeight="900"
           fill={v.letters}
           style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}
         >
           OG
         </text>
-        <path d="M60 84 l4.5 5.5 -4.5 5.5 -4.5 -5.5 z" fill={v.diamond} />
       </svg>
     </span>
   );
