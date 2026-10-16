@@ -238,10 +238,10 @@ export function CartoonAvatar({
         // The fringe now covers down to ~y47 — unmistakably hair.
         return (
           <g>
-            <path d="M29 30 Q50 25.5 71 30 L71 47 Q50 42.5 29 47 Z" fill={hairCol} />
-            <path d="M29 47 Q50 42.5 71 47" fill="none" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
+            <path d="M29 30 Q50 25.5 71 30 L71 48.5 Q50 44 29 48.5 Z" fill={hairCol} />
+            <path d="M29 48.5 Q50 44 71 48.5" fill="none" stroke={OUTLINE} strokeWidth="3.4" strokeLinecap="round" />
             <g stroke={OUTLINE} strokeWidth="1.8" strokeLinecap="round" opacity="0.35">
-              <path d="M40 43.5 L40 46.3" /><path d="M50 42.2 L50 45.2" /><path d="M60 43.5 L60 46.3" />
+              <path d="M40 45 L40 47.8" /><path d="M50 43.7 L50 46.7" /><path d="M60 45 L60 47.8" />
             </g>
           </g>
         );

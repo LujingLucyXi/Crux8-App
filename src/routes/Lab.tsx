@@ -95,6 +95,9 @@ export function Lab() {
         </div>
 
         <h1 className="text-2xl font-extrabold text-ink-900 tracking-tight">Design lab</h1>
+        <p className="text-[11px] font-mono text-ink-400">
+          build: {typeof document !== 'undefined' ? (document.querySelector('script[src*="index-"]')?.getAttribute('src')?.match(/index-[^./]+/)?.[0] ?? 'dev') : 'dev'}
+        </p>
         <p className="mt-1 text-sm text-ink-500">Tap around, then tell me which direction to ship.</p>
 
         {/* ─────────── TEMP (2026-10-16): production avatar expansion check ─────────── */}
