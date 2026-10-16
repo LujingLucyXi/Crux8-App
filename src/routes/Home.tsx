@@ -16,6 +16,7 @@ import { CheckInSheet } from '@/components/sheets/CheckInSheet';
 import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
 import { GuestClaimForm } from '@/components/GuestClaimForm';
 import { LogSendSheet } from '@/components/sheets/LogSendSheet';
+import { EmailVerifySheet } from '@/components/sheets/EmailVerifySheet';
 import { levelFromXp } from '@/lib/rewards';
 import { computeChallenges, daysLeftInWeek } from '@/lib/challenges';
 import { computeBadgeProgress, nextUpBadges } from '@/lib/badges';
@@ -211,6 +212,16 @@ export function Home() {
       return false;
     }
   });
+  const [emailVerifyOpen, setEmailVerifyOpen] = useState(false);
+  const [emailVerifyDismissed, setEmailVerifyDismissed] = useState(false);
+  useEffect(() => {
+    if (!me) return;
+    try {
+      setEmailVerifyDismissed(!!localStorage.getItem(`crux8-email-verify-dismissed-${me.id}`));
+    } catch {
+      /* ok */
+    }
+  }, [me?.id]);
   const [guestClaimOpen, setGuestClaimOpen] = useState(false);
   const [guestReminderDismissedFor, setGuestReminderDismissedFor] = useState<string | null>(null);
   useEffect(() => {
@@ -234,6 +245,18 @@ export function Home() {
   const showGuestReminder = !!me.isGuest
     && !!latestCompleted
     && guestReminderDismissedFor !== latestCompleted.id;
+  // Discord-style deferred verification (2026-10-16): the account
+  // works fully unverified; this soft nag is the only pressure, and
+  // it exists so password resets can reach a proven inbox.
+  const showEmailVerifyNudge = !me.isGuest && !me.email_verified && !emailVerifyDismissed;
+  const dismissEmailVerify = () => {
+    try {
+      localStorage.setItem(`crux8-email-verify-dismissed-${me.id}`, '1');
+    } catch {
+      /* ok */
+    }
+    setEmailVerifyDismissed(true);
+  };
   const dismissGuestReminder = () => {
     if (!latestCompleted) return;
     try {
@@ -301,6 +324,29 @@ export function Home() {
           </button>
           <button
             onClick={dismissProfileNudge}
+            aria-label="Dismiss"
+            className="shrink-0 text-ink-400 hover:text-ink-700 text-lg leading-none"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* ── Email verify nudge (Discord-style: optional, dismissible) ── */}
+      {showEmailVerifyNudge && (
+        <div className="mt-4 rounded-2xl border border-ink-100 bg-paper-100 p-4 flex items-center gap-3">
+          <p className="min-w-0 flex-1 text-sm text-ink-900">
+            <span className="font-bold">Verify your email.</span> Optional — it just makes
+            sure a password reset can reach you.
+          </p>
+          <button
+            onClick={() => setEmailVerifyOpen(true)}
+            className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
+          >
+            Verify →
+          </button>
+          <button
+            onClick={dismissEmailVerify}
             aria-label="Dismiss"
             className="shrink-0 text-ink-400 hover:text-ink-700 text-lg leading-none"
           >
@@ -688,6 +734,7 @@ export function Home() {
       <AiMatchSheet open={aiOpen} onOpenChange={setAiOpen} />
       <MysteryCrewSheet open={mysteryOpen} onOpenChange={setMysteryOpen} />
       <CheckInSheet open={checkInOpen} onOpenChange={setCheckInOpen} />
+      <EmailVerifySheet open={emailVerifyOpen} onOpenChange={setEmailVerifyOpen} />
       <LogSendSheet open={logSendOpen} onOpenChange={setLogSendOpen} />
       <SessionRecapSheet
         session={recapSession}

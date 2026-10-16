@@ -219,6 +219,12 @@ export interface Profile {
   invite_code?: string;      // e.g. CLIMB-8K42; resolves via /add/:code.
                              // Persisted to profiles.invite_code when the column
                              // exists (fire-and-forget), else local-only.
+  // ── email ownership proof (Discord-style deferred verification,
+  // 2026-10-16): signup never waits for it; the flag flips true once
+  // the user proves the inbox is theirs via an in-app code. It's what
+  // makes password resets actually reachable.
+  email?: string;            // the account email (from the auth user)
+  email_verified?: boolean;
   // ── hiking (set during onboarding; section is skippable) ──
   hike_distance?: string;    // e.g. '5-10'
   hike_pace?: string;        // e.g. 'steady'

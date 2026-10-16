@@ -39,6 +39,8 @@ export interface ProfileRow {
   onboarded?: boolean | null;
   /** Personal invite code (e.g. CLIMB-8K42). Present after the 2026-10-15-invite-code migration. */
   invite_code?: string | null;
+  /** App-level email-ownership proof (Discord-style, 2026-10-16 migration). */
+  email_verified?: boolean | null;
   /** Public belay verification statuses: {top_rope: 'self_attested'|'verified', ...} */
   verifications?: Record<string, string> | null;
 }
@@ -101,6 +103,8 @@ export function profileRowToProfile(userId: string, email: string, row: ProfileR
     weight_kg: row?.weight_kg ?? undefined,
     height_cm: row?.height_cm ?? undefined,
     invite_code: row?.invite_code ?? undefined,
+    email: email ?? undefined,
+    email_verified: row?.email_verified ?? undefined,
   };
 }
 
@@ -135,6 +139,7 @@ export function profilePatchToRow(patch: Partial<Profile>): Record<string, unkno
   // invite_code writes no-op gracefully when the column doesn't exist yet
   // (persistProfilePatch logs and keeps local state as source of truth).
   if (patch.invite_code !== undefined) row.invite_code = patch.invite_code;
+  if (patch.email_verified !== undefined) row.email_verified = patch.email_verified;
   return row;
 }
 
