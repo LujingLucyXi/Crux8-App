@@ -169,24 +169,11 @@ export function CartoonAvatar({
           </g>
         );
       case 'braids':
-        // ONE tight side braid, country-girl style (Lucy 2026-10-16):
-        // hair pulled back in a clean cap, a single woven braid hugging
-        // the left side of the face — chevron weave lines, a coral tie,
-        // and a small tail tuft. (The first pass drew two straight
-        // planks with slashes — not a braid.)
-        return (
-          <g>
-            <path d={CAP_D} {...HS} />
-            <path d="M21.5 41 Q19.5 58 21.5 73 Q25.5 77.5 30 73.5 Q31.5 56 30 41 Q25.5 37.5 21.5 41 Z" {...HS} />
-            <g stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.45" fill="none">
-              <path d="M21 47 L25.8 52.5 L30.5 47" />
-              <path d="M21.2 54.5 L25.8 60 L30.3 54.5" />
-              <path d="M21.5 62 L25.8 67.5 L30 62" />
-            </g>
-            <path d="M21.3 71.5 L30.2 71.5 L29.8 75.5 L21.7 75.5 Z" fill="#FF6B6B" stroke={OUTLINE} strokeWidth="2.2" strokeLinejoin="round" />
-            <path d="M23.5 75.5 Q24.5 82.5 26.5 83.5 Q29 82 28.3 75.5 Z" {...HS} />
-          </g>
-        );
+        // Hair pulled back in a clean cap; the braid itself is drawn
+        // in the FRONT layer (over the cheek's edge, emerging from the
+        // temple) — in the back layer its top hid behind the face and
+        // it read as a plank stuck to the side of the head.
+        return <path d={CAP_D} {...HS} />;
       case 'locs':
         // Distinct ropes BESIDE the face (the first pass hid most of
         // each strand behind the face, reading as sideburn smudges):
@@ -263,6 +250,22 @@ export function CartoonAvatar({
         );
       case 'straight':
         return <path d="M50 25.5 L50 34" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4" />;
+      case 'braids':
+        // ONE tight side braid, country-girl style (Lucy 2026-10-16):
+        // emerges from the left temple and lies over the cheek's edge —
+        // chevron weave, coral tie band, small tail tuft.
+        return (
+          <g>
+            <path d="M24 40 Q21 56 23 71 Q27 76 32 72 Q34 56 33 41 Q28.5 36.5 24 40 Z" {...HS} />
+            <g stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.45" fill="none">
+              <path d="M23.5 47 L28.2 51.5 L33 47" />
+              <path d="M23.3 54.5 L28.2 59 L32.8 54.5" />
+              <path d="M23.5 62 L28.2 66.5 L32.5 62" />
+            </g>
+            <path d="M23.2 68.5 L32.8 68.5 L32.2 73 L23.8 73 Z" fill="#FF6B6B" stroke={OUTLINE} strokeWidth="2.2" strokeLinejoin="round" />
+            <path d="M25 73 Q26 80.5 28.5 81.5 Q31.5 80 30.5 73 Z" {...HS} />
+          </g>
+        );
       default:
         return null;
     }
