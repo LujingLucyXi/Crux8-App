@@ -22,6 +22,7 @@ export interface ProfileRow {
   photo_url?: string | null;
   home_gym_id?: string | null;
   top_grade?: string | null;
+  boulder_grade?: string | null;
   preferred_styles?: string[] | null;
   about?: string | null;
   signature?: string | null;
@@ -84,6 +85,7 @@ export function profileRowToProfile(userId: string, email: string, row: ProfileR
     photo_url: row?.photo_url ?? undefined,
     home_gym_id: row?.home_gym_id ?? 'gym_vertical_world',
     top_grade: row?.top_grade ?? '5.10c',
+    boulder_grade: row?.boulder_grade ?? undefined,
     preferred_styles: (row?.preferred_styles as Style[] | undefined) ?? ['top_rope', 'lead', 'outdoor_sport'],
     about: row?.about ?? '',
     signature: row?.signature ?? undefined,
@@ -115,6 +117,7 @@ export function profilePatchToRow(patch: Partial<Profile>): Record<string, unkno
   if (patch.photo_url !== undefined) row.photo_url = patch.photo_url;
   if (patch.home_gym_id !== undefined) row.home_gym_id = patch.home_gym_id;
   if (patch.top_grade !== undefined) row.top_grade = patch.top_grade;
+  if (patch.boulder_grade !== undefined) row.boulder_grade = patch.boulder_grade;
   if (patch.preferred_styles !== undefined) row.preferred_styles = patch.preferred_styles;
   if (patch.about !== undefined) row.about = patch.about;
   if (patch.signature !== undefined) row.signature = patch.signature;

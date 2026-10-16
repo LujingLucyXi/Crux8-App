@@ -200,6 +200,9 @@ export interface Profile {
   photo_url?: string;
   home_gym_id: string;
   top_grade: string;
+  /** Boulder grade (V-scale), separate from the rope grade — boulderers
+   *  had no way to state theirs before 2026-10-16. */
+  boulder_grade?: string;
   preferred_styles: Style[];
   about?: string;
   // ── profile identity (set during onboarding) ──

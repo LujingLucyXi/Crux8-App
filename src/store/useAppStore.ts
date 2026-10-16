@@ -370,6 +370,8 @@ interface Store {
   ) => void;
 
   submitVerification: (category: VerificationCategory) => void;
+  /** Withdraw a self-report (Edit profile). Peer-confirmed stays. */
+  removeVerification: (category: VerificationCategory) => void;
 
   updateGearChecklist: (sessionId: string, item: string, checked: boolean) => void;
 
@@ -2352,6 +2354,8 @@ export const useAppStore = create<Store>()(
       // Self-attestation: the climber declares the skill. Real trust comes from
       // partners confirming it after sessions (see setBelayConfirm), not a photo.
       submitVerification: (category) => {
+        // Never downgrade a peer-confirmed skill back to self-reported.
+        if (get().verifications[category]?.status === 'verified') return;
         set({
           verifications: {
             ...get().verifications,
@@ -2361,6 +2365,28 @@ export const useAppStore = create<Store>()(
         get().checkBadges();
         // Publish the status to my profile row so other climbers can see it
         // (and peer confirms can later upgrade it server-side).
+        const meId = get().me?.id;
+        if (meId) {
+          const json: Record<string, string> = {};
+          for (const [cat, v] of Object.entries(get().verifications)) {
+            if (v.status === 'self_attested' || v.status === 'verified') {
+              json[cat] = v.status;
+            }
+          }
+          void dbSetMyVerifications(meId, json);
+        }
+      },
+
+      removeVerification: (category) => {
+        // Only a self-report can be withdrawn; peer-confirmed is a
+        // record of partners' confirmations, not a self-claim.
+        if (get().verifications[category]?.status !== 'self_attested') return;
+        set({
+          verifications: {
+            ...get().verifications,
+            [category]: { status: 'unverified' },
+          },
+        });
         const meId = get().me?.id;
         if (meId) {
           const json: Record<string, string> = {};

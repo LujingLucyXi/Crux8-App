@@ -25,6 +25,16 @@ const TOP_GRADES = [
   '5.12a', '5.12b', '5.12c', '5.12d', '5.13+',
 ];
 
+const BOULDER_GRADES = [
+  'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10+',
+];
+
+const BELAY_CATS: { cat: 'top_rope' | 'lead' | 'trad'; label: string }[] = [
+  { cat: 'top_rope', label: 'Top Rope Belay' },
+  { cat: 'lead', label: 'Lead Belay' },
+  { cat: 'trad', label: 'Trad Belay' },
+];
+
 const TAGS = [
   '🧗 Crimp Lord', '🪨 Boulder Bro', '🚀 Dyno Fiend', '🧊 Slab Master',
   '🦶 Heel-Hook Hero', '🔥 Flash Machine', '🎯 Project Junkie', '🧂 Chalk Addict',
@@ -48,6 +58,9 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
   const me = useAppStore((s) => s.me);
   const gyms = useAppStore((s) => s.gyms);
   const updateProfile = useAppStore((s) => s.updateProfile);
+  const verifications = useAppStore((s) => s.verifications);
+  const submitVerification = useAppStore((s) => s.submitVerification);
+  const removeVerification = useAppStore((s) => s.removeVerification);
 
   const [displayName, setDisplayName] = useState(me?.display_name ?? '');
   const [pronouns, setPronouns] = useState(me?.pronouns ?? '');
@@ -55,6 +68,7 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
   const [location, setLocation] = useState(me?.location ?? 'greater-seattle');
   const [homeGymId, setHomeGymId] = useState(me?.home_gym_id ?? '');
   const [topGrade, setTopGrade] = useState(me?.top_grade ?? '');
+  const [boulderGrade, setBoulderGrade] = useState(me?.boulder_grade ?? '');
   const [tags, setTags] = useState<string[]>(me?.tags ?? []);
   const [saving, setSaving] = useState(false);
 
@@ -72,6 +86,7 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
       location,
       home_gym_id: homeGymId || me.home_gym_id,
       top_grade: topGrade || me.top_grade,
+      boulder_grade: boulderGrade || undefined,
       tags,
     };
     updateProfile(patch);
@@ -139,7 +154,26 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
 
           <Section title="Climbing">
             <div>
-              <Label>Top grade</Label>
+              <Label>Boulder grade</Label>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {BOULDER_GRADES.map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setBoulderGrade(g)}
+                    className={cn(
+                      'rounded-full border px-2.5 py-1 text-xs font-medium',
+                      boulderGrade === g
+                        ? 'bg-brand-600 text-[#161310] border-brand-600'
+                        : 'bg-paper-100 text-ink-700 border-ink-100',
+                    )}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>Rope grade <span className="text-ink-400 font-normal">(top rope / lead)</span></Label>
               <div className="flex flex-wrap gap-1.5 mt-1">
                 {TOP_GRADES.map((g) => (
                   <button
@@ -156,6 +190,11 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
                   </button>
                 ))}
               </div>
+              {topGrade && !TOP_GRADES.includes(topGrade) && (
+                <p className="mt-1.5 text-[11px] text-ink-400">
+                  Current: {topGrade} (a range from orientation) — pick one above to set an exact grade.
+                </p>
+              )}
             </div>
             <div>
               <Label>
@@ -178,6 +217,48 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
                 ))}
               </div>
             </div>
+          </Section>
+
+          <Section title="Belay skills">
+            {BELAY_CATS.map(({ cat, label }) => {
+              const status = verifications[cat]?.status ?? 'unverified';
+              return (
+                <div key={cat} className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink-900">{label}</p>
+                    <p className="text-[11px] text-ink-400">
+                      {status === 'verified'
+                        ? 'Peer-confirmed ✓'
+                        : status === 'self_attested'
+                          ? 'Self-reported'
+                          : 'Not reported'}
+                    </p>
+                  </div>
+                  {status === 'verified' ? (
+                    <span className="shrink-0 rounded-full bg-teal-600 px-3 py-1.5 text-xs font-bold text-white">
+                      Confirmed
+                    </span>
+                  ) : status === 'self_attested' ? (
+                    <button
+                      onClick={() => removeVerification(cat)}
+                      className="shrink-0 rounded-full border border-ink-200 px-3 py-1.5 text-xs font-semibold text-ink-500"
+                    >
+                      Remove
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => submitVerification(cat)}
+                      className="shrink-0 rounded-full bg-brand-600 px-3 py-1.5 text-xs font-bold text-[#161310]"
+                    >
+                      Self-report
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            <p className="text-[11px] text-ink-400">
+              You declare these yourself; partners confirm them after you climb together.
+            </p>
           </Section>
 
           <Button onClick={save} disabled={saving} className="w-full mt-1">

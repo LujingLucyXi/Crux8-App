@@ -26,6 +26,7 @@ export interface DirectoryProfile {
   display_name: string;
   photo_url?: string | null;
   top_grade?: string | null;
+  boulder_grade?: string | null;
   home_gym_id?: string | null;
 }
 
@@ -504,6 +505,14 @@ export async function fetchDirectoryProfiles(ids: string[]): Promise<DirectoryPr
   if (unique.length === 0) return [];
   // directory_profiles is a security-definer view over public.profiles exposing
   // only the columns shown next to other users' names (weight/height stay private).
+  // boulder_grade joins the view only after the 2026-10-16 migration —
+  // try the extended select first and fall back so the directory never
+  // breaks while the migration is pending.
+  const extended = await supabase
+    .from('directory_profiles')
+    .select('id,display_name,photo_url,top_grade,boulder_grade,home_gym_id')
+    .in('id', unique);
+  if (!extended.error) return asRows<DirectoryProfile>(extended.data);
   const { data, error } = await supabase
     .from('directory_profiles')
     .select('id,display_name,photo_url,top_grade,home_gym_id')

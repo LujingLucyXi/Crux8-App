@@ -73,6 +73,11 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
                 Top: {user.top_grade}
               </span>
             )}
+            {user.boulder_grade && (
+              <span className="rounded-full border border-gold-500 text-gold-500 text-[11px] font-medium px-2.5 py-0.5">
+                Boulder: {user.boulder_grade}
+              </span>
+            )}
           </div>
 
           <div className="mt-3 flex flex-wrap gap-1 justify-center">

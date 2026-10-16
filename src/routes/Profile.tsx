@@ -188,6 +188,11 @@ export function Profile() {
               <span className="rounded-full border border-gold-500 text-gold-500 text-[11px] font-medium px-2.5 py-0.5">
                 Top: {me.top_grade}
               </span>
+              {me.boulder_grade && (
+                <span className="rounded-full border border-gold-500 text-gold-500 text-[11px] font-medium px-2.5 py-0.5">
+                  Boulder: {me.boulder_grade}
+                </span>
+              )}
             </div>
           </div>
         </div>

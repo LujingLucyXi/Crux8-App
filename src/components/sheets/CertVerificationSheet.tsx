@@ -90,7 +90,17 @@ export function CertVerificationSheet({ open, onOpenChange, presetCategory }: Pr
           })}
         </div>
 
-        <label className="mt-4 flex items-start gap-3 cursor-pointer rounded-xl border border-ink-100 p-3.5">
+        {/* The attestation is NOT a fourth belay type (Lucy, 2026-10-16:
+            it read as one more skill checkbox in the list). A divider +
+            its own heading keep it visually separate from the types. */}
+        <div className="mt-6 mb-3 flex items-center gap-3">
+          <div className="h-px flex-1 bg-ink-100" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-ink-400">
+            Attestation
+          </span>
+          <div className="h-px flex-1 bg-ink-100" />
+        </div>
+        <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-dashed border-ink-200 bg-paper-50 p-3.5">
           <Checkbox checked={checked} onCheckedChange={(v) => setChecked(!!v)} />
           <span className="text-sm text-ink-700 leading-snug">
             I've passed a belay check for the skill(s) above at a gym (or have equivalent experience), and I'm

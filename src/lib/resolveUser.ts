@@ -8,6 +8,7 @@ export interface ResolvedUser {
   photo_url?: string | null;
   avatar?: AvatarConfig;
   top_grade?: string;
+  boulder_grade?: string;
 }
 
 /**
@@ -29,6 +30,7 @@ export function resolveUser(
       photo_url: me.photo_url ?? null,
       avatar: me.avatar,
       top_grade: me.top_grade,
+      boulder_grade: me.boulder_grade,
     };
   }
   const npc = users.find((u) => u.id === id);
@@ -47,6 +49,7 @@ export function resolveUser(
       display_name: dir.display_name,
       photo_url: dir.photo_url ?? null,
       top_grade: dir.top_grade ?? undefined,
+      boulder_grade: dir.boulder_grade ?? undefined,
     };
   }
   return undefined;
