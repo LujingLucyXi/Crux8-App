@@ -86,17 +86,19 @@ export function Landing() {
         </p>
 
         {/* ── The Founding Register ── */}
-        <div className="mt-10 w-full rounded-[26px] bg-[#161310] px-6 py-7 text-[#F7F3EA] shadow-[0_24px_48px_-20px_rgba(22,19,16,0.6)]">
-          <div className="flex justify-center">
-            <OGBadge size={92} variant="neon" />
+        <div className="mt-10 w-full rounded-[26px] bg-[#161310] px-6 py-6 text-[#F7F3EA] shadow-[0_24px_48px_-20px_rgba(22,19,16,0.6)]">
+          <div className="flex items-center gap-4 text-left">
+            <OGBadge size={78} variant="neon" />
+            <div className="min-w-0">
+              <p className="text-[12px] font-extrabold tracking-[0.3em] text-[#B4FF3A]">
+                THE FOUNDING REGISTER
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-white/65">
+                The first {FOUNDING_CAP} climbers through the door are Founding
+                Members — the OG badge lives on your profile forever.
+              </p>
+            </div>
           </div>
-          <p className="mt-4 text-[12px] font-extrabold tracking-[0.3em] text-[#B4FF3A]">
-            THE FOUNDING REGISTER
-          </p>
-          <p className="mx-auto mt-2.5 max-w-xs text-sm leading-relaxed text-white/65">
-            The first {FOUNDING_CAP} climbers through the door are Founding
-            Members — the OG badge lives on your profile forever.
-          </p>
           <div className="mt-5 flex items-baseline justify-between text-[12px] font-bold tracking-[0.14em]">
             <span className="text-white/75">IN THE REGISTER</span>
             <span className="text-[#B4FF3A]">
