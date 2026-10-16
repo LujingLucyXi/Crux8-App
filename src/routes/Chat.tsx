@@ -4,6 +4,7 @@ import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { useAppStore, dmKey, scKey } from '@/store/useAppStore';
 import { InvitesSection } from '@/components/chat/InvitesSection';
 import { formatChatTimestamp } from '@/lib/date';
+import { resolveUser } from '@/lib/resolveUser';
 import { cn } from '@/lib/utils';
 import type { AvatarConfig } from '@/lib/avatar';
 
@@ -11,6 +12,7 @@ export function Chat() {
   const nav = useNavigate();
   const cruxmates = useAppStore((s) => s.cruxmates);
   const users = useAppStore((s) => s.users);
+  const directory = useAppStore((s) => s.directory);
   const chats = useAppStore((s) => s.chats);
   const sessionChats = useAppStore((s) => s.sessionChats);
   const chatReads = useAppStore((s) => s.chatReads);
@@ -143,7 +145,10 @@ export function Chat() {
           </h2>
           <ul className="flex flex-col gap-1">
             {cruxmates.map((id) => {
-              const user = users.find((u) => u.id === id);
+              // resolveUser, NOT users.find: real cruxmates live in the
+              // directory — a users-only lookup dropped them from the DM
+              // list while the header still counted them (2026-10-15).
+              const user = me ? resolveUser(id, me, users, directory) : undefined;
               if (!user) return null;
               const msgs = chats[id] ?? [];
               const last = msgs[msgs.length - 1];
@@ -155,7 +160,7 @@ export function Chat() {
                     className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-paper-100 transition-colors text-left"
                   >
                     <div className="relative shrink-0">
-                      <Avatar config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} />
+                      <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} />
                       {unread && (
                         <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-coral-500 ring-2 ring-paper-50" />
                       )}

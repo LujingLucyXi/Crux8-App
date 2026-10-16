@@ -19,6 +19,7 @@ import { useAppStore, type BadgeId } from '@/store/useAppStore';
 import { InviteSection } from '@/components/InviteSection';
 import { PeopleFinder } from '@/components/PeopleFinder';
 import { normalizeInviteCode } from '@/lib/inviteCode';
+import { resolveUser } from '@/lib/resolveUser';
 import { sessionPhase } from '@/lib/sessionPhase';
 import type { VerificationCategory } from '@/seed/types';
 import { cn } from '@/lib/utils';
@@ -59,6 +60,7 @@ export function Profile() {
   const me = useAppStore((s) => s.me);
   const gyms = useAppStore((s) => s.gyms);
   const users = useAppStore((s) => s.users);
+  const directory = useAppStore((s) => s.directory);
   const sessions = useAppStore((s) => s.sessions);
   const cruxmates = useAppStore((s) => s.cruxmates);
   const verifications = useAppStore((s) => s.verifications);
@@ -578,7 +580,11 @@ export function Profile() {
         </h2>
         <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4">
           {cruxmates.map((id) => {
-            const u = users.find((x) => x.id === id);
+            // resolveUser, NOT users.find: real cruxmates live in the
+            // directory, not the seed `users` array — a users-only lookup
+            // rendered the count (· 2) but silently dropped every real
+            // friend from the strip (Lucy's 2026-10-15 screenshot).
+            const u = me ? resolveUser(id, me, users, directory) : undefined;
             if (!u) return null;
             return (
               <button
@@ -586,7 +592,7 @@ export function Profile() {
                 onClick={() => nav(`/chat/${id}`)}
                 className="flex flex-col items-center gap-1 shrink-0 w-16"
               >
-                <Avatar config={u.avatar} alt={u.display_name} size={52} fallback={u.display_name} />
+                <Avatar photoUrl={u.photo_url ?? undefined} config={u.avatar} alt={u.display_name} size={52} fallback={u.display_name} />
                 <p className="text-[10px] font-medium text-ink-700 text-center leading-tight truncate w-full">
                   {u.display_name.split(' ')[0]}
                 </p>
