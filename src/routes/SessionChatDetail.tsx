@@ -22,6 +22,7 @@ export function SessionChatDetail() {
   const groups = useAppStore((s) => s.groups);
   const me = useAppStore((s) => s.me);
   const sendSessionMessage = useAppStore((s) => s.sendSessionMessage);
+  const ensureDirectoryProfiles = useAppStore((s) => s.ensureDirectoryProfiles);
   const toggleReactionSession = useAppStore((s) => s.toggleReactionSession);
   const markThreadRead = useAppStore((s) => s.markThreadRead);
 
@@ -39,6 +40,18 @@ export function SessionChatDetail() {
   useEffect(() => {
     if (sessionChatId) markThreadRead(scKey(sessionChatId));
   }, [sessionChatId, messages.length, markThreadRead]);
+
+  // Sender names resolve through the directory — make sure every
+  // participant/sender in this thread is fetched, so a name (not a
+  // placeholder) can sit on each message.
+  useEffect(() => {
+    if (!chat) return;
+    void ensureDirectoryProfiles([
+      ...chat.participant_ids,
+      ...messages.map((m) => m.from),
+    ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chat?.id]);
 
   if (!chat) {
     return (
@@ -71,7 +84,7 @@ export function SessionChatDetail() {
   };
 
   const userName = (from: string) => {
-    if (from === 'me' || from === me?.id) return 'You';
+    if (from === 'me' || from === me?.id) return me?.display_name ?? 'You';
     if (from === 'system') return null;
     return resolveUser(from, me, users, directory)?.display_name ?? 'Someone';
   };
@@ -157,11 +170,12 @@ export function SessionChatDetail() {
                     />
                   )}
                   <div className={cn('flex flex-col max-w-[75%]', isMe ? 'items-end' : 'items-start')}>
-                    {!isMe && (
-                      <p className="text-[11px] font-medium text-ink-500 mb-0.5">
-                        {userName(m.from)}
-                      </p>
-                    )}
+                    {/* Every message in a group/session thread carries its
+                        sender's name (Lucy 2026-10-16) — including your
+                        own, so who said what is never ambiguous. */}
+                    <p className="text-[11px] font-semibold text-ink-700 mb-0.5">
+                      {userName(m.from)}
+                    </p>
                     {(() => {
                       // Shared calls/sessions render as joinable cards, not
                       // raw link text, when this client knows the entity.

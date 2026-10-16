@@ -1981,7 +1981,11 @@ export const useAppStore = create<Store>()(
 
       sendSessionMessage: (sessionChatId: string, text: string) => {
         const now = new Date().toISOString();
-        const msg: ChatMessage = { id: uid('msg'), from: 'me', text, sent_at: now };
+        // Stamp the REAL sender id, not the 'me' literal (Lucy
+        // 2026-10-16: group chat didn't show who sent a message — a
+        // literal 'me' carries no identity, so names can't render and
+        // another account on the same device inherits the bubbles).
+        const msg: ChatMessage = { id: uid('msg'), from: get().me?.id ?? 'me', text, sent_at: now };
         const existing = get().sessionChats[sessionChatId];
         if (!existing) return;
         set({

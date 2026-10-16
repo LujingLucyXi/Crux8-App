@@ -101,11 +101,11 @@ export function Chat() {
             <div className="flex items-center gap-2 mt-0.5">
               <p className={cn('text-sm truncate flex-1', unread ? 'text-ink-900 font-medium' : 'text-ink-500')}>
                 {last
-                  ? last.from === 'me'
+                  ? last.from === 'me' || last.from === me?.id
                     ? `You: ${last.text}`
                     : last.from === 'system'
                       ? last.text
-                      : `${users.find((u) => u.id === last.from)?.display_name?.split(' ')[0] ?? 'Someone'}: ${last.text}`
+                      : `${(me ? resolveUser(last.from, me, users, directory)?.display_name : undefined)?.split(' ')[0] ?? 'Someone'}: ${last.text}`
                   : 'Say hi!'}
               </p>
               <AvatarStack users={participants} max={3} size={18} />
