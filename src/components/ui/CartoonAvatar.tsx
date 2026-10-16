@@ -169,31 +169,42 @@ export function CartoonAvatar({
           </g>
         );
       case 'braids':
+        // ONE tight side braid, country-girl style (Lucy 2026-10-16):
+        // hair pulled back in a clean cap, a single woven braid hugging
+        // the left side of the face — chevron weave lines, a coral tie,
+        // and a small tail tuft. (The first pass drew two straight
+        // planks with slashes — not a braid.)
         return (
           <g>
             <path d={CAP_D} {...HS} />
-            <g {...HS}>
-              <path d="M19 46 L31 46 L30 78 Q24.5 82 20 78 Z" />
-              <path d="M69 46 L81 46 L80 78 Q75.5 82 70 78 Z" />
+            <path d="M21.5 41 Q19.5 58 21.5 73 Q25.5 77.5 30 73.5 Q31.5 56 30 41 Q25.5 37.5 21.5 41 Z" {...HS} />
+            <g stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.45" fill="none">
+              <path d="M21 47 L25.8 52.5 L30.5 47" />
+              <path d="M21.2 54.5 L25.8 60 L30.3 54.5" />
+              <path d="M21.5 62 L25.8 67.5 L30 62" />
             </g>
-            <g stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4">
-              <path d="M20 56 L30 52" /><path d="M20 66 L30 62" /><path d="M20.5 76 L30 72" />
-              <path d="M80 56 L70 52" /><path d="M80 66 L70 62" /><path d="M79.5 76 L70 72" />
-            </g>
-            {tie(25, 80)}
-            {tie(75, 80)}
+            <path d="M21.3 71.5 L30.2 71.5 L29.8 75.5 L21.7 75.5 Z" fill="#FF6B6B" stroke={OUTLINE} strokeWidth="2.2" strokeLinejoin="round" />
+            <path d="M23.5 75.5 Q24.5 82.5 26.5 83.5 Q29 82 28.3 75.5 Z" {...HS} />
           </g>
         );
       case 'locs':
+        // Distinct ropes BESIDE the face (the first pass hid most of
+        // each strand behind the face, reading as sideburn smudges):
+        // two capsules per side with segment bumps, staggered lengths.
         return (
           <g>
             <g {...HS}>
               <path d={CAP_D} />
-              <path d="M23 42 Q20 60 23 79 Q27 82 30 78 L30 44 Q26 40 23 42 Z" />
-              <path d="M77 42 Q80 60 77 79 Q73 82 70 78 L70 44 Q74 40 77 42 Z" />
+              <path d="M17.5 40 Q16 58 17.5 74 Q20.5 77 23.5 74 Q24.5 56 23.5 40 Q20.5 37.5 17.5 40 Z" />
+              <path d="M24 38 Q23 58 24 77 Q27 80.5 30 77 L30 42 Q27 37 24 38 Z" />
+              <path d="M76 38 Q77 58 76 77 Q73 80.5 70 77 L70 42 Q73 37 76 38 Z" />
+              <path d="M82.5 40 Q84 58 82.5 74 Q79.5 77 76.5 74 Q75.5 56 76.5 40 Q79.5 37.5 82.5 40 Z" />
             </g>
-            <g stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.35">
-              <path d="M26.5 46 L26.5 75" /><path d="M73.5 46 L73.5 75" />
+            <g stroke={OUTLINE} strokeWidth="1.8" strokeLinecap="round" opacity="0.4" fill="none">
+              <path d="M17.8 50 L23.2 50" /><path d="M17.8 61 L23.2 61" />
+              <path d="M24.2 51 L29.8 51" /><path d="M24.2 64 L29.8 64" />
+              <path d="M70.2 51 L75.8 51" /><path d="M70.2 64 L75.8 64" />
+              <path d="M76.8 50 L82.2 50" /><path d="M76.8 61 L82.2 61" />
             </g>
           </g>
         );
@@ -228,14 +239,26 @@ export function CartoonAvatar({
   })();
 
   const hairFront = (() => {
+    // Fringe masses MERGE with the cap: same fill, no outline of their
+    // own (an outlined shape floating on the forehead read as a band /
+    // two blobs — Lucy's "bangs, curtains have problem" note). Only the
+    // bottom edge gets a stroked line, like a real hairline.
     switch (config.hair) {
       case 'bangs':
-        return <path d="M30 37.5 Q50 32.5 70 37.5 L70 44 Q50 39.5 30 44 Z" {...HS} />;
+        return (
+          <g>
+            <path d="M29 30 Q50 25.5 71 30 L71 43.5 Q50 39 29 43.5 Z" fill={hairCol} />
+            <path d="M29 43.5 Q50 39 71 43.5" fill="none" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
+            <g stroke={OUTLINE} strokeWidth="1.8" strokeLinecap="round" opacity="0.35">
+              <path d="M40 40.2 L40 42.8" /><path d="M50 38.8 L50 41.6" /><path d="M60 40.2 L60 42.8" />
+            </g>
+          </g>
+        );
       case 'curtain':
         return (
-          <g {...HS}>
-            <path d="M30.5 37 Q40 32.5 49.5 36.5 Q46.5 44.5 38 45.5 Q31.5 44.5 30.5 37 Z" />
-            <path d="M69.5 37 Q60 32.5 50.5 36.5 Q53.5 44.5 62 45.5 Q68.5 44.5 69.5 37 Z" />
+          <g>
+            <path d="M29 30 Q50 25.5 71 30 L71 39 Q64.5 46.5 56 44.5 Q51 43 50 37.5 Q49 43 44 44.5 Q35.5 46.5 29 39 Z" fill={hairCol} />
+            <path d="M29 39 Q35.5 46.5 44 44.5 Q49 43 50 37.5 Q51 43 56 44.5 Q64.5 46.5 71 39" fill="none" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
           </g>
         );
       case 'straight':
