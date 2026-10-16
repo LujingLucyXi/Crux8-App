@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAppStore } from '@/store/useAppStore';
 import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
-import { normalizeInviteCode, isValidInviteCode } from '@/lib/inviteCode';
+import { normalizeInviteCode, isValidInviteCode, inviteLink } from '@/lib/inviteCode';
 
 /**
  * Add-cruxmates front door (2026-10-14 field report: the add action was
@@ -28,9 +28,41 @@ export function PeopleFinder() {
   const cancelMateRequest = useAppStore((s) => s.cancelMateRequest);
   const mateRequestFor = useAppStore((s) => s.mateRequestFor);
   const mateRequests = useAppStore((s) => s.mateRequests);
+  const ensureInviteCode = useAppStore((s) => s.ensureInviteCode);
   const [q, setQ] = useState('');
   const [codeInput, setCodeInput] = useState('');
   const [codeHint, setCodeHint] = useState<string | null>(null);
+
+  // Invite someone who isn't on Crux8 yet: native share carrying my
+  // personal add link, framed as a join invitation (the link lands them
+  // on my add page — guest name-only entry or email — and their add
+  // still comes back to me as a request to approve).
+  const inviteFriend = async () => {
+    const code = ensureInviteCode();
+    if (!code) {
+      toast.error('Your invite code is not ready yet');
+      return;
+    }
+    const link = inviteLink(code);
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join me on Crux8',
+          text: `🧗 Join me on Crux8 — find climbing partners, join sessions, and collect climber DNA cards. Use my invite link to send me a cruxmate request:`,
+          url: link,
+        });
+      } catch {
+        /* user dismissed */
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(link);
+        toast.success('Invite link copied');
+      } catch {
+        toast.error('Could not copy the invite link');
+      }
+    }
+  };
 
   const submitCode = () => {
     const code = normalizeInviteCode(codeInput);
@@ -68,6 +100,9 @@ export function PeopleFinder() {
       <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-3">
         Find people
       </h2>
+      <Button className="w-full mb-3" onClick={inviteFriend}>
+        Invite a friend to join Crux8
+      </Button>
       <div className="relative">
         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400">
           <Search width={18} height={18} />

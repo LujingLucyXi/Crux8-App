@@ -192,7 +192,8 @@ export function AddDeepLink() {
             {target ? `${target.display_name} invited you` : "You've been invited to Crux8"}
           </h2>
           <p className="mt-2 text-sm text-ink-500">
-            Add them as a cruxmate — just your name, no sign-up.
+            Send them a cruxmate request — just your name, no sign-up. When
+            they accept, you're cruxmates.
           </p>
           <div className="mt-5 text-left">
             <GuestJoinForm buttonLabel="Continue as a guest" />
@@ -247,7 +248,7 @@ export function AddDeepLink() {
           <p className="text-3xl">🪪</p>
           <h2 className="mt-3 text-xl font-semibold text-ink-900">This is your invite code</h2>
           <p className="mt-2 text-sm text-ink-500">
-            Share it — anyone with it can add you as a cruxmate.
+            Share it — anyone with it can send you a cruxmate request.
           </p>
         </div>
         <div className="mt-4">

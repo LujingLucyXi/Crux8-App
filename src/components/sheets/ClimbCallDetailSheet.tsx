@@ -37,7 +37,7 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
   const pairRequests = useAppStore((s) => s.pairRequests);
   const requestPair = useAppStore((s) => s.requestPair);
   const cancelPairRequest = useAppStore((s) => s.cancelPairRequest);
-  const addCruxMate = useAppStore((s) => s.addCruxMate);
+  const requestCruxmate = useAppStore((s) => s.requestCruxmate);
   const cancelClimbCall = useAppStore((s) => s.cancelClimbCall);
   const sendMessage = useAppStore((s) => s.sendMessage);
   const [shareOpen, setShareOpen] = useState(false);
@@ -66,8 +66,12 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
       return;
     }
     await requestPair(call.id);
-    // Auto-add as CruxMate + start chat
-    if (!isFriend) addCruxMate(caller.id);
+    // Cruxmate status follows the approval rule (Lucy 2026-10-15: both
+    // people approve to be friends) — a pair request no longer silently
+    // adds the host. It sends a cruxmate REQUEST alongside; NPC hosts
+    // (Cruxy) still resolve instantly inside requestCruxmate. The intro
+    // DM below still goes out so the pairing can be coordinated.
+    if (!isFriend) requestCruxmate(caller.id);
     sendMessage(caller.id, `Hi! Requesting to pair on your ${call.category === 'top_rope' ? 'top-rope' : 'lead'} call at ${gym?.short_name ?? call.area}.`);
     toast(`Paired with ${caller.display_name}`, {
       description: 'Chat opened — say hi and confirm details.',
