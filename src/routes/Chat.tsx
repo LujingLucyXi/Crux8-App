@@ -15,6 +15,7 @@ export function Chat() {
   const sessionChats = useAppStore((s) => s.sessionChats);
   const chatReads = useAppStore((s) => s.chatReads);
   const invites = useAppStore((s) => s.invites);
+  const groups = useAppStore((s) => s.groups);
   const me = useAppStore((s) => s.me);
 
   const isThreadUnread = (key: string, last: { from: string; sent_at: string } | undefined) => {
@@ -50,6 +51,10 @@ export function Chat() {
   const renderThreadRow = (sc: (typeof sessionChatList)[number]) => {
     const last = sc.messages[sc.messages.length - 1];
     const unread = isThreadUnread(scKey(sc.id), last);
+    // Group threads are keyed by group id — a crew (e.g. a house hangout)
+    // shows its own picture as the profile pic when it has one.
+    const group = sc.source === 'group' ? groups.find((g) => g.id === sc.id) : undefined;
+    const groupPic = group?.avatar_url || group?.cover_url;
     const participants = sc.participant_ids
       .filter((id) => id !== 'me')
       .map((id) => users.find((u) => u.id === id))
@@ -61,9 +66,17 @@ export function Chat() {
           className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-paper-100 transition-colors text-left"
         >
           <div className="relative shrink-0">
-            <div className="w-11 h-11 rounded-full bg-teal-100 flex items-center justify-center">
-              <Community width={20} height={20} className="text-teal-600" />
-            </div>
+            {groupPic ? (
+              <img
+                src={groupPic}
+                alt=""
+                className="w-11 h-11 rounded-full object-cover border border-ink-100"
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-teal-100 flex items-center justify-center">
+                <Community width={20} height={20} className="text-teal-600" />
+              </div>
+            )}
             {unread && (
               <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-coral-500 ring-2 ring-paper-50" />
             )}

@@ -19,6 +19,7 @@ export function SessionChatDetail() {
   const sessions = useAppStore((s) => s.sessions);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
+  const groups = useAppStore((s) => s.groups);
   const me = useAppStore((s) => s.me);
   const sendSessionMessage = useAppStore((s) => s.sendSessionMessage);
   const toggleReactionSession = useAppStore((s) => s.toggleReactionSession);
@@ -81,9 +82,23 @@ export function SessionChatDetail() {
         <button onClick={() => nav('/chat')} aria-label="Back">
           <NavArrowLeft width={22} height={22} className="text-ink-700" />
         </button>
-        <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
-          <Community width={18} height={18} className="text-teal-600" />
-        </div>
+        {(() => {
+          // Group threads are keyed by group id — show the crew's own
+          // picture (e.g. the house photo on a hangout) when it has one.
+          const group = chat.source === 'group' ? groups.find((g) => g.id === chat.id) : undefined;
+          const pic = group?.avatar_url || group?.cover_url;
+          return pic ? (
+            <img
+              src={pic}
+              alt=""
+              className="w-9 h-9 rounded-full object-cover border border-ink-100 shrink-0"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
+              <Community width={18} height={18} className="text-teal-600" />
+            </div>
+          );
+        })()}
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-ink-900 truncate">{chat.title}</p>
           <div className="flex items-center gap-2 mt-0.5">
