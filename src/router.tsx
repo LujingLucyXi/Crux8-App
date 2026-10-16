@@ -19,6 +19,7 @@ import { Chat } from '@/routes/Chat';
 import { ChatDetail } from '@/routes/ChatDetail';
 import { SessionChatDetail } from '@/routes/SessionChatDetail';
 import { Profile } from '@/routes/Profile';
+import { Collection } from '@/routes/Collection'; // the Vault: card collection's own home
 import { Lab } from '@/routes/Lab';
 
 function RequireAuth() {
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
               { path: '/chat/session/:sessionChatId', element: <SessionChatDetail /> },
               { path: '/chat/:userId', element: <ChatDetail /> },
               { path: '/profile', element: <Profile /> },
+              { path: '/collection', element: <Collection /> },
             ],
           },
         ],
