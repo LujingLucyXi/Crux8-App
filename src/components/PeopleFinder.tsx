@@ -48,7 +48,7 @@ export function PeopleFinder() {
       try {
         await navigator.share({
           title: 'Join me on Crux8',
-          text: `🧗 Join me on Crux8 — find climbing partners, join sessions, and collect climber DNA cards. Use my invite link to send me a cruxmate request:`,
+          text: `🧗 Join me on Crux8 — find climbing partners, join sessions, and collect climber DNA cards. Use my invite link to follow me:`,
           url: link,
         });
       } catch {
@@ -167,30 +167,30 @@ export function PeopleFinder() {
                         toast.success(`You're cruxmates with ${p.display_name.split(' ')[0]} 🤝`);
                       }
                     }}
-                    className="shrink-0 rounded-full bg-teal-600 px-4 py-2 text-xs font-bold text-white"
+                    className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
                   >
-                    Accept
+                    Follow back
                   </button>
                 ) : reqDir === 'outgoing' ? (
                   <button
                     onClick={() => {
                       cancelMateRequest(p.id);
-                      toast('Request canceled');
+                      toast('Unfollowed');
                     }}
                     className="shrink-0 rounded-full border border-ink-100 px-4 py-2 text-xs font-semibold text-ink-500"
                   >
-                    Requested
+                    Following
                   </button>
                 ) : (
                   <button
                     onClick={() => {
                       const res = requestCruxmate(p.id);
-                      if (res === 'sent') toast.success(`Request sent to ${p.display_name.split(' ')[0]}`);
+                      if (res === 'sent') toast.success(`Following ${p.display_name.split(' ')[0]}`);
                       else if (res === 'accepted') toast.success(`You're cruxmates with ${p.display_name.split(' ')[0]} 🤝`);
                     }}
                     className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
                   >
-                    Add
+                    Follow
                   </button>
                 )}
               </div>

@@ -30,7 +30,7 @@ export function InviteSection({ code, displayName }: Props) {
       try {
         await navigator.share({
           title: 'Join me on Crux8',
-          text: `🧗 Join me on Crux8 — find climbing partners, join sessions, and collect climber DNA cards. Use my invite link to send me a cruxmate request:`,
+          text: `🧗 Join me on Crux8 — find climbing partners, join sessions, and collect climber DNA cards. Use my invite link to follow me:`,
           url: link,
         });
       } catch {
@@ -55,8 +55,8 @@ export function InviteSection({ code, displayName }: Props) {
             {code}
           </p>
           <p className="mt-1 text-xs text-ink-500 leading-snug">
-            Anyone who scans or enters this code can send you a cruxmate
-            request — you're cruxmates only when you accept it in Chats.
+            Anyone who scans or enters this code can follow you — follow
+            each other back and you're cruxmates.
           </p>
         </div>
       </div>

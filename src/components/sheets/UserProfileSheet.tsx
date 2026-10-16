@@ -21,7 +21,6 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
   const gyms = useAppStore((s) => s.gyms);
   const cruxmates = useAppStore((s) => s.cruxmates);
   const directoryVerifications = useAppStore((s) => s.directoryVerifications);
-  const removeCruxMate = useAppStore((s) => s.removeCruxMate);
   const requestCruxmate = useAppStore((s) => s.requestCruxmate);
   const cancelMateRequest = useAppStore((s) => s.cancelMateRequest);
   const mateRequestFor = useAppStore((s) => s.mateRequestFor);
@@ -48,11 +47,11 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
     }
     if (reqDir === 'outgoing') {
       cancelMateRequest(user.id);
-      toast('Request canceled');
+      toast('Unfollowed');
       return;
     }
     const res = requestCruxmate(user.id);
-    if (res === 'sent') toast.success(`Request sent to ${user.display_name.split(' ')[0]}`);
+    if (res === 'sent') toast.success(`Following ${user.display_name.split(' ')[0]}`);
     else if (res === 'accepted') toast.success(`You're cruxmates with ${user.display_name.split(' ')[0]} 🤝`);
     else if (res === 'instant') toast(`${user.display_name} added as a CruxMate`);
   };
@@ -110,20 +109,22 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
             variant={isCruxmate ? 'outline' : 'primary'}
             onClick={() => {
               if (isCruxmate) {
-                removeCruxMate(user.id);
-                toast('Removed CruxMate');
+                // Unfollow: drops my follow row too, so the mutual
+                // state ends on their side at their next sync.
+                cancelMateRequest(user.id);
+                toast('Unfollowed');
               } else {
                 handleAddButton();
               }
             }}
           >
             {isCruxmate
-              ? 'Remove CruxMate'
+              ? 'Unfollow'
               : reqDir === 'incoming'
-                ? 'Accept request'
+                ? 'Follow back'
                 : reqDir === 'outgoing'
-                  ? 'Requested — tap to cancel'
-                  : 'Add as CruxMate'}
+                  ? 'Following — tap to unfollow'
+                  : 'Follow'}
           </Button>
           {isCruxmate && (
             <Button

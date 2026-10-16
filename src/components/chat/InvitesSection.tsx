@@ -32,7 +32,8 @@ export function InvitesSection() {
   const mateRequests = useAppStore((s) => s.mateRequests);
   const fetchMateRequests = useAppStore((s) => s.fetchMateRequests);
   const acceptMateRequest = useAppStore((s) => s.acceptMateRequest);
-  const denyMateRequest = useAppStore((s) => s.denyMateRequest);
+  const dismissFollower = useAppStore((s) => s.dismissFollower);
+  const dismissedFollowers = useAppStore((s) => s.dismissedFollowers);
   const [detailSession, setDetailSession] = useState<Session | null>(null);
 
   useEffect(() => {
@@ -43,8 +44,19 @@ export function InvitesSection() {
   if (!me) return null;
   const state = { me, sessions, climbCalls, sessionLifecycle };
   const pending = invites.filter((i) => i.status === 'pending');
+  // Followers I haven't followed back yet (follow model: no accept/deny —
+  // following back is the approval; "Not now" just hides the row here).
+  const myFollowing = new Set(
+    mateRequests
+      .filter((r) => r.status !== 'denied' && r.from_id === me.id)
+      .map((r) => r.to_id),
+  );
   const matePending = mateRequests.filter(
-    (r) => r.status === 'pending' && r.to_id === me.id,
+    (r) =>
+      r.status !== 'denied' &&
+      r.to_id === me.id &&
+      !myFollowing.has(r.from_id) &&
+      !dismissedFollowers.includes(r.from_id),
   );
   if (pending.length === 0 && matePending.length === 0) return null;
 
@@ -69,11 +81,10 @@ export function InvitesSection() {
       return { inv, sender, gymName, title, alreadyIn, actionable, startsAt: target.starts_at };
     })
     .filter((r): r is NonNullable<typeof r> => !!r);
-  if (rows.length === 0) return null;
 
   const actionableCount = rows.filter((r) => r.actionable).length;
 
-  // Cruxmate requests: the sender's avatar + name + archetype, Accept / Deny.
+  // New followers: the sender's avatar + name + archetype, Follow back.
   // These ride the same inbox and the same badge as call/session invites.
   const mateRows = matePending
     .map((r) => {
@@ -88,6 +99,11 @@ export function InvitesSection() {
       return { req: r, sender, arch };
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
+
+  // The section must survive on follower rows alone — an earlier version
+  // returned null whenever no session/call invite resolved, which hid
+  // pending mate requests entirely.
+  if (rows.length === 0 && mateRows.length === 0) return null;
 
   const totalCount = actionableCount + mateRows.length;
 
@@ -128,7 +144,7 @@ export function InvitesSection() {
                 <p className="text-sm font-semibold text-ink-900 truncate">
                   {sender.display_name}
                 </p>
-                <p className="text-xs text-ink-500 truncate">wants to be your cruxmate</p>
+                <p className="text-xs text-ink-500 truncate">followed you</p>
                 {arch && (
                   <p className="mt-0.5 text-[11px] text-gold-500 truncate">
                     <ArchetypeEmblem
@@ -149,16 +165,16 @@ export function InvitesSection() {
                 }}
                 className="flex-1 rounded-xl bg-brand-600 text-[#161310] text-xs font-bold py-2.5 active:scale-[0.98] transition"
               >
-                Accept
+                Follow back
               </button>
               <button
                 onClick={() => {
-                  denyMateRequest(req.id);
-                  toast('Request declined');
+                  dismissFollower(sender.id);
+                  toast('Not now');
                 }}
                 className="flex-1 rounded-xl border border-ink-100 text-ink-700 text-xs font-semibold py-2.5 active:scale-[0.98] transition"
               >
-                Deny
+                Not now
               </button>
             </div>
           </div>

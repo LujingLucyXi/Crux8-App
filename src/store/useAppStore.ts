@@ -73,7 +73,6 @@ import {
   setInviteStatusRemote,
   createMateRequestRemote,
   fetchMyMateRequests,
-  setMateRequestStatusRemote,
   deleteMateRequestRemote,
   isUuid,
   type ClimbCallPatch,
@@ -183,18 +182,29 @@ interface Store {
   fetchInvites: () => Promise<void>;
   acceptInvite: (invite: Invite) => void;
   denyInvite: (invite: Invite) => void;
-  /** Cruxmate requests, both directions (public.cruxmate_requests). The
-   *  card is collected on accept, never on send. */
+  /** Follow graph (public.cruxmate_requests rows are FOLLOWS — the
+   *  Instagram model, Lucy 2026-10-15): a row from_id→to_id means "from
+   *  follows to". Friendship is derived: both directions exist ⟺
+   *  cruxmates. Following back IS the approval; there is no accept/deny.
+   *  Cards are collected when the mutual state forms, never on a
+   *  one-sided follow. */
   mateRequests: MateRequest[];
   fetchMateRequests: () => Promise<void>;
-  /** Send a cruxmate add: real users get a request; seed NPCs (incl.
-   *  Cruxy) auto-accept instantly, exactly like the old addCruxMate.
+  /** Follow someone: real users get a follow row (which completes the
+   *  mutual state instantly if they already follow me); seed NPCs
+   *  (incl. Cruxy) have no follow graph and resolve instantly.
    *  Returns what happened so callers can pick the right copy. */
   requestCruxmate: (userId: string) => 'sent' | 'requested' | 'accepted' | 'already' | 'instant';
+  /** Unfollow: removes my follow row (and the cruxmate state, if any). */
   cancelMateRequest: (userId: string) => void;
+  /** Follow back from the inbox, by incoming row id. */
   acceptMateRequest: (id: string) => void;
-  denyMateRequest: (id: string) => void;
-  /** Pending request between me and userId, if any. */
+  /** Followers I've hidden from the inbox ("Not now") — local only. */
+  dismissedFollowers: string[];
+  dismissFollower: (userId: string) => void;
+  /** One-sided follow between me and userId, if any ('outgoing' = I
+   *  follow them, 'incoming' = they follow me; mutual reads as null —
+   *  the cruxmate state speaks for it). */
   mateRequestFor: (userId: string) => 'outgoing' | 'incoming' | null;
   pairRequests: string[];               // callIds we've requested to pair on
   checkin: CheckIn | null;              // my current gym check-in
@@ -615,6 +625,7 @@ export const useAppStore = create<Store>()(
       leftSessions: [],
       invites: [],
       mateRequests: [],
+      dismissedFollowers: [],
       pairRequests: [],
       checkin: null,
       gymPresence: {},
@@ -867,6 +878,7 @@ export const useAppStore = create<Store>()(
           leftSessions: [],
           invites: [],
           mateRequests: [],
+          dismissedFollowers: [],
           checkin: null,
           gymPresence: {},
           xp: 0,
@@ -1202,6 +1214,7 @@ export const useAppStore = create<Store>()(
           leftSessions: [],
           invites: [],
           mateRequests: [],
+          dismissedFollowers: [],
           checkin: null,
           gymPresence: {},
           xp: 0,
@@ -2074,35 +2087,52 @@ export const useAppStore = create<Store>()(
         void setInviteStatusRemote(invite.id, 'denied').catch(() => {});
       },
 
-      // ── Cruxmate requests: adding someone is a request they accept. ──
+      // ── Follows (Instagram model, Lucy 2026-10-15): rows are follows;
+      // mutual follows ⟺ cruxmates. Following back IS the approval. ──
       fetchMateRequests: async () => {
         const me = get().me;
         if (!me || !isUuid(me.id)) return;
         try {
-          const rows = await fetchMyMateRequests(me.id);
+          // 'denied' rows are leftovers from the brief request/accept
+          // model — not follows. Everything else is a live follow.
+          const rows = (await fetchMyMateRequests(me.id)).filter(
+            (r) => r.status !== 'denied',
+          );
           const remoteIds = new Set(rows.map((r) => r.id));
           // Keep local-only optimistic rows the remote fetch can't know yet
           // (created while the migration was still missing on the server).
           const localOnly = get().mateRequests.filter(
             (r) => r.from_id === me.id && r.status === 'pending' && !remoteIds.has(r.id),
           );
-          const keep: MateRequest[] = [];
-          for (const r of rows) {
-            if (r.from_id === me.id) {
-              if (r.status === 'accepted') {
-                // Their accept landed: we become cruxmates and quietly take
-                // their card into the collection (no second reveal moment).
-                if (!get().cruxmates.includes(r.to_id)) {
-                  set({ cruxmates: [...get().cruxmates, r.to_id] });
-                  get().collectCard(r.to_id, 'cruxmate', { silent: true });
-                }
-                continue; // processed — drop from the working set
-              }
-              if (r.status === 'denied') continue; // button reverts to Add
+          const all = [...rows, ...localOnly];
+          set({ mateRequests: all });
+          // Reconcile cruxmates with the follow graph: for every real
+          // user a follow row ties to me, cruxmate status == mutual.
+          // Users with NO rows (legacy same-device adds, NPCs) are
+          // untouched — their state stays as it was.
+          const following = new Set(
+            all.filter((r) => r.from_id === me.id).map((r) => r.to_id),
+          );
+          const followers = new Set(
+            all.filter((r) => r.to_id === me.id).map((r) => r.from_id),
+          );
+          const involved = new Set([...following, ...followers]);
+          let mates = get().cruxmates;
+          let changed = false;
+          for (const id of involved) {
+            const mutual = following.has(id) && followers.has(id);
+            if (mutual && !mates.includes(id)) {
+              mates = [...mates, id];
+              changed = true;
+              // The follow-backer got the reveal at tap time; this side
+              // (whose follow landed first) collects quietly on sync.
+              get().collectCard(id, 'cruxmate', { silent: true });
+            } else if (!mutual && mates.includes(id)) {
+              mates = mates.filter((m) => m !== id);
+              changed = true;
             }
-            keep.push(r);
           }
-          set({ mateRequests: [...keep, ...localOnly] });
+          if (changed) set({ cruxmates: mates });
         } catch {
           // Table may not exist until the cruxmate-requests migration runs —
           // local rows still work same-device; never break boot over it.
@@ -2112,34 +2142,32 @@ export const useAppStore = create<Store>()(
       mateRequestFor: (userId) => {
         const me = get().me;
         if (!me) return null;
-        const rows = get().mateRequests.filter((r) => r.status === 'pending');
-        if (rows.some((r) => r.from_id === me.id && r.to_id === userId)) return 'outgoing';
-        if (rows.some((r) => r.to_id === me.id && r.from_id === userId)) return 'incoming';
+        const rows = get().mateRequests.filter((r) => r.status !== 'denied');
+        const out = rows.some((r) => r.from_id === me.id && r.to_id === userId);
+        const inc = rows.some((r) => r.to_id === me.id && r.from_id === userId);
+        if (out && inc) return null; // mutual — the cruxmate state speaks
+        if (out) return 'outgoing';
+        if (inc) return 'incoming';
         return null;
       },
 
       requestCruxmate: (userId) => {
         const me = get().me;
         if (!me || userId === me.id) return 'already';
-        // Seed NPCs (Cruxy included) auto-accept: instant, exactly like the
-        // old addCruxMate. Real people get a request instead. The gate is the
-        // id SHAPE, never `users` membership: real directory users are
-        // resolved into `users` too, so a membership check made every real
-        // add instant (Lucy's 2026-10-15 report: "add Cruxmate" auto-added
-        // with no approval). Seed/demo ids are slugs ('cruxy'); real
-        // accounts — guests included — are UUIDs.
+        // Seed NPCs (Cruxy included) have no follow graph: following one
+        // resolves instantly, exactly like the old addCruxMate. The gate
+        // is the id SHAPE, never `users` membership: real directory users
+        // are resolved into `users` too, so a membership check made every
+        // real add instant (Lucy's 2026-10-15 report). Seed/demo ids are
+        // slugs ('cruxy'); real accounts — guests included — are UUIDs.
         if (!isUuid(userId)) {
           get().addCruxMate(userId);
           return 'instant';
         }
         if (get().cruxmates.includes(userId)) return 'already';
-        const rows = get().mateRequests.filter((r) => r.status === 'pending');
+        const rows = get().mateRequests.filter((r) => r.status !== 'denied');
         if (rows.some((r) => r.from_id === me.id && r.to_id === userId)) return 'requested';
-        const incoming = rows.find((r) => r.to_id === me.id && r.from_id === userId);
-        if (incoming) {
-          get().acceptMateRequest(incoming.id);
-          return 'accepted';
-        }
+        const followsMe = rows.some((r) => r.to_id === me.id && r.from_id === userId);
         const row: MateRequest = {
           id: crypto.randomUUID(),
           from_id: me.id,
@@ -2148,41 +2176,49 @@ export const useAppStore = create<Store>()(
           created_at: new Date().toISOString(),
         };
         set({ mateRequests: [...get().mateRequests, row] });
-        if (isUuid(me.id) && isUuid(userId)) {
+        if (isUuid(me.id)) {
           void createMateRequestRemote(row).catch(() => {});
+        }
+        if (followsMe) {
+          // Follow-back: the mutual state forms on THIS tap. This side
+          // gets the card-reveal moment (same seat the old accept had).
+          set({ cruxmates: [...get().cruxmates, userId] });
+          get().collectCard(userId, 'cruxmate');
+          return 'accepted';
         }
         return 'sent';
       },
 
       cancelMateRequest: (userId) => {
+        // Unfollow: my follow row goes away. If we were mutual, the
+        // friendship ends on my side now and on theirs at their next
+        // sync (their fetch re-derives mutuality). Cards stay collected.
         const me = get().me;
         if (!me) return;
         const row = get().mateRequests.find(
-          (r) => r.from_id === me.id && r.to_id === userId && r.status === 'pending',
+          (r) => r.from_id === me.id && r.to_id === userId,
         );
-        if (!row) return;
-        set({ mateRequests: get().mateRequests.filter((r) => r.id !== row.id) });
-        void deleteMateRequestRemote(row.id).catch(() => {});
+        if (row) {
+          set({ mateRequests: get().mateRequests.filter((r) => r.id !== row.id) });
+          void deleteMateRequestRemote(row.id).catch(() => {});
+        }
+        if (get().cruxmates.includes(userId)) {
+          set({ cruxmates: get().cruxmates.filter((id) => id !== userId) });
+        }
       },
 
       acceptMateRequest: (id) => {
-        const me = get().me;
-        const req = get().mateRequests.find((r) => r.id === id);
-        if (!req || !me) return;
-        if (!get().cruxmates.includes(req.from_id)) {
-          set({ cruxmates: [...get().cruxmates, req.from_id] });
-        }
-        // The accepter gets the card-reveal moment now.
-        get().collectCard(req.from_id, 'cruxmate');
-        set({ mateRequests: get().mateRequests.filter((r) => r.id !== id) });
-        void setMateRequestStatusRemote(id, 'accepted').catch(() => {});
-      },
-
-      denyMateRequest: (id) => {
+        // Follow back from the inbox: the same act as tapping Follow on
+        // someone who already follows me. Their row stays (it's their
+        // follow); requestCruxmate creates mine and forms the mutual.
         const req = get().mateRequests.find((r) => r.id === id);
         if (!req) return;
-        set({ mateRequests: get().mateRequests.filter((r) => r.id !== id) });
-        void setMateRequestStatusRemote(id, 'denied').catch(() => {});
+        get().requestCruxmate(req.from_id);
+      },
+
+      dismissFollower: (userId) => {
+        if (get().dismissedFollowers.includes(userId)) return;
+        set({ dismissedFollowers: [...get().dismissedFollowers, userId] });
       },
 
       markThreadRead: (key: string) => {

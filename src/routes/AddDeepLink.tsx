@@ -137,7 +137,7 @@ export function AddDeepLink() {
     if (res === 'instant' || res === 'accepted' || res === 'already') {
       setAdded(true);
     }
-    if (res === 'sent') toast.success(`Request sent to ${target.display_name.split(' ')[0]}`);
+    if (res === 'sent') toast.success(`Following ${target.display_name.split(' ')[0]}`);
     else if (res === 'instant') toast.success(`${target.display_name} added as a CruxMate`);
     else if (res === 'accepted') toast.success(`You're cruxmates with ${target.display_name.split(' ')[0]} 🤝`);
   };
@@ -192,8 +192,8 @@ export function AddDeepLink() {
             {target ? `${target.display_name} invited you` : "You've been invited to Crux8"}
           </h2>
           <p className="mt-2 text-sm text-ink-500">
-            Send them a cruxmate request — just your name, no sign-up. When
-            they accept, you're cruxmates.
+            Follow them — just your name, no sign-up. Follow each other
+            back and you're cruxmates.
           </p>
           <div className="mt-5 text-left">
             <GuestJoinForm buttonLabel="Continue as a guest" />
@@ -207,7 +207,7 @@ export function AddDeepLink() {
             Sign in with email
           </Button>
           <p className="mt-2 text-[11px] text-ink-400">
-            Guests can send a request with just a name — no sign-up.
+            Guests can follow with just a name — no sign-up.
           </p>
         </div>
         <AuthSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Sign in" initialTab="code" />
@@ -248,7 +248,7 @@ export function AddDeepLink() {
           <p className="text-3xl">🪪</p>
           <h2 className="mt-3 text-xl font-semibold text-ink-900">This is your invite code</h2>
           <p className="mt-2 text-sm text-ink-500">
-            Share it — anyone with it can send you a cruxmate request.
+            Share it — anyone with it can follow you.
           </p>
         </div>
         <div className="mt-4">
@@ -280,7 +280,8 @@ export function AddDeepLink() {
           <>
             <div className="rounded-2xl border border-ink-100 bg-paper-100 p-4 text-center">
               <p className="text-sm font-semibold text-ink-700">
-                Request sent — waiting for {target.display_name.split(' ')[0]} to accept.
+                You're following {target.display_name.split(' ')[0]} — when they follow you
+                back, you're cruxmates.
               </p>
             </div>
             <Button
@@ -288,19 +289,19 @@ export function AddDeepLink() {
               className="w-full"
               onClick={() => {
                 cancelMateRequest(target.id);
-                toast('Request canceled');
+                toast('Unfollowed');
               }}
             >
-              Cancel request
+              Unfollow
             </Button>
           </>
         ) : reqDir === 'incoming' ? (
           <Button variant="punch" className="w-full" onClick={handleAdd}>
-            Accept request
+            Follow back
           </Button>
         ) : (
           <Button variant="punch" className="w-full" onClick={handleAdd}>
-            Add as Cruxmate
+            Follow
           </Button>
         )}
         <Button variant="ghost" className="w-full" onClick={() => nav('/community')}>

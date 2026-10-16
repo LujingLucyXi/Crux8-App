@@ -66,11 +66,11 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
       return;
     }
     await requestPair(call.id);
-    // Cruxmate status follows the approval rule (Lucy 2026-10-15: both
-    // people approve to be friends) — a pair request no longer silently
-    // adds the host. It sends a cruxmate REQUEST alongside; NPC hosts
-    // (Cruxy) still resolve instantly inside requestCruxmate. The intro
-    // DM below still goes out so the pairing can be coordinated.
+    // Cruxmate status follows the follow model (Lucy 2026-10-15): a pair
+    // request FOLLOWS the host alongside — never a silent add. If the
+    // host follows back, the mutual state makes them cruxmates. NPC
+    // hosts (Cruxy) still resolve instantly inside requestCruxmate. The
+    // intro DM below still goes out so the pairing can be coordinated.
     if (!isFriend) requestCruxmate(caller.id);
     sendMessage(caller.id, `Hi! Requesting to pair on your ${call.category === 'top_rope' ? 'top-rope' : 'lead'} call at ${gym?.short_name ?? call.area}.`);
     toast(`Paired with ${caller.display_name}`, {

@@ -45,10 +45,19 @@ export function Header() {
       sessionLifecycle: s.sessionLifecycle,
     }),
   );
-  // Pending cruxmate requests ride the same badge.
+  // Followers I haven't followed back ride the same badge.
   const pendingMateRequests = useAppStore((s) =>
     s.me
-      ? s.mateRequests.filter((r) => r.status === 'pending' && r.to_id === s.me!.id).length
+      ? s.mateRequests.filter(
+          (r) =>
+            r.status !== 'denied' &&
+            r.to_id === s.me!.id &&
+            !s.dismissedFollowers.includes(r.from_id) &&
+            !s.mateRequests.some(
+              (o) =>
+                o.from_id === s.me!.id && o.to_id === r.from_id && o.status !== 'denied',
+            ),
+        ).length
       : 0,
   );
   const unreadCount = unreadThreads + pendingInvites + pendingMateRequests;
