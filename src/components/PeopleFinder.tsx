@@ -18,7 +18,17 @@ import { normalizeInviteCode, isValidInviteCode, inviteLink } from '@/lib/invite
  * search for, add, or collect cards for mock people. The session roster
  * remains the primary add path.
  */
-export function PeopleFinder() {
+export function PeopleFinder({
+  hideInviteButton = false,
+  hideHeading = false,
+}: {
+  /** Profile already carries the invite CTA in its invite card above —
+   *  showing this one too put two identical gold buttons on one screen. */
+  hideInviteButton?: boolean;
+  /** Hosts with their own title (Profile section, the Add-friends
+   *  sheet) don't need the internal "Find people" header repeated. */
+  hideHeading?: boolean;
+} = {}) {
   const nav = useNavigate();
   const me = useAppStore((s) => s.me);
   const users = useAppStore((s) => s.users);
@@ -97,12 +107,16 @@ export function PeopleFinder() {
 
   return (
     <div className="mb-5">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-3">
-        Find people
-      </h2>
-      <Button className="w-full mb-3" onClick={inviteFriend}>
-        Invite a friend to join Crux8
-      </Button>
+      {!hideHeading && (
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-3">
+          Find people
+        </h2>
+      )}
+      {!hideInviteButton && (
+        <Button className="w-full mb-3" onClick={inviteFriend}>
+          Invite a friend to join Crux8
+        </Button>
+      )}
       <div className="relative">
         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400">
           <Search width={18} height={18} />

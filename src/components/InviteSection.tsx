@@ -42,25 +42,24 @@ export function InviteSection({ code, displayName }: Props) {
   };
 
   return (
-    <div className="rounded-2xl bg-paper-100 border border-ink-100 p-5">
-      <div className="flex gap-5 items-center">
-        <div className="shrink-0 rounded-xl bg-[#F7F3EA] p-2.5 border border-ink-100">
-          <QRCode value={link} size={112} bgColor="#F7F3EA" fgColor="#161616" />
+    <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
+      <div className="flex gap-4 items-center">
+        <div className="shrink-0 rounded-xl bg-[#F7F3EA] p-2 border border-ink-100">
+          <QRCode value={link} size={84} bgColor="#F7F3EA" fgColor="#161616" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wider text-ink-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">
             My invite code
           </p>
-          <p className="mt-1 font-mono text-2xl font-bold tracking-widest text-ink-900">
+          <p className="mt-0.5 font-mono text-xl font-bold tracking-widest text-ink-900">
             {code}
           </p>
-          <p className="mt-1 text-xs text-ink-500 leading-snug">
-            Anyone who scans or enters this code can follow you — follow
-            each other back and you're cruxmates.
+          <p className="mt-0.5 text-xs text-ink-500 leading-snug">
+            Scan to follow you — follow back to become cruxmates.
           </p>
         </div>
       </div>
-      <div className="mt-4 flex gap-2">
+      <div className="mt-3 flex gap-2">
         <Button variant="outline" className="flex-1" onClick={handleCopy}>
           Copy link
         </Button>

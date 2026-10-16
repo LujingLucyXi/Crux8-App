@@ -251,22 +251,21 @@ export function Profile() {
         </div>
       </div>
 
-      {/* ── My invite (personal add link + QR, 2026-10-15) ── */}
-      {me.invite_code ? (
-        <section className="mt-6">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
-            My invite
-          </h2>
-          <InviteSection code={normalizeInviteCode(me.invite_code)} displayName={me.display_name} />
-        </section>
-      ) : null}
-
-      {/* ── Add friends (same PeopleFinder as Community; 2026-10-15, Lucy's IA: Profile is the add-friend home, not a new tab) ── */}
+      {/* ── Add friends: my invite card + the finder, ONE block (merged
+          2026-10-15 — the separate "My invite" and "Add friends" blocks
+          repeated headers and the same invite CTA twice on one screen).
+          The finder runs embedded here: no own heading, no second
+          invite button (the card above carries it). ── */}
       <section className="mt-6">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
           Add friends
         </h2>
-        <PeopleFinder />
+        {me.invite_code ? (
+          <div className="mb-3">
+            <InviteSection code={normalizeInviteCode(me.invite_code)} displayName={me.display_name} />
+          </div>
+        ) : null}
+        <PeopleFinder hideInviteButton hideHeading />
       </section>
 
       {/* ── Climber DNA (from the quiz) ── */}

@@ -156,7 +156,7 @@ export function Header() {
       <Sheet open={addOpen} onOpenChange={setAddOpen}>
         <SheetContent title="Add friends">
           <div className="mt-2">
-            <PeopleFinder />
+            <PeopleFinder hideHeading />
           </div>
         </SheetContent>
       </Sheet>
