@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 
 const PILLARS = [
   { Icon: TriangleFlag, name: 'Adventure', desc: 'New lines. New places. New stories.' },
-  { Icon: ShieldCheck, name: 'Trust', desc: 'Verified climbers. Real people. Climb with confidence.' },
+  { Icon: ShieldCheck, name: 'Peer verification', desc: 'Climb with confidence.' },
   { Icon: Community, name: 'Together', desc: 'We climb better when we climb together.' },
   { Icon: Rhombus, name: 'Safety', desc: 'Look out for each other. Climb smart.' },
 ];
