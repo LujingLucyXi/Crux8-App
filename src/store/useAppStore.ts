@@ -87,6 +87,7 @@ import {
 import { resolveUser } from '@/lib/resolveUser';
 import { normalizeInviteCode, isValidInviteCode, randomInviteCode } from '@/lib/inviteCode';
 import { hasStarted, sessionPhase, type SessionLifecycle } from '@/lib/sessionPhase';
+import { getPendingIntent, pendingIntentPath } from '@/lib/pendingIntent';
 
 export type Verification = { status: VerificationStatus; photo_url?: string; verified_at?: string; attested_at?: string };
 
@@ -267,6 +268,9 @@ interface Store {
    *  resends (Supabase silently returns the existing user), which left
    *  unconfirmed accounts in a dead loop (Lucy 2026-10-16). */
   resendConfirmation: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** Continue with Google (OAuth redirect flow). Returns after the
+   *  redirect starts; the session lands via initAuth on return. */
+  signInWithGoogle: () => Promise<{ ok: true } | { ok: false; error: string }>;
   /**
    * Guest join (front door, 2026-10-14): Supabase anonymous sign-in with a
    * name only. The guest gets a real UID, joins the scanned session, and
@@ -1075,6 +1079,26 @@ export const useAppStore = create<Store>()(
         });
         if (error) {
           return { ok: false as const, error: passwordErrorMessage(error, 'Could not send the reset email — please try again.') };
+        }
+        return { ok: true as const };
+      },
+
+      /** Continue with Google: full-page OAuth redirect. Any pending
+       *  deep-link intent (a scanned /add, session, or call link)
+       *  decides where the flow lands back — localStorage survives
+       *  the round trip, and the target route consumes the intent. */
+      signInWithGoogle: async () => {
+        const intent = getPendingIntent();
+        const redirectTo = `${window.location.origin}${intent ? pendingIntentPath(intent) : '/'}`;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo },
+        });
+        if (error) {
+          return {
+            ok: false as const,
+            error: passwordErrorMessage(error, 'Google sign-in could not start — please try again.'),
+          };
         }
         return { ok: true as const };
       },

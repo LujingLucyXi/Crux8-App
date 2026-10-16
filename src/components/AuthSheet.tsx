@@ -35,6 +35,27 @@ export function AuthSheet({
   const verifyOtp = useAppStore((s) => s.verifyOtp);
   const signUpWithPassword = useAppStore((s) => s.signUpWithPassword);
   const resendConfirmation = useAppStore((s) => s.resendConfirmation);
+  const signInWithGoogle = useAppStore((s) => s.signInWithGoogle);
+  const [googleBusy, setGoogleBusy] = useState(false);
+
+  const startGoogle = async () => {
+    // Google blocks OAuth inside WeChat's built-in browser — say so
+    // up front instead of letting it fail on Google's side.
+    if (/MicroMessenger/i.test(navigator.userAgent)) {
+      setError(
+        "Google sign-in doesn't work inside WeChat. Tap ⋯ and choose “Open in browser”, or use email below.",
+      );
+      return;
+    }
+    setGoogleBusy(true);
+    setError('');
+    const res = await signInWithGoogle();
+    // On success the browser is already navigating to Google.
+    if (!res.ok) {
+      setGoogleBusy(false);
+      setError(res.error);
+    }
+  };
   const signInWithPassword = useAppStore((s) => s.signInWithPassword);
   const resetPassword = useAppStore((s) => s.resetPassword);
 
@@ -196,6 +217,24 @@ export function AuthSheet({
       }}
     >
       <SheetContent title={title}>
+        {/* Continue with Google — one tap, email comes pre-verified */}
+        <button
+          type="button"
+          onClick={startGoogle}
+          disabled={googleBusy}
+          className="mb-3 flex w-full items-center justify-center gap-2.5 rounded-xl border border-ink-100 bg-paper-100 py-2.5 text-sm font-semibold text-ink-900 transition-colors hover:bg-paper-50 disabled:opacity-60"
+        >
+          <span aria-hidden className="text-base font-extrabold leading-none text-[#4285F4]">
+            G
+          </span>
+          {googleBusy ? 'Opening Google…' : 'Continue with Google'}
+        </button>
+        <div className="mb-3 flex items-center gap-3 text-[11px] font-medium text-ink-400">
+          <span className="h-px flex-1 bg-ink-100" />
+          or with email
+          <span className="h-px flex-1 bg-ink-100" />
+        </div>
+
         {/* method switcher */}
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-paper-50 p-1 text-sm font-semibold">
           {(['password', 'code'] as Tab[]).map((t) => (
