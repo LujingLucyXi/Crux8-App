@@ -26,11 +26,17 @@ interface AddTarget {
 }
 
 /**
- * Personal add-friend deep link: /add/:code (e.g. /add/CLIMB-8K42)
- * - Logged in → the person's card with one primary action.
- * - Logged out → guest name form or email sign-in first, then this page.
+ * Personal invite deep link: /add/:code (e.g. /add/CLIMB-8K42).
+ *
+ * INVITING ≠ FOLLOWING (Lucy 2026-10-15): this link's job is to bring
+ * someone INTO Crux8 — a join landing, attributed to the inviter.
+ * Following is a separate, in-app choice: after joining, the page
+ * offers the inviter's card with an optional Follow, nothing automatic
+ * and nothing framed as the link's purpose.
+ * - Logged out → join first (guest name or email), then back here.
+ * - Logged in → "you're in" + the inviter's card + optional Follow.
  * - Unknown code → friendly dead-end.
- * - The add intent is stashed before any auth detour and consumed on
+ * - The intent is stashed before any auth detour and consumed on
  *   return, exactly like the session/call deep links.
  */
 export function AddDeepLink() {
@@ -50,6 +56,7 @@ export function AddDeepLink() {
   const [target, setTarget] = useState<AddTarget | null>(null);
   const [resolving, setResolving] = useState(true);
   const [added, setAdded] = useState(false);
+  const [justJoined, setJustJoined] = useState(false);
 
   // Resolve the code: my own → public directory → local seed users.
   useEffect(() => {
@@ -125,9 +132,11 @@ export function AddDeepLink() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me?.id, code, valid]);
 
-  // Back from the detour.
+  // Back from the detour. A consumed intent means this visit IS the
+  // join completing — the page celebrates it ("You're in!") instead
+  // of silently becoming a follow prompt.
   useEffect(() => {
-    if (me && valid) consumePendingIntentFor('add', code);
+    if (me && valid && consumePendingIntentFor('add', code)) setJustJoined(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me?.id, code, valid]);
 
@@ -156,7 +165,7 @@ export function AddDeepLink() {
   const personCard = (t: AddTarget) => {
     const arch = t.archetypeId ? getArchetype(t.archetypeId) : null;
     return (
-      <div className="mt-8 rounded-2xl bg-paper-100 border border-ink-100 p-6 text-center">
+      <div className="mt-4 rounded-2xl bg-paper-100 border border-ink-100 p-6 text-center">
         <div className="flex flex-col items-center">
           <Avatar
             photoUrl={t.photo_url ?? undefined}
@@ -182,21 +191,24 @@ export function AddDeepLink() {
     );
   };
 
-  // ── Logged out: invite first, identity second ──
+  // ── Logged out: a JOIN landing. The link invites you INTO Crux8;
+  // following the inviter is a separate choice, offered after. ──
   if (!me) {
     return shell(
       <>
         <div className="mt-8 rounded-2xl bg-paper-100 border border-ink-100 p-6 text-center">
-          <p className="text-3xl">🤝</p>
+          <p className="text-3xl">🧗</p>
           <h2 className="mt-3 text-xl font-semibold text-ink-900">
-            {target ? `${target.display_name} invited you` : "You've been invited to Crux8"}
+            {target
+              ? `${target.display_name.split(' ')[0]} invited you to join Crux8`
+              : "You've been invited to join Crux8"}
           </h2>
           <p className="mt-2 text-sm text-ink-500">
-            Follow them — just your name, no sign-up. Follow each other
-            back and you're cruxmates.
+            Find climbing partners, join sessions, collect climber DNA
+            cards. Join with just your name — no sign-up.
           </p>
           <div className="mt-5 text-left">
-            <GuestJoinForm buttonLabel="Continue as a guest" />
+            <GuestJoinForm buttonLabel="Join Crux8" />
           </div>
           <div className="my-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-ink-100" />
@@ -207,7 +219,7 @@ export function AddDeepLink() {
             Sign in with email
           </Button>
           <p className="mt-2 text-[11px] text-ink-400">
-            Guests can follow with just a name — no sign-up.
+            Following people happens inside the app, after you join.
           </p>
         </div>
         <AuthSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Sign in" initialTab="code" />
@@ -248,7 +260,7 @@ export function AddDeepLink() {
           <p className="text-3xl">🪪</p>
           <h2 className="mt-3 text-xl font-semibold text-ink-900">This is your invite code</h2>
           <p className="mt-2 text-sm text-ink-500">
-            Share it — anyone with it can follow you.
+            Share it — anyone who opens it joins Crux8 with your invite.
           </p>
         </div>
         <div className="mt-4">
@@ -260,9 +272,26 @@ export function AddDeepLink() {
 
   const isCruxmate = cruxmates.includes(target.id);
   const reqDir = isCruxmate ? null : mateRequestFor(target.id);
+  const first = target.display_name.split(' ')[0];
 
   return shell(
     <>
+      {justJoined ? (
+        <div className="mt-8 rounded-2xl border border-brand-600 bg-brand-100 p-5 text-center">
+          <p className="text-2xl">🎉</p>
+          <h2 className="mt-2 text-lg font-bold text-ink-900">
+            You're in! {first} brought you here.
+          </h2>
+          <p className="mt-1 text-sm text-ink-500">
+            Following is separate — follow {first} below if you'd like,
+            or just start exploring.
+          </p>
+        </div>
+      ) : (
+        <p className="mt-8 text-center text-sm text-ink-500">
+          🔗 You opened {first}'s invite link — you're already on Crux8.
+        </p>
+      )}
       {personCard(target)}
       <div className="mt-4 flex flex-col gap-2">
         {added || isCruxmate ? (
@@ -304,8 +333,12 @@ export function AddDeepLink() {
             Follow
           </Button>
         )}
-        <Button variant="ghost" className="w-full" onClick={() => nav('/community')}>
-          ← Back to Community
+        <Button
+          variant="ghost"
+          className="w-full"
+          onClick={() => nav(justJoined ? '/home' : '/community')}
+        >
+          {justJoined ? 'Start exploring →' : '← Back to Community'}
         </Button>
       </div>
     </>

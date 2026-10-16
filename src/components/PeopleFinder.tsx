@@ -58,7 +58,7 @@ export function PeopleFinder({
       try {
         await navigator.share({
           title: 'Join me on Crux8',
-          text: `🧗 Join me on Crux8 — find climbing partners, join sessions, and collect climber DNA cards. Use my invite link to follow me:`,
+          text: `🧗 Join me on Crux8 — find climbing partners, join sessions, and collect climber DNA cards. Use my invite link to join:`,
           url: link,
         });
       } catch {

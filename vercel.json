@@ -1,4 +1,1 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
-}
+{"$schema":"https://openapi.vercel.sh/vercel.json","headers":[{"headers":[{"key":"Content-Disposition","value":"inline"}],"source":"/(.*)"}],"rewrites":[{"destination":"/index.html","source":"/(.*)"}]}
