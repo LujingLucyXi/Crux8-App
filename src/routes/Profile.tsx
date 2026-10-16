@@ -638,7 +638,18 @@ export function Profile() {
             value={draftAvatar}
             onChange={setDraftAvatar}
             photoUrl={draftPhoto}
-            onPhotoChange={setDraftPhoto}
+            onPhotoChange={(url) => {
+              setDraftPhoto(url);
+              // Photos apply the moment they're picked (2026-10-16 bug:
+              // a photo living only in this sheet's draft vanished if
+              // the sheet closed without Save). Write through now —
+              // Save/Cancel below govern the drawn-avatar traits.
+              // Removal passes an explicit null so the server column
+              // clears too; undefined would be skipped by the row
+              // mapper and the launch rebuild would resurrect it.
+              if (url) updateProfile({ photo_url: url });
+              else updateProfile({ photo_url: null as unknown as string });
+            }}
           />
           <div className="flex gap-2 pt-6">
             <Button variant="outline" className="flex-1" onClick={() => setAvatarOpen(false)}>

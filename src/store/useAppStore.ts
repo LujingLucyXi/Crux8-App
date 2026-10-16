@@ -1040,6 +1040,18 @@ export const useAppStore = create<Store>()(
           const row = await fetchMyProfile(userId).catch(() => null);
           get().prepareForUser(userId);
           const profile = profileRowToProfile(userId, email, row);
+          // Photo survival (Lucy 2026-10-16: uploaded photo "never got
+          // kept", drawn avatar came back): this rebuild REPLACES `me`
+          // with the server row on every launch / token refresh, so a
+          // photo the server never stored (its write-through is
+          // fire-and-forget and can fail silently) was wiped on the
+          // next launch. A local photo for the SAME user wins over a
+          // server blank, and we re-push it to heal the server row.
+          const localBefore = get().me;
+          if (localBefore?.id === userId && !profile.photo_url && localBefore.photo_url) {
+            profile.photo_url = localBefore.photo_url;
+            void persistProfilePatch(userId, { photo_url: localBefore.photo_url });
+          }
           set({ me: isGuest ? { ...profile, isGuest: true } : profile });
           // Hydrate belay verification status from the profile row (the
           // server is the source of truth; it may have flipped a skill to
