@@ -87,3 +87,17 @@
 @media (prefers-reduced-motion: reduce) {
   .crux-sign-spin, .og-shine-bar { animation: none; }
 }
+
+/* Founding Register progress flame (2026-10-16): a gentle flicker on
+   the flame riding the bar's leading edge. */
+@keyframes flame-flicker {
+  from { transform: scale(1) rotate(-4deg); }
+  to { transform: scale(1.16) rotate(5deg); }
+}
+.flame-flicker {
+  animation: flame-flicker 0.45s ease-in-out infinite alternate;
+  transform-origin: 50% 90%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flame-flicker { animation: none; }
+}

@@ -105,13 +105,25 @@ export function Landing() {
                 : `0 / ${FOUNDING_CAP}`}
             </span>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-[linear-gradient(90deg,#C9A24B,#B4FF3A)] transition-all duration-700"
+          <div className="relative mt-2">
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-[linear-gradient(90deg,#C9A24B,#B4FF3A)] transition-all duration-700"
+                style={{
+                  width: claimed !== null ? `${Math.max(2, (claimed / FOUNDING_CAP) * 100)}%` : '2%',
+                }}
+              />
+            </div>
+            <span
+              aria-hidden
+              className="absolute -top-[13px] z-10"
               style={{
-                width: claimed !== null ? `${Math.max(2, (claimed / FOUNDING_CAP) * 100)}%` : '2%',
+                left: claimed !== null ? `${Math.max(2, (claimed / FOUNDING_CAP) * 100)}%` : '2%',
+                transform: 'translateX(-40%)',
               }}
-            />
+            >
+              <span className="flame-flicker inline-block text-[17px] leading-none">🔥</span>
+            </span>
           </div>
         </div>
 
@@ -138,17 +150,20 @@ export function Landing() {
         </div>
 
         {/* ── Free, with an optional tip jar ── */}
-        <p className="mt-7 max-w-sm text-[13px] leading-relaxed text-ink-500">
-          Crux8 is completely free. If it helps you find your people, an optional
-          donation powers its continuous optimization.{' '}
-          <a
-            href={DONATE_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="font-bold whitespace-nowrap text-[#8A6D2F] underline decoration-[#C9A24B] underline-offset-4 hover:text-ink-900"
-          >
-            Support Crux8 →
-          </a>
+        <p className="mt-8 max-w-sm text-[13px] leading-relaxed text-ink-500">
+          Crux8 is completely free — no paywalls, ever.
+        </p>
+        <a
+          href={DONATE_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex items-center gap-2 rounded-full border-2 border-[#C9A24B] bg-[#C9A24B]/10 px-6 py-3 text-[15px] font-extrabold text-ink-900 shadow-[0_8px_22px_rgba(201,162,75,0.30)] transition hover:bg-[#C9A24B]/20 active:translate-y-[1px]"
+        >
+          <span aria-hidden className="text-[16px]">❤️</span>
+          Support Crux8
+        </a>
+        <p className="mt-2.5 max-w-sm text-xs text-ink-400">
+          Optional — donations power Crux8's continuous optimization.
         </p>
 
         {/* ── Pillars ── */}
