@@ -41,6 +41,9 @@ export function CartoonAvatar({
   const bg = BACKDROP_HEX[config.backdrop] ?? '#FDE9C8';
   const bucket = hairBucket(config.hair);
   const hatOn = config.accessory === 'beanie' || config.accessory === 'cap';
+  // Length is its own trait (Lucy 2026-10-16); saved configs from
+  // before it existed read as 'medium'.
+  const len = config.hairLength ?? 'medium';
 
   const dot = (cx: number) => <circle cx={cx} cy="52" r="2.6" fill={OUTLINE} />;
   const eyes = (() => {
@@ -103,10 +106,23 @@ export function CartoonAvatar({
   // visible; spikes flatten to buzz; buns tuck under.
   const HS = { fill: hairCol, stroke: OUTLINE, strokeWidth: SW, strokeLinejoin: 'round' as const };
   const CAP_D = 'M28 46 Q28 26 50 26 Q72 26 72 46 Q60 36 50 36 Q40 36 28 46 Z';
-  const BOB_D = 'M26 58 Q24 28 50 26 Q76 28 74 58 Q70 50 64 50 L64 44 Q58 36 50 36 Q42 36 36 44 L36 50 Q30 50 26 58 Z';
   const BUZZ_D = 'M28 44 Q30 26 50 26 Q70 26 72 44 Q60 36 50 36 Q40 36 28 44 Z';
   const SPIKES_D = 'M28 44 L30 24 L38 36 L44 20 L50 34 L56 20 L62 36 L70 24 L72 44 Q60 34 50 34 Q40 34 28 44 Z';
-  const LONG_D = 'M26 80 Q22 32 50 25 Q78 32 74 80 Q70 69 66 72 L66 44 Q58 36 50 36 Q42 36 34 44 L34 72 Q30 69 26 80 Z';
+  // Length-parameterized silhouettes: short / medium / long bottoms.
+  const bobD = (l: string) =>
+    l === 'short'
+      ? 'M26 52 Q24 28 50 26 Q76 28 74 52 Q70 45 64 45 L64 44 Q58 36 50 36 Q42 36 36 44 L36 45 Q30 45 26 52 Z'
+      : l === 'long'
+        ? 'M26 74 Q24 28 50 26 Q76 28 74 74 Q70 66 66 67 L66 44 Q58 36 50 36 Q42 36 34 44 L34 67 Q30 66 26 74 Z'
+        : 'M26 58 Q24 28 50 26 Q76 28 74 58 Q70 50 64 50 L64 44 Q58 36 50 36 Q42 36 36 44 L36 50 Q30 50 26 58 Z';
+  const drapeD = (l: string, straight: boolean) => {
+    const B = l === 'short' ? (straight ? 62 : 63) : l === 'long' ? (straight ? 79 : 80) : straight ? 72 : 73;
+    const IB = l === 'short' ? 57 : l === 'long' ? (straight ? 73 : 72) : straight ? 67 : 68;
+    return straight
+      ? `M27 ${B} L25 42 Q25 25 50 24 Q75 25 75 42 L73 ${B} Q68 ${IB} 66 ${IB} L66 44 Q58 36 50 36 Q42 36 34 44 L34 ${IB} Q32 ${IB} 27 ${B} Z`
+      : `M26 ${B} Q22 32 50 25 Q78 32 74 ${B} Q70 ${IB - 3} 66 ${IB} L66 44 Q58 36 50 36 Q42 36 34 44 L34 ${IB} Q30 ${IB - 3} 26 ${B} Z`;
+  };
+  const LONG_D = drapeD(len, false);
   const tie = (cx: number, cy: number) => (
     <circle cx={cx} cy={cy} r="3.2" fill="#FF6B6B" stroke={OUTLINE} strokeWidth="2.4" />
   );
@@ -146,67 +162,91 @@ export function CartoonAvatar({
         // drawn over the hair and covers everything below y34, which
         // is exactly where a fringe lives (v3's mistake — the fringe
         // hid under the face and both read as buzz cuts).
-        return <path d={BOB_D} {...HS} />;
+        return <path d={bobD(len)} {...HS} />;
       case 'long':
         return <path d={LONG_D} {...HS} />;
       case 'straight':
-        return <path d="M27 79 L25 42 Q25 25 50 24 Q75 25 75 42 L73 79 Q68 73 66 73 L66 44 Q58 36 50 36 Q42 36 34 44 L34 73 Q32 73 27 79 Z" {...HS} />;
-      case 'wavy':
-        return <path d="M26 80 Q20 68 26 59 Q20 50 26 42 Q23 27 50 25 Q77 27 74 42 Q80 50 74 59 Q80 68 74 80 Q70 69 66 72 L66 44 Q58 36 50 36 Q42 36 34 44 L34 72 Q30 69 26 80 Z" {...HS} />;
-      case 'pigtails':
+        return <path d={drapeD(len, true)} {...HS} />;
+      case 'wavy': {
+        const d =
+          len === 'short'
+            ? 'M26 62 Q20 54 26 47 Q23 27 50 25 Q77 27 74 47 Q80 54 74 62 Q70 55 66 57 L66 44 Q58 36 50 36 Q42 36 34 44 L34 57 Q30 55 26 62 Z'
+            : len === 'long'
+              ? 'M26 80 Q20 68 26 59 Q20 50 26 42 Q23 27 50 25 Q77 27 74 42 Q80 50 74 59 Q80 68 74 80 Q70 69 66 72 L66 44 Q58 36 50 36 Q42 36 34 44 L34 72 Q30 69 26 80 Z'
+              : 'M26 73 Q20 64 26 56 Q20 48 26 41 Q23 27 50 25 Q77 27 74 41 Q80 48 74 56 Q80 64 74 73 Q70 64 66 66 L66 44 Q58 36 50 36 Q42 36 34 44 L34 66 Q30 64 26 73 Z';
+        return <path d={d} {...HS} />;
+      }
+      case 'pigtails': {
+        const TB = len === 'short' ? 58 : len === 'long' ? 77 : 68;
         return (
           <g>
             <g {...HS}>
               <path d={CAP_D} />
-              <path d="M28 44 Q15 50 17 70 Q18 79 25 77 Q29 64 28 50 Z" />
-              <path d="M72 44 Q85 50 83 70 Q82 79 75 77 Q71 64 72 50 Z" />
+              <path d={`M28 44 Q15 50 17 ${TB} Q18 ${TB + 7} 25 ${TB + 5} Q29 ${TB - 6} 28 50 Z`} />
+              <path d={`M72 44 Q85 50 83 ${TB} Q82 ${TB + 7} 75 ${TB + 5} Q71 ${TB - 6} 72 50 Z`} />
             </g>
             {tie(25, 47)}
             {tie(75, 47)}
           </g>
         );
-      case 'ponytail':
+      }
+      case 'ponytail': {
+        const d =
+          len === 'short'
+            ? 'M70 40 Q84 45 82 60 Q81 67 75 65 Q70 54 69 48 Z'
+            : len === 'long'
+              ? 'M70 40 Q84 47 81 72 Q80 78 74 76 Q69 60 69 48 Z'
+              : 'M70 40 Q86 46 84 66 Q83 77 75 75 Q70 60 69 48 Z';
         return (
           <g>
             <path d={CAP_D} {...HS} />
-            <path d="M70 40 Q86 46 84 66 Q83 77 75 75 Q70 60 69 48 Z" {...HS} />
+            <path d={d} {...HS} />
             {tie(70, 42)}
           </g>
         );
+      }
       case 'braids':
         // Hair pulled back in a clean cap; the braid itself is drawn
         // in the FRONT layer (over the cheek's edge, emerging from the
         // temple) — in the back layer its top hid behind the face and
         // it read as a plank stuck to the side of the head.
         return <path d={CAP_D} {...HS} />;
-      case 'locs':
-        // Distinct ropes BESIDE the face (the first pass hid most of
-        // each strand behind the face, reading as sideburn smudges):
-        // two capsules per side with segment bumps, staggered lengths.
+      case 'locs': {
+        // Distinct ropes BESIDE the face, two capsules per side with
+        // segment bumps; bottoms follow the length trait.
+        const O = len === 'short' ? 58 : len === 'long' ? 79 : 74;
+        const I = len === 'short' ? 62 : len === 'long' ? 81 : 77;
+        const t1 = Math.round(40 + (O - 40) * 0.45);
+        const t2 = Math.round(40 + (O - 40) * 0.75);
+        const u1 = Math.round(38 + (I - 38) * 0.45);
+        const u2 = Math.round(38 + (I - 38) * 0.75);
         return (
           <g>
             <g {...HS}>
               <path d={CAP_D} />
-              <path d="M17.5 40 Q16 58 17.5 74 Q20.5 77 23.5 74 Q24.5 56 23.5 40 Q20.5 37.5 17.5 40 Z" />
-              <path d="M24 38 Q23 58 24 77 Q27 80.5 30 77 L30 42 Q27 37 24 38 Z" />
-              <path d="M76 38 Q77 58 76 77 Q73 80.5 70 77 L70 42 Q73 37 76 38 Z" />
-              <path d="M82.5 40 Q84 58 82.5 74 Q79.5 77 76.5 74 Q75.5 56 76.5 40 Q79.5 37.5 82.5 40 Z" />
+              <path d={`M17.5 40 Q16 52 17.5 ${O} Q20.5 ${O + 3} 23.5 ${O} Q24.5 52 23.5 40 Q20.5 37.5 17.5 40 Z`} />
+              <path d={`M24 38 Q23 54 24 ${I} Q27 ${I + 3.5} 30 ${I} L30 42 Q27 37 24 38 Z`} />
+              <path d={`M76 38 Q77 54 76 ${I} Q73 ${I + 3.5} 70 ${I} L70 42 Q73 37 76 38 Z`} />
+              <path d={`M82.5 40 Q84 52 82.5 ${O} Q79.5 ${O + 3} 76.5 ${O} Q75.5 52 76.5 40 Q79.5 37.5 82.5 40 Z`} />
             </g>
             <g stroke={OUTLINE} strokeWidth="1.8" strokeLinecap="round" opacity="0.4" fill="none">
-              <path d="M17.8 50 L23.2 50" /><path d="M17.8 61 L23.2 61" />
-              <path d="M24.2 51 L29.8 51" /><path d="M24.2 64 L29.8 64" />
-              <path d="M70.2 51 L75.8 51" /><path d="M70.2 64 L75.8 64" />
-              <path d="M76.8 50 L82.2 50" /><path d="M76.8 61 L82.2 61" />
+              <path d={`M17.8 ${t1} L23.2 ${t1}`} /><path d={`M17.8 ${t2} L23.2 ${t2}`} />
+              <path d={`M24.2 ${u1} L29.8 ${u1}`} /><path d={`M24.2 ${u2} L29.8 ${u2}`} />
+              <path d={`M70.2 ${u1} L75.8 ${u1}`} /><path d={`M70.2 ${u2} L75.8 ${u2}`} />
+              <path d={`M76.8 ${t1} L82.2 ${t1}`} /><path d={`M76.8 ${t2} L82.2 ${t2}`} />
             </g>
           </g>
         );
-      case 'halfshave':
+      }
+      case 'halfshave': {
+        const PB = len === 'short' ? 60 : len === 'long' ? 79 : 71;
         return (
           <g>
             <path d={BUZZ_D} {...HS} />
-            <path d="M27 80 Q21 46 29 29 Q35 40 35 73 Q31 71 27 80 Z" {...HS} />
+            <path d={`M27 ${PB} Q21 46 29 29 Q35 40 35 ${PB - 7} Q31 ${PB - 9} 27 ${PB} Z`} {...HS} />
           </g>
         );
+      }
       default:
         switch (bucket) {
           case 'spikes':
@@ -225,7 +265,7 @@ export function CartoonAvatar({
           case 'bald':
             return null;
           default:
-            return <path d={BOB_D} {...HS} />;
+            return <path d={bobD(len)} {...HS} />;
         }
     }
   })();
@@ -256,22 +296,30 @@ export function CartoonAvatar({
         );
       case 'straight':
         return <path d="M50 25.5 L50 34" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4" />;
-      case 'braids':
+      case 'braids': {
         // ONE tight side braid, country-girl style (Lucy 2026-10-16):
         // emerges from the left temple and lies over the cheek's edge —
-        // chevron weave, coral tie band, small tail tuft.
+        // chevron weave, coral tie band, small tail tuft. The length
+        // trait sets where the tie (and tuft) lands.
+        const v =
+          len === 'short'
+            ? { body: 'M24 40 Q21.5 48 22.5 57 Q26.5 61 31 58 Q32.5 49 33 41 Q28.5 36.5 24 40 Z', weave: ['M23.8 46 L28.2 50 L32.6 46', 'M23.2 52 L28 56 32.2 52'], tie: 'M22.8 55.5 L31.8 55.5 L31.2 59.5 L23.4 59.5 Z', tuft: 'M24.8 59.5 Q25.8 65 28 65.8 Q30.5 64.8 29.8 59.5 Z' }
+            : len === 'long'
+              ? { body: 'M24 40 Q21 58 22.5 76 Q26.5 80.5 31.5 77 Q33.5 58 33 41 Q28.5 36.5 24 40 Z', weave: ['M23.5 47 L28.2 51.5 L33 47', 'M23.2 55 L28.2 59.5 L32.9 55', 'M23.3 63 L28.2 67.5 L32.7 63'], tie: 'M22.9 73.5 L32.4 73.5 L31.8 78 L23.5 78 Z', tuft: 'M24.8 78 Q25.8 84 28.2 84.8 Q31 83.8 30.2 78 Z' }
+              : { body: 'M24 40 Q21 56 23 71 Q27 76 32 72 Q34 56 33 41 Q28.5 36.5 24 40 Z', weave: ['M23.5 47 L28.2 51.5 L33 47', 'M23.3 54.5 L28.2 59 L32.8 54.5', 'M23.5 62 L28.2 66.5 L32.5 62'], tie: 'M23.2 68.5 L32.8 68.5 L32.2 73 L23.8 73 Z', tuft: 'M25 73 Q26 80.5 28.5 81.5 Q31.5 80 30.5 73 Z' };
         return (
           <g>
-            <path d="M24 40 Q21 56 23 71 Q27 76 32 72 Q34 56 33 41 Q28.5 36.5 24 40 Z" {...HS} />
+            <path d={v.body} {...HS} />
             <g stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.45" fill="none">
-              <path d="M23.5 47 L28.2 51.5 L33 47" />
-              <path d="M23.3 54.5 L28.2 59 L32.8 54.5" />
-              <path d="M23.5 62 L28.2 66.5 L32.5 62" />
+              {v.weave.map((d) => (
+                <path key={d} d={d} />
+              ))}
             </g>
-            <path d="M23.2 68.5 L32.8 68.5 L32.2 73 L23.8 73 Z" fill="#FF6B6B" stroke={OUTLINE} strokeWidth="2.2" strokeLinejoin="round" />
-            <path d="M25 73 Q26 80.5 28.5 81.5 Q31.5 80 30.5 73 Z" {...HS} />
+            <path d={v.tie} fill="#FF6B6B" stroke={OUTLINE} strokeWidth="2.2" strokeLinejoin="round" />
+            <path d={v.tuft} {...HS} />
           </g>
         );
+      }
       default:
         return null;
     }

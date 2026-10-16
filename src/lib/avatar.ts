@@ -41,12 +41,19 @@ export type HairColor =
   | 'cyan'
   | 'bubblegum';   // pink
 export type Eyes = 'sharp' | 'tired' | 'wink' | 'shades' | 'stoked' | 'deadpan';
+export type HairLength = 'short' | 'medium' | 'long';
+export const HAIR_LENGTHS: HairLength[] = ['short', 'medium', 'long'];
 export type Accessory = 'none' | 'nosering' | 'gauges' | 'hoops' | 'bandana' | 'beanie' | 'cap' | 'headlamp' | 'chalkdust' | 'shades'; // 'nosering' kept in the union for back-compat with saved configs + lab art — dropped from the product 2026-10-16 (Lucy) and no longer offered or rendered
 export type Backdrop = 'ink' | 'teal' | 'gold' | 'coral' | 'sky' | 'slate';
 
 export interface AvatarConfig {
   skin: SkinTone;
   hair: HairStyle;
+  /** Separate length trait (Lucy 2026-10-16: "different length for
+   *  each hair style — separately list length"). Optional so saved
+   *  configs from before it existed still parse; renderer/customizer
+   *  treat a missing value as 'medium'. */
+  hairLength?: HairLength;
   hairColor: HairColor;
   eyes: Eyes;
   accessory: Accessory;
@@ -168,6 +175,7 @@ export function avatarFromSeed(seed: string): AvatarConfig {
   return {
     skin: pick(SKIN_TONES, 0),
     hair: pick(HAIR_STYLES, 3),
+    hairLength: pick(HAIR_LENGTHS, 5),
     hairColor: pick(HAIR_COLORS, 7),
     eyes: pick(EYES_OPTS, 11),
     accessory: pick(ACCESSORIES, 15),
@@ -178,6 +186,7 @@ export function avatarFromSeed(seed: string): AvatarConfig {
 export const DEFAULT_AVATAR: AvatarConfig = {
   skin: 'sand',
   hair: 'mohawk',
+  hairLength: 'medium',
   hairColor: 'toxic',
   eyes: 'sharp',
   accessory: 'none',

@@ -6,7 +6,7 @@ import { fileToAvatarDataUrl } from '@/lib/image';
 import {
   type AvatarConfig, type HairStyle, type Accessory,
   SKIN_TONES, SKIN_HEX,
-  HAIR_COLORS, HAIR_HEX, HAIR_COLOR_LABEL,
+  HAIR_COLORS, HAIR_HEX, HAIR_COLOR_LABEL, HAIR_LENGTHS,
   EYES_OPTS, EYES_LABEL,
   BACKDROPS, BACKDROP_HEX,
   avatarFromSeed, DEFAULT_AVATAR,
@@ -157,11 +157,22 @@ export function AvatarCustomizer({ value: rawValue, onChange, photoUrl, onPhotoC
           ))}
         </Row>
 
-        {/* Hair style — grouped by the 6 silhouettes the cartoon actually draws */}
+        {/* Hair style — each option draws its own silhouette */}
         <Row label="Hair">
           {HAIR_OPTIONS.map((h) => (
             <Pill key={h.value} active={value.hair === h.value} onClick={() => set('hair', h.value)}>
               {h.label}
+            </Pill>
+          ))}
+        </Row>
+
+        {/* Length — its own trait, listed separately (Lucy 2026-10-16).
+            Applies to draped/tied styles; spikes, buzz, buns and bald
+            are length-neutral. */}
+        <Row label="Length">
+          {HAIR_LENGTHS.map((l) => (
+            <Pill key={l} active={(value.hairLength ?? 'medium') === l} onClick={() => set('hairLength', l)}>
+              {l === 'short' ? 'Short' : l === 'long' ? 'Long' : 'Medium'}
             </Pill>
           ))}
         </Row>

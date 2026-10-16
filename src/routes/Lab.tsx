@@ -101,18 +101,22 @@ export function Lab() {
         <p className="mt-1 text-sm text-ink-500">Tap around, then tell me which direction to ship.</p>
 
         {/* ─────────── TEMP (2026-10-16): fringe v4 check ─────────── */}
-        <SectionLabel>Avatar · bangs + curtains check (production)</SectionLabel>
+        <SectionLabel>Avatar · length check (production)</SectionLabel>
         <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
           <div className="flex flex-col gap-3">
             {([
-              { label: 'Bangs', cfg: { skin: 'porcelain', hair: 'bangs', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
-              { label: 'Curtain', cfg: { skin: 'porcelain', hair: 'curtain', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
-              { label: 'Buzz', cfg: { skin: 'porcelain', hair: 'buzz', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Straight', cfg: { skin: 'porcelain', hair: 'straight', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Bob', cfg: { skin: 'porcelain', hair: 'bob', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: '2 pony', cfg: { skin: 'porcelain', hair: 'pigtails', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
             ] as { label: string; cfg: Omit<AvatarConfig, 'accessory'> }[]).map(({ label, cfg }) => (
               <div key={label} className="flex items-center gap-4">
                 <span className="w-14 shrink-0 text-xs font-bold text-ink-700">{label}</span>
-                <ProdCartoonAvatar config={{ ...cfg, accessory: 'none' }} size={84} />
-                <ProdCartoonAvatar config={{ ...cfg, accessory: 'none' }} size={30} />
+                {(['short', 'medium', 'long'] as const).map((l) => (
+                  <div key={l} className="flex flex-col items-center gap-1">
+                    <ProdCartoonAvatar config={{ ...cfg, accessory: 'none', hairLength: l }} size={72} />
+                    <span className="text-[10px] font-semibold text-ink-400">{l}</span>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
