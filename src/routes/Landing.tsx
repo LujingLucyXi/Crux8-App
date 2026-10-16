@@ -188,16 +188,6 @@ export function Landing() {
           ))}
         </div>
 
-        {/* ── Motto ── */}
-        <figure className="mt-14 max-w-sm">
-          <div aria-hidden className="text-4xl font-extrabold leading-none text-[#B4FF3A]">
-            “
-          </div>
-          <blockquote className="mt-1 text-[21px] font-semibold italic leading-snug text-ink-900">
-            Turn crew climbs into epic adventures.
-          </blockquote>
-        </figure>
-
         <footer className="mt-auto flex w-full items-center justify-between pt-12 text-xs text-ink-400">
           <span>© 2026 Glomere Inc.</span>
           <span className="flex gap-4">
