@@ -1,20 +1,17 @@
 /**
- * OG badge — the Founding Member mark. v4 (Lucy 2026-10-16): the
- * badge IS a lightning bolt now — volt green, OG knocked out of its
- * waist in black. It ties straight into the page's own line,
- * "Electrify your climb." The same bolt (BoltMark) rides the
- * Founding Register progress bar where the flame used to be.
- * Variants: neon (live), gold, onyx.
+ * OG badge — the Founding Member mark. v5 (Lucy picked concept C
+ * from the design board, 2026-10-16): a gym ROUTE TAG — the little
+ * volt tag that marks a climb, punched hole and all, stamped OG,
+ * tilted like it was just taped up. The hole is a real cutout
+ * (even-odd path) so whatever surface the badge sits on shows
+ * through. BoltMark (the bar-tip bolt) stays as its own mark.
  */
 export type OGBadgeVariant = 'neon' | 'gold' | 'onyx';
 
-const VARIANTS: Record<
-  OGBadgeVariant,
-  { bolt: string; letters: string; glow?: string }
-> = {
-  neon: { bolt: '#B4FF3A', letters: '#0C0F0A', glow: 'drop-shadow(0 0 10px rgba(180,255,58,0.5))' },
-  gold: { bolt: '#EFC95E', letters: '#161310' },
-  onyx: { bolt: '#161412', letters: '#F9E29A' },
+const VARIANTS: Record<OGBadgeVariant, { tag: string; ink: string }> = {
+  neon: { tag: '#B4FF3A', ink: '#0C0F0A' },
+  gold: { tag: '#EFC95E', ink: '#161310' },
+  onyx: { tag: '#161412', ink: '#B4FF3A' },
 };
 
 /** Chunky lightning bolt silhouette in a 120 box. */
@@ -36,6 +33,16 @@ export function BoltMark({ size = 16, color = '#B4FF3A' }: { size?: number; colo
   );
 }
 
+/** Rounded route-tag outline with TWO punches — the hole and a small
+ *  bolt cutout at the tag's right end (Lucy 2026-10-16) — one
+ *  even-odd path so the surface shows through both. */
+const BOLT_CUTOUT = 'M99 48.8 L89.8 61.2 L94.6 61.2 L93 71.2 L104.6 57.6 L99 57.6 Z';
+const TAG_PATH = [
+  'M26 28 H94 a12 12 0 0 1 12 12 V80 a12 12 0 0 1 -12 12 H26 a12 12 0 0 1 -12 -12 V40 a12 12 0 0 1 12 -12 Z',
+  'M30 53 a7 7 0 1 0 0.001 0 Z',
+  BOLT_CUTOUT,
+].join(' ');
+
 export function OGBadge({
   size = 64,
   variant = 'neon',
@@ -47,22 +54,28 @@ export function OGBadge({
   return (
     <span
       className="relative inline-block shrink-0"
-      style={{ width: size, height: size, filter: v.glow }}
+      style={{ width: size, height: size, filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.35))' }}
       role="img"
       aria-label="OG — Founding Member"
     >
       <svg viewBox="0 0 120 120" width={size} height={size} className="block">
-        <path d={BOLT_PATH} fill={v.bolt} stroke="rgba(0,0,0,0.18)" strokeWidth="1.5" strokeLinejoin="round" />
-        {/* enamel gloss on the bolt's top facet */}
-        <path d="M70 4 L24 66 L48 66 L62 40 L70 48 Z" fill="#FFFFFF" opacity="0.14" />
-        <text
-          x="57" y="68" textAnchor="middle"
-          fontSize="21" fontWeight="900"
-          fill={v.letters}
-          style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}
-        >
-          OG
-        </text>
+        <g transform="rotate(-8 60 60)">
+          <path d={TAG_PATH} fill={v.tag} fillRule="evenodd" />
+          <path
+            d="M26 28 H94 a12 12 0 0 1 12 12 V80 a12 12 0 0 1 -12 12 H26 a12 12 0 0 1 -12 -12 V40 a12 12 0 0 1 12 -12 Z"
+            fill="none" stroke="rgba(0,0,0,0.16)" strokeWidth="1.5"
+          />
+          <circle cx="30" cy="60" r="7" fill="none" stroke={v.ink} strokeWidth="2" opacity="0.75" />
+          <path d={BOLT_CUTOUT} fill="none" stroke={v.ink} strokeWidth="1.2" opacity="0.45" strokeLinejoin="round" />
+          <text
+            x="63" y="75" textAnchor="middle"
+            fontSize="32" fontWeight="900" letterSpacing="0.5"
+            fill={v.ink}
+            style={{ fontFamily: 'Archivo, system-ui, sans-serif' }}
+          >
+            OG
+          </text>
+        </g>
       </svg>
     </span>
   );
