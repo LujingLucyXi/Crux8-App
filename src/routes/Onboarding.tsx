@@ -161,7 +161,7 @@ export function Onboarding() {
   useEffect(() => {
     if (!me) return;
     try {
-      localStorage.setItem(`crux8-onboarding-prompted-v2-${me.id}`, '1');
+      localStorage.setItem(`crux8-onboarding-prompted-v3-${me.id}`, '1');
     } catch {
       /* ok */
     }
@@ -195,7 +195,7 @@ export function Onboarding() {
     // un-confirm it so signing back in re-prompts the flow.
     if (lastMeId.current) {
       try {
-        localStorage.removeItem(`crux8-onboarding-prompted-v2-${lastMeId.current}`);
+        localStorage.removeItem(`crux8-onboarding-prompted-v3-${lastMeId.current}`);
       } catch {
         /* ok */
       }

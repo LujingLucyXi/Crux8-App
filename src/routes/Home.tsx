@@ -258,7 +258,7 @@ export function Home() {
     // Writing it before navigating ate Lucy's prompt on 2026-10-16
     // when the flow bounced after ~1s: flag set, prompt gone forever.
     try {
-      if (localStorage.getItem(`crux8-onboarding-prompted-v2-${meId}`)) return;
+      if (localStorage.getItem(`crux8-onboarding-prompted-v3-${meId}`)) return;
     } catch {
       return;
     }
