@@ -23,6 +23,7 @@ import type {
   CollectedCard,
   Invite,
   MateRequest,
+  MessageRequest,
 } from '@/seed/types';
 import {
   SEED_GYMS,
@@ -74,6 +75,9 @@ import {
   createMateRequestRemote,
   fetchMyMateRequests,
   deleteMateRequestRemote,
+  createMessageRequestRemote,
+  fetchMyMessageRequests,
+  setMessageRequestStatusRemote,
   isUuid,
   type ClimbCallPatch,
   setCallPairing,
@@ -191,6 +195,13 @@ interface Store {
    *  one-sided follow. */
   mateRequests: MateRequest[];
   fetchMateRequests: () => Promise<void>;
+  /** Message requests (2026-10-16): a DM to someone you follow (not yet
+   *  a cruxmate) starts as a request; the chat opens when they accept. */
+  messageRequests: MessageRequest[];
+  fetchMessageRequests: () => Promise<void>;
+  sendMessageRequest: (toId: string) => void;
+  respondToMessageRequest: (id: string, accept: boolean) => void;
+  dmAccessFor: (userId: string) => DmAccess;
   /** Follow someone: real users get a follow row (which completes the
    *  mutual state instantly if they already follow me); seed NPCs
    *  (incl. Cruxy) have no follow graph and resolve instantly.
@@ -400,6 +411,17 @@ interface Store {
 
 // Thread-key helpers: namespace DM and session-chat reads in one map.
 export const dmKey = (userId: string) => `dm:${userId}`;
+
+/** How a DM with this person may be used right now (Lucy, 2026-10-16):
+ *  cruxmates chat freely; someone you follow starts as a request and
+ *  the chatbox opens only when they accept. */
+export type DmAccess =
+  | 'open'
+  | 'request'
+  | 'pending_out'
+  | 'pending_in'
+  | 'declined'
+  | 'follow_first';
 export const scKey = (sessionChatId: string) => `sc:${sessionChatId}`;
 
 /**
@@ -572,6 +594,21 @@ let initAuthSubscribed = false;
  * local store is the source of truth for the UI; a failure only logs.
  */
 async function persistProfilePatch(userId: string, patch: Partial<Profile>): Promise<void> {
+  // Invite-code stability (2026-10-16): a code is first-writer-wins,
+  // forever. Two devices generated different codes for one account
+  // while the column was new (each code local-only at first), and a
+  // later write from the stale device silently replaced the server
+  // code — LUCY-9BA2 became LUCY-2HXK and every already-shared 9BA2
+  // link lost its inviter. Never overwrite a server-held valid code
+  // with a different one; the boot rebuild adopts the server's value.
+  if (patch.invite_code) {
+    const existing = await fetchMyProfile(userId).catch(() => null);
+    const serverCode = existing?.invite_code ? normalizeInviteCode(existing.invite_code) : '';
+    if (serverCode && isValidInviteCode(serverCode) && serverCode !== patch.invite_code) {
+      patch = { ...patch };
+      delete patch.invite_code;
+    }
+  }
   const row = profilePatchToRow(patch);
   if (Object.keys(row).length === 0) return;
   // Upsert (not update): self-heals when the row is missing — e.g. the
@@ -633,6 +670,7 @@ export const useAppStore = create<Store>()(
       leftSessions: [],
       invites: [],
       mateRequests: [],
+      messageRequests: [],
       dismissedFollowers: [],
       pairRequests: [],
       checkin: null,
@@ -711,6 +749,7 @@ export const useAppStore = create<Store>()(
         void get().fetchClimbCalls();
         void get().fetchInvites();
         void get().fetchMateRequests();
+        void get().fetchMessageRequests();
         get().ensureCruxyThread();
       },
 
@@ -897,6 +936,7 @@ export const useAppStore = create<Store>()(
           leftSessions: [],
           invites: [],
           mateRequests: [],
+      messageRequests: [],
           dismissedFollowers: [],
           checkin: null,
           gymPresence: {},
@@ -1132,7 +1172,27 @@ export const useAppStore = create<Store>()(
         const cur = get().me;
         if (!cur) return null;
         const existing = cur.invite_code ? normalizeInviteCode(cur.invite_code) : '';
-        if (existing && isValidInviteCode(existing)) return existing;
+        if (existing && isValidInviteCode(existing)) {
+          // Reconcile with the server in the background: if the server
+          // holds a different valid code (first writer), it wins and
+          // this device adopts it — a stale local code must never be
+          // what gets shared.
+          void fetchMyProfile(cur.id)
+            .then((row) => {
+              const serverCode = row?.invite_code ? normalizeInviteCode(row.invite_code) : '';
+              const meNow = get().me;
+              if (
+                serverCode &&
+                isValidInviteCode(serverCode) &&
+                serverCode !== existing &&
+                meNow?.id === cur.id
+              ) {
+                set({ me: { ...meNow, invite_code: serverCode } });
+              }
+            })
+            .catch(() => {});
+          return existing;
+        }
         const code = randomInviteCode(cur.display_name);
         get().updateProfile({ invite_code: code });
         return code;
@@ -1245,6 +1305,7 @@ export const useAppStore = create<Store>()(
           leftSessions: [],
           invites: [],
           mateRequests: [],
+      messageRequests: [],
           dismissedFollowers: [],
           checkin: null,
           gymPresence: {},
@@ -2185,6 +2246,78 @@ export const useAppStore = create<Store>()(
           // Table may not exist until the cruxmate-requests migration runs —
           // local rows still work same-device; never break boot over it.
         }
+      },
+
+      fetchMessageRequests: async () => {
+        const me = get().me;
+        if (!me || !isUuid(me.id)) return;
+        try {
+          const rows = await fetchMyMessageRequests(me.id);
+          const remotePairs = new Set(rows.map((r) => `${r.from_id}->${r.to_id}`));
+          // Keep optimistic local rows the server can't know yet.
+          const localOnly = get().messageRequests.filter(
+            (r) => r.from_id === me.id && r.status === 'pending' && !remotePairs.has(`${r.from_id}->${r.to_id}`),
+          );
+          set({ messageRequests: [...rows, ...localOnly] });
+          void get().ensureDirectoryProfiles(
+            rows.flatMap((r) => [r.from_id, r.to_id]),
+          );
+        } catch {
+          // Table may not exist until the migration runs — local rows
+          // still carry the same-device experience; never break boot.
+        }
+      },
+
+      sendMessageRequest: (toId) => {
+        const me = get().me;
+        if (!me || !isUuid(me.id) || !isUuid(toId)) return;
+        const existing = get().messageRequests.find(
+          (r) => r.from_id === me.id && r.to_id === toId,
+        );
+        if (existing?.status === 'pending' || existing?.status === 'accepted') return;
+        const row: MessageRequest = existing
+          ? { ...existing, status: 'pending', created_at: new Date().toISOString() }
+          : {
+              id: crypto.randomUUID(),
+              from_id: me.id,
+              to_id: toId,
+              status: 'pending',
+              created_at: new Date().toISOString(),
+            };
+        set({
+          messageRequests: existing
+            ? get().messageRequests.map((r) => (r.id === existing.id ? row : r))
+            : [...get().messageRequests, row],
+        });
+        void createMessageRequestRemote(row).catch(() => {});
+      },
+
+      respondToMessageRequest: (id, accept) => {
+        const row = get().messageRequests.find((r) => r.id === id);
+        if (!row) return;
+        const status = accept ? 'accepted' : 'declined';
+        set({
+          messageRequests: get().messageRequests.map((r) =>
+            r.id === id ? { ...r, status } : r,
+          ),
+        });
+        void setMessageRequestStatusRemote(id, status).catch(() => {});
+      },
+
+      dmAccessFor: (userId) => {
+        const me = get().me;
+        if (!me) return 'follow_first';
+        // Seed/NPC people (incl. Cruxy) have no follow graph — open.
+        if (!isUuid(userId)) return 'open';
+        if (get().cruxmates.includes(userId)) return 'open';
+        const rows = get().messageRequests;
+        const out = rows.find((r) => r.from_id === me.id && r.to_id === userId);
+        const inc = rows.find((r) => r.from_id === userId && r.to_id === me.id);
+        if (out?.status === 'accepted' || inc?.status === 'accepted') return 'open';
+        if (inc?.status === 'pending') return 'pending_in';
+        if (out?.status === 'pending') return 'pending_out';
+        if (out?.status === 'declined' || inc?.status === 'declined') return 'declined';
+        return get().mateRequestFor(userId) === 'outgoing' ? 'request' : 'follow_first';
       },
 
       mateRequestFor: (userId) => {

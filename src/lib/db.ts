@@ -19,6 +19,7 @@ import type {
   HikeType,
   Invite,
   MateRequest,
+  MessageRequest,
 } from '@/seed/types';
 
 export interface DirectoryProfile {
@@ -642,4 +643,43 @@ export async function setMateRequestStatusRemote(
 export async function deleteMateRequestRemote(id: string): Promise<void> {
   const { error } = await supabase.from('cruxmate_requests').delete().eq('id', id);
   if (error) throw new Error(`deleteMateRequestRemote: ${error.message}`);
+}
+
+// ── Message requests (2026-10-16) ────────────────────────────────────
+// Following someone lets you open a DM, but it lands as a request; the
+// recipient's accept is what turns it into a normal chat. Rows carry
+// the permission only — message bodies stay in the local chat store.
+
+export async function createMessageRequestRemote(row: {
+  id: string;
+  from_id: string;
+  to_id: string;
+}): Promise<void> {
+  // Upsert on (from_id, to_id): revives a previously declined row back
+  // to pending instead of failing the unique constraint.
+  const { error } = await supabase
+    .from('message_requests')
+    .upsert(
+      { id: row.id, from_id: row.from_id, to_id: row.to_id, status: 'pending' },
+      { onConflict: 'from_id,to_id' },
+    );
+  if (error) throw new Error(`createMessageRequestRemote: ${error.message}`);
+}
+
+export async function fetchMyMessageRequests(userId: string): Promise<MessageRequest[]> {
+  const { data, error } = await supabase
+    .from('message_requests')
+    .select('id,from_id,to_id,status,created_at')
+    .or(`to_id.eq.${userId},from_id.eq.${userId}`)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(`fetchMyMessageRequests: ${error.message}`);
+  return asRows<MessageRequest>(data);
+}
+
+export async function setMessageRequestStatusRemote(
+  id: string,
+  status: 'accepted' | 'declined',
+): Promise<void> {
+  const { error } = await supabase.from('message_requests').update({ status }).eq('id', id);
+  if (error) throw new Error(`setMessageRequestStatusRemote: ${error.message}`);
 }

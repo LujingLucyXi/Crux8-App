@@ -383,3 +383,17 @@ export interface MateRequest {
   status: 'pending' | 'accepted' | 'denied';
   created_at: string;
 }
+
+/**
+ * A message request (Lucy, 2026-10-16): you may start a DM with someone
+ * you follow, but it lands as a request — the chatbox only opens for
+ * both sides once the recipient accepts. Cruxmates skip the request.
+ * Server-backed in public.message_requests.
+ */
+export interface MessageRequest {
+  id: string;
+  from_id: string;
+  to_id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+}

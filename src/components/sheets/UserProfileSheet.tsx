@@ -25,6 +25,7 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
   const cancelMateRequest = useAppStore((s) => s.cancelMateRequest);
   const mateRequestFor = useAppStore((s) => s.mateRequestFor);
   const mateRequests = useAppStore((s) => s.mateRequests);
+  const messageRequests = useAppStore((s) => s.messageRequests);
 
   const user = userId ? resolveUser(userId, me, users, directory) : undefined;
   if (!user) return null;
@@ -131,7 +132,15 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
                   ? 'Following — tap to unfollow'
                   : 'Follow'}
           </Button>
-          {isCruxmate && (
+          {(isCruxmate ||
+            reqDir === 'outgoing' ||
+            (me &&
+              messageRequests.some(
+                (r) =>
+                  r.status === 'accepted' &&
+                  ((r.from_id === me.id && r.to_id === user.id) ||
+                    (r.from_id === user.id && r.to_id === me.id)),
+              ))) && (
             <Button
               variant="outline"
               onClick={() => {

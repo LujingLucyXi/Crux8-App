@@ -22,6 +22,12 @@ export function ChatDetail() {
   const climbCalls = useAppStore((s) => s.climbCalls);
   const sessions = useAppStore((s) => s.sessions);
   const sendMessage = useAppStore((s) => s.sendMessage);
+  const dmAccessFor = useAppStore((s) => s.dmAccessFor);
+  const sendMessageRequest = useAppStore((s) => s.sendMessageRequest);
+  const respondToMessageRequest = useAppStore((s) => s.respondToMessageRequest);
+  const messageRequests = useAppStore((s) => s.messageRequests);
+  const fetchMessageRequests = useAppStore((s) => s.fetchMessageRequests);
+  const requestCruxmate = useAppStore((s) => s.requestCruxmate);
   const toggleReactionDm = useAppStore((s) => s.toggleReactionDm);
   const markThreadRead = useAppStore((s) => s.markThreadRead);
   const me = useAppStore((s) => s.me);
@@ -53,6 +59,11 @@ export function ChatDetail() {
     if (userId) markThreadRead(dmKey(userId));
   }, [userId, messages.length, markThreadRead]);
 
+  // Keep the request handshake fresh while a thread is open.
+  useEffect(() => {
+    void fetchMessageRequests();
+  }, [fetchMessageRequests]);
+
   if (!user) {
     return (
       <div className="pt-10 text-center">
@@ -64,9 +75,19 @@ export function ChatDetail() {
     );
   }
 
+  // Message-request gating (Lucy, 2026-10-16): cruxmates chat freely;
+  // a followee starts as a request — the first message rides along with
+  // the request, then the composer locks until they accept.
+  const access = userId ? dmAccessFor(userId) : 'open';
+  const first = user.display_name.split(' ')[0];
+  const pendingInRow = userId
+    ? messageRequests.find((r) => r.from_id === userId && r.to_id === me?.id && r.status === 'pending')
+    : undefined;
+
   const handleSend = () => {
     const t = text.trim();
     if (!t || !userId) return;
+    if (access === 'request') sendMessageRequest(userId);
     sendMessage(userId, t);
     setText('');
   };
@@ -95,6 +116,22 @@ export function ChatDetail() {
           </div>
         </div>
       </div>
+
+      {access === 'request' && (
+        <div className="px-4 py-2.5 bg-brand-100 border-b border-ink-100 text-center">
+          <p className="text-xs text-ink-700">
+            This starts as a <b>message request</b> — {first} has to accept before you can keep
+            chatting. Your first message goes with the request.
+          </p>
+        </div>
+      )}
+      {access === 'pending_out' && (
+        <div className="px-4 py-2.5 bg-brand-100 border-b border-ink-100 text-center">
+          <p className="text-xs text-ink-700">
+            Request sent — waiting for {first} to accept.
+          </p>
+        </div>
+      )}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
@@ -147,18 +184,61 @@ export function ChatDetail() {
         )}
       </div>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSend();
-        }}
-        className="px-4 py-3 border-t border-ink-100 bg-paper-100 flex gap-2"
-      >
-        <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a message" />
-        <Button type="submit" size="icon" disabled={!text.trim()}>
-          <Send width={18} height={18} />
-        </Button>
-      </form>
+      {access === 'pending_in' && pendingInRow ? (
+        <div className="px-4 py-3 border-t border-ink-100 bg-paper-100">
+          <p className="text-sm text-ink-900 text-center">
+            <b>{first}</b> wants to chat with you.
+          </p>
+          <div className="mt-2.5 flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => respondToMessageRequest(pendingInRow.id, false)}
+            >
+              Decline
+            </Button>
+            <Button className="flex-1" onClick={() => respondToMessageRequest(pendingInRow.id, true)}>
+              Accept — open chat
+            </Button>
+          </div>
+        </div>
+      ) : access === 'pending_out' ? (
+        <div className="px-4 py-3 border-t border-ink-100 bg-paper-100 text-center">
+          <p className="text-xs text-ink-500">
+            The chat opens when {first} accepts your request.
+          </p>
+        </div>
+      ) : access === 'declined' ? (
+        <div className="px-4 py-3 border-t border-ink-100 bg-paper-100 text-center">
+          <p className="text-xs text-ink-500">This message request was declined.</p>
+        </div>
+      ) : access === 'follow_first' ? (
+        <div className="px-4 py-3 border-t border-ink-100 bg-paper-100 text-center">
+          <p className="text-xs text-ink-500 mb-2">
+            You can message people you follow — it starts as a request they accept.
+          </p>
+          <Button
+            onClick={() => {
+              if (userId) requestCruxmate(userId);
+            }}
+          >
+            Follow {first} to message
+          </Button>
+        </div>
+      ) : (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend();
+          }}
+          className="px-4 py-3 border-t border-ink-100 bg-paper-100 flex gap-2"
+        >
+          <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a message" />
+          <Button type="submit" size="icon" disabled={!text.trim()}>
+            <Send width={18} height={18} />
+          </Button>
+        </form>
+      )}
     </div>
   );
 }

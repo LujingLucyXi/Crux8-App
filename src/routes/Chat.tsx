@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChatBubble, Community } from 'iconoir-react';
 import { Avatar, AvatarStack } from '@/components/ui/Avatar';
@@ -11,6 +12,8 @@ import type { AvatarConfig } from '@/lib/avatar';
 export function Chat() {
   const nav = useNavigate();
   const cruxmates = useAppStore((s) => s.cruxmates);
+  const messageRequests = useAppStore((s) => s.messageRequests);
+  const fetchMessageRequests = useAppStore((s) => s.fetchMessageRequests);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
   const chats = useAppStore((s) => s.chats);
@@ -34,8 +37,25 @@ export function Chat() {
       return bLast.localeCompare(aLast);
     });
 
+  // Message requests (2026-10-16): pending inbound requests get their
+  // own section; accepted request threads join the DM list below.
+  useEffect(() => {
+    void fetchMessageRequests();
+  }, [fetchMessageRequests]);
+  const pendingInRequests = messageRequests.filter(
+    (r) => me && r.to_id === me.id && r.status === 'pending',
+  );
+  const acceptedCounterpartIds = messageRequests
+    .filter((r) => r.status === 'accepted' && me && (r.from_id === me.id || r.to_id === me.id))
+    .map((r) => (r.from_id === me?.id ? r.to_id : r.from_id));
+  const dmIds = [...new Set([...cruxmates, ...acceptedCounterpartIds])];
+
   const hasPendingInvites = invites.some((i) => i.status === 'pending');
-  const isEmpty = cruxmates.length === 0 && sessionChatList.length === 0 && !hasPendingInvites;
+  const isEmpty =
+    dmIds.length === 0 &&
+    pendingInRequests.length === 0 &&
+    sessionChatList.length === 0 &&
+    !hasPendingInvites;
   if (isEmpty) {
     return (
       <div className="pt-16 flex flex-col items-center text-center">
@@ -123,6 +143,41 @@ export function Chat() {
       {/* Invite inbox — accept / deny, or ignore until the climb ends */}
       <InvitesSection />
 
+      {/* Message requests — a follow from someone starts here; tapping
+          opens the thread with Accept / Decline */}
+      {pendingInRequests.length > 0 && (
+        <section className="mb-5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
+            Message requests · {pendingInRequests.length}
+          </h2>
+          <ul className="flex flex-col gap-1">
+            {pendingInRequests.map((r) => {
+              const user = me ? resolveUser(r.from_id, me, users, directory) : undefined;
+              if (!user) return null;
+              return (
+                <li key={r.id}>
+                  <button
+                    onClick={() => nav(`/chat/${r.from_id}`)}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl bg-brand-100/60 hover:bg-brand-100 transition-colors text-left"
+                  >
+                    <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="font-semibold text-ink-900 truncate">{user.display_name}</p>
+                        <span className="text-[11px] shrink-0 text-ink-500">
+                          {formatChatTimestamp(r.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-ink-500 truncate">Wants to chat with you — tap to review</p>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       {/* Crew chats (group threads) */}
       {crewChatList.length > 0 && (
         <section className="mb-5">
@@ -143,14 +198,15 @@ export function Chat() {
         </section>
       )}
 
-      {/* 1:1 DMs */}
-      {cruxmates.length > 0 && (
+      {/* 1:1 DMs — cruxmates plus anyone whose message request was
+          accepted (either direction) */}
+      {dmIds.length > 0 && (
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
-            CruxMates · {cruxmates.length}
+            Direct messages · {dmIds.length}
           </h2>
           <ul className="flex flex-col gap-1">
-            {cruxmates.map((id) => {
+            {dmIds.map((id) => {
               // resolveUser, NOT users.find: real cruxmates live in the
               // directory — a users-only lookup dropped them from the DM
               // list while the header still counted them (2026-10-15).
