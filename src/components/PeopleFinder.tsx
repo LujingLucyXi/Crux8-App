@@ -171,10 +171,19 @@ export function PeopleFinder({
                 <Avatar photoUrl={p.photo_url ?? undefined} seed={p.display_name} size={36} alt={p.display_name} />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-ink-900 truncate">{p.display_name}</p>
-                  {p.top_grade && <p className="text-xs text-ink-500">{p.top_grade}</p>}
+                  {isFriend ? (
+                    <p className="text-xs font-semibold text-teal-600">✓ Cruxmate</p>
+                  ) : (
+                    p.top_grade && <p className="text-xs text-ink-500">{p.top_grade}</p>
+                  )}
                 </div>
                 {isFriend ? (
-                  <span className="text-xs font-bold text-teal-600 shrink-0">✓ Cruxmate</span>
+                  <button
+                    onClick={() => nav(`/chat/${p.id}`)}
+                    className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
+                  >
+                    Message
+                  </button>
                 ) : reqDir === 'incoming' ? (
                   <button
                     onClick={() => {
