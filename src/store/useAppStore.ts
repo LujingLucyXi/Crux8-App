@@ -65,6 +65,7 @@ import {
   submitGymSuggestion,
   fetchPublicVerifications,
   fetchBelayConfirmCounts,
+  fetchMyFoundingNo,
   setSessionRsvp,
   fetchClimbCalls as dbFetchClimbCalls,
   createClimbCall as dbCreateClimbCall,
@@ -1223,6 +1224,16 @@ export const useAppStore = create<Store>()(
               myConfirmCounts: counts as Partial<Record<VerificationCategory, number>>,
             }),
           );
+          // Founding Member number (first 500 accounts) — server view;
+          // silently absent until its migration runs / for accounts
+          // past #500.
+          void fetchMyFoundingNo(userId).then((n) => {
+            if (n == null) return;
+            const curMe = get().me;
+            if (curMe && curMe.id === userId && curMe.founding_no !== n) {
+              set({ me: { ...curMe, founding_no: n } });
+            }
+          });
           get().ensureCruxyThread();
         };
         const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));

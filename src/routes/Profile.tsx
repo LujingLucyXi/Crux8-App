@@ -167,6 +167,11 @@ export function Profile() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-semibold text-ink-900">{me.display_name}</h1>
+            {typeof me.founding_no === 'number' && (
+              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-[linear-gradient(120deg,#F9E29A,#DFAF37)] px-2.5 py-0.5 text-[11px] font-bold text-[#161310]">
+                ⭐ Founding member #{me.founding_no}
+              </span>
+            )}
             {me.pronouns && <p className="text-sm text-ink-500">{me.pronouns}</p>}
             {me.signature && <p className="mt-0.5 text-sm text-ink-700 italic">“{me.signature}”</p>}
             {me.location && <p className="text-xs text-ink-500">📍 {me.location}</p>}

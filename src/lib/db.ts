@@ -336,6 +336,21 @@ export async function fetchPublicVerifications(
 }
 
 /** Distinct partners who confirmed 'has_cert', per category, for one user. */
+/** Founding Member number from the founding_members view (first 500
+ *  accounts by creation). Null when the account isn't in the first
+ *  500 — or when the view doesn't exist yet (migration not run). */
+export async function fetchMyFoundingNo(userId: string): Promise<number | null> {
+  if (!isUuid(userId)) return null;
+  const { data, error } = await supabase
+    .from('founding_members')
+    .select('founding_no')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error || !data) return null;
+  const n = (data as { founding_no?: number }).founding_no;
+  return typeof n === 'number' ? n : null;
+}
+
 export async function fetchBelayConfirmCounts(
   userId: string,
 ): Promise<Record<string, number>> {
