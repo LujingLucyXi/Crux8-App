@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { EyeClosed } from 'iconoir-react';
@@ -9,6 +9,7 @@ import { AvatarCustomizer } from '@/components/ui/AvatarCustomizer';
 import { avatarFromSeed, type AvatarConfig } from '@/lib/avatar';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
 import { useAppStore } from '@/store/useAppStore';
+import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { lbsToKg, ftInToCm, kgToLbs } from '@/lib/weight';
 import { getPendingIntent, clearPendingIntent, pendingIntentPath } from '@/lib/pendingIntent';
@@ -166,28 +167,52 @@ export function Onboarding() {
     }
   }, [me?.id]);
 
-  // Transient-null guard: a sign-in's session-apply passes can flicker
-  // `me` (and the profile name) for a beat. Only bail to '/' if the
-  // user is STILL signed out after a grace period — never mid-render
-  // and never on a flicker (this ejected Lucy's prompted flow after
-  // ~1s on 2026-10-16).
-  const [meMissing, setMeMissing] = useState(false);
+  // Eject ONLY on a genuinely dead session (Lucy 2026-10-16, third
+  // report of the flow "jumping away after ~2 sec" — the 1.2s
+  // me-null grace kept expiring under real session churn: boot
+  // reconcile, token refresh, a session revoked on another device).
+  // The decision now reads the Supabase session itself after a grace
+  // window: a live session means WAIT for the profile, never bounce.
+  const lastMeId = useRef<string | null>(null);
+  if (me?.id) lastMeId.current = me.id;
+  const [signedOut, setSignedOut] = useState(false);
   useEffect(() => {
     if (me) {
-      setMeMissing(false);
+      setSignedOut(false);
       return;
     }
-    const t = setTimeout(() => setMeMissing(true), 1200);
+    const t = setTimeout(async () => {
+      const { data } = await supabase.auth
+        .getSession()
+        .catch(() => ({ data: { session: null } }));
+      if (!data.session) setSignedOut(true);
+    }, 2500);
     return () => clearTimeout(t);
   }, [me]);
   useEffect(() => {
-    if (meMissing && !me) nav('/');
-  }, [meMissing, me, nav]);
+    if (!signedOut || me) return;
+    // A bounced prompt must not be eaten by the once-per-device flag:
+    // un-confirm it so signing back in re-prompts the flow.
+    if (lastMeId.current) {
+      try {
+        localStorage.removeItem(`crux8-onboarding-prompted-v2-${lastMeId.current}`);
+      } catch {
+        /* ok */
+      }
+    }
+    nav('/');
+  }, [signedOut, me, nav]);
 
   if (!me) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-paper-50 text-sm text-ink-500">
-        Loading…
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-paper-50 text-sm text-ink-500">
+        <span>Loading…</span>
+        <button
+          onClick={() => nav('/')}
+          className="text-xs font-medium text-ink-400 underline underline-offset-4"
+        >
+          Back to home
+        </button>
       </div>
     );
   }
