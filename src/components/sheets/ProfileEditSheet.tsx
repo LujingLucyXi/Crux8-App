@@ -17,7 +17,7 @@ const CITIES = [
   { value: 'denver', label: 'Denver' },
   { value: 'sf-bay-area', label: 'San Francisco / Bay Area' },
   { value: 'salt-lake-city', label: 'Salt Lake City' },
-  { value: 'texas', label: 'Texas' },
+  { value: 'austin', label: 'Austin' },
 ];
 
 const TOP_GRADES = [
