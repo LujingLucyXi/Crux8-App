@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { TriangleFlag, ShieldCheck, Community, Rhombus } from 'iconoir-react';
 import { AuthSheet } from '@/components/AuthSheet';
+import { Logo } from '@/components/layout/Logo';
+import { OGBadge } from '@/components/OGBadge';
 import { supabase } from '@/lib/supabase';
 
 const PILLARS = [
@@ -12,14 +14,19 @@ const PILLARS = [
 ];
 
 const FOUNDING_CAP = 500;
+/** Optional-donation Payment Link (Stripe, Glomere Inc. — created
+ *  2026-10-16). Crux8 is completely free; this is purely a tip jar. */
+const DONATE_URL = 'https://donate.stripe.com/9B67sL2wI9M90rH9RE67S08';
 
 /**
- * Public front door (dark exclusivity edition, Lucy 2026-10-16 —
- * inspired by farflung's landing): the founding cohort is REAL —
- * the first 500 accounts carry Founding Member status forever (see
- * the founding_members view + the profile badge), the counter below
- * is the live account count, and the doors stay open: exclusivity
- * as status, not as a wall (the 2026-10-14 friction lesson stands).
+ * Public front door (original Crux8 edition, Lucy 2026-10-16): our
+ * own sign — the gold figure-8 mark coin-spinning in its ring — over
+ * the Founding Register: the first 500 accounts are engraved as
+ * Founding Members with the OG badge (founding_members view). The
+ * doors stay open (exclusivity as status, not a wall — the
+ * 2026-10-14 friction lesson), the counter is the live account
+ * count, and a quiet Stripe donation link sits under the doors:
+ * the app is completely free; donations are optional.
  */
 export function Landing() {
   const nav = useNavigate();
@@ -39,7 +46,7 @@ export function Landing() {
           .select('id', { count: 'exact', head: true });
         if (live && typeof count === 'number') setClaimed(Math.min(count, FOUNDING_CAP));
       } catch {
-        /* counter just stays hidden — never fake the number */
+        /* counter just stays generic — never fake the number */
       }
     })();
     return () => {
@@ -53,102 +60,113 @@ export function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0E] text-[#F7F3EA]">
-      <div className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col px-6 py-10">
-        {/* wordmark */}
-        <p className="text-[22px] font-extrabold lowercase tracking-tight">
-          crux<span className="bg-[linear-gradient(120deg,#F9E29A,#DFAF37)] bg-clip-text text-transparent">8</span>
-        </p>
-
-        {/* sticker chips */}
-        <div className="mt-14 flex items-center gap-3">
-          <span className="-rotate-2 rounded-full bg-[#E9E4F5] px-3.5 py-1.5 text-[13px] font-extrabold tracking-wide text-[#16161A]">
-            FREE
-          </span>
-          <span className="rotate-2 rounded-full bg-[linear-gradient(120deg,#F9E29A,#DFAF37)] px-3.5 py-1.5 text-[13px] font-extrabold tracking-wide text-[#161310] shadow-[0_0_24px_rgba(223,175,55,0.35)]">
-            FOUNDING COHORT
-          </span>
+    <div className="min-h-screen bg-paper-50 text-ink-900">
+      <div className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col items-center px-6 py-12 text-center">
+        {/* ── The sign ── */}
+        <div className="relative" style={{ perspective: 700 }}>
+          <div
+            aria-hidden
+            className="absolute inset-0 -z-0 scale-125 rounded-full bg-[radial-gradient(circle,rgba(201,162,75,0.30),transparent_65%)]"
+          />
+          <div className="crux-sign-spin relative flex h-[148px] w-[148px] items-center justify-center rounded-full border-[3px] border-[#C9A24B] bg-paper-100 shadow-[0_18px_36px_-14px_rgba(138,109,47,0.55),inset_0_0_0_5px_#F7F3EA,inset_0_0_0_7px_rgba(201,162,75,0.5)]">
+            <Logo size={96} />
+          </div>
         </div>
-
-        {/* headline */}
-        <h1 className="mt-6 text-[56px] font-extrabold leading-[1.02] tracking-tight">
-          A climbing
-          <br />
-          crew that
-          <br />
-          <span className="bg-[linear-gradient(100deg,#B9A7E8,#F9E29A_55%,#DFAF37)] bg-clip-text text-transparent">
-            actually
-            <br />
-            shows up.
-          </span>
-        </h1>
-
-        <p className="mt-6 max-w-md text-[17px] leading-relaxed text-white/60">
-          Finding a belay partner is broken — flaky plans, dead group chats. Crux8 matches
-          you with climbers at your gym, your grade, your hours, and turns every session
-          into a crew worth keeping. Claim your spot below.
+        <h1 className="mt-7 text-4xl font-extrabold tracking-tight">CRUX8</h1>
+        <p className="mt-2 text-xs font-semibold tracking-[0.28em] text-[#8A6D2F]">
+          TIE IN. SEND TOGETHER.
         </p>
 
-        {/* founding cohort meter */}
-        <div className="mt-10">
-          <p className="bg-[linear-gradient(90deg,#B9A7E8,#DFAF37)] bg-clip-text text-center text-[13px] font-bold tracking-[0.18em] text-transparent">
-            FIRST 500 GET FOUNDING MEMBER STATUS
+        <p className="mt-7 text-[26px] font-bold leading-snug">
+          Find your people. Climb stronger.
+        </p>
+        <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-ink-500">
+          Crux8 matches you with climbers at your gym, your grade, your hours —
+          sessions, belay partners, and a crew that actually shows up.
+        </p>
+
+        {/* ── The Founding Register ── */}
+        <div className="mt-10 w-full rounded-[26px] bg-[#161310] px-6 py-7 text-[#F7F3EA] shadow-[0_24px_48px_-20px_rgba(22,19,16,0.6)]">
+          <div className="flex justify-center">
+            <OGBadge size={92} />
+          </div>
+          <p className="mt-4 text-[12px] font-extrabold tracking-[0.3em] text-[#EFC95E]">
+            THE FOUNDING REGISTER
           </p>
-          <div className="mt-4 flex items-baseline justify-between text-[13px] font-bold tracking-[0.14em]">
-            <span className="text-white/85">FOUNDING COHORT</span>
-            <span className="bg-[linear-gradient(90deg,#F9E29A,#DFAF37)] bg-clip-text text-transparent">
-              {claimed !== null ? `${claimed} / ${FOUNDING_CAP} CLAIMED` : 'OPEN'}
+          <p className="mx-auto mt-2.5 max-w-xs text-sm leading-relaxed text-white/65">
+            The first {FOUNDING_CAP} climbers through the door are Founding
+            Members — the OG badge lives on your profile forever.
+          </p>
+          <div className="mt-5 flex items-baseline justify-between text-[12px] font-bold tracking-[0.14em]">
+            <span className="text-white/75">IN THE REGISTER</span>
+            <span className="text-[#EFC95E]">
+              {claimed !== null
+                ? `${String(claimed).padStart(3, '0')} / ${FOUNDING_CAP}`
+                : `0 / ${FOUNDING_CAP}`}
             </span>
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-[linear-gradient(90deg,#B9A7E8,#F9E29A,#DFAF37)] transition-all duration-700"
-              style={{ width: claimed !== null ? `${Math.max(2, (claimed / FOUNDING_CAP) * 100)}%` : '2%' }}
+              className="h-full rounded-full bg-[linear-gradient(90deg,#C9A24B,#F9E29A)] transition-all duration-700"
+              style={{
+                width: claimed !== null ? `${Math.max(2, (claimed / FOUNDING_CAP) * 100)}%` : '2%',
+              }}
             />
           </div>
-          <p className="mt-3 text-center text-[13px] text-white/45">
-            Founding members keep the ⭐ badge on their profile — forever.
-          </p>
         </div>
 
-        {/* doors */}
-        <div className="mt-8 flex w-full flex-col gap-3">
+        {/* ── Doors ── */}
+        <div className="mt-8 flex w-full max-w-sm flex-col gap-2.5">
           <button
             onClick={() => openSheet('password', 'signup')}
-            className="w-full rounded-full bg-[linear-gradient(120deg,#F9E29A,#EFC95E,#DFAF37)] py-4 text-[16px] font-extrabold text-[#161310] shadow-[0_10px_36px_rgba(223,175,55,0.35)] transition active:translate-y-[2px]"
+            className="w-full rounded-full bg-[linear-gradient(120deg,#F9E29A,#EFC95E,#DFAF37)] py-3.5 text-[15px] font-extrabold text-[#161310] shadow-[0_10px_28px_rgba(201,162,75,0.45)] transition active:translate-y-[2px]"
           >
-            Claim your founding spot
+            Sign the register — join free
           </button>
           <button
             onClick={() => openSheet('password', 'signin')}
-            className="w-full rounded-full border border-white/15 bg-white/[0.06] py-4 text-[16px] font-bold text-white/90 transition hover:bg-white/10"
+            className="w-full rounded-full border border-ink-200 bg-paper-100 py-3.5 text-[15px] font-bold text-ink-900 transition hover:bg-paper-50"
           >
-            I have an account — Sign in
+            Sign in
           </button>
           <a
             href="https://play.crux8.app"
-            className="mt-1 text-center text-sm font-medium text-white/55 underline decoration-white/25 underline-offset-4 hover:text-white/80"
+            className="mt-1 text-sm font-medium text-ink-500 underline decoration-ink-200 underline-offset-4 hover:text-ink-900"
           >
-            New here? Take the 2-minute DNA quiz →
+            Or take the 2-minute DNA quiz first →
           </a>
         </div>
 
-        {/* pillars */}
-        <div className="mt-14 grid grid-cols-2 gap-3">
+        {/* ── Free, with an optional tip jar ── */}
+        <p className="mt-7 max-w-sm text-[13px] leading-relaxed text-ink-500">
+          Crux8 is completely free. If it helps you find your people, an optional
+          donation powers its continuous optimization.{' '}
+          <a
+            href={DONATE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold whitespace-nowrap text-[#8A6D2F] underline decoration-[#C9A24B] underline-offset-4 hover:text-ink-900"
+          >
+            Support Crux8 →
+          </a>
+        </p>
+
+        {/* ── Pillars ── */}
+        <div className="mt-12 grid w-full grid-cols-2 gap-3 text-left">
           {PILLARS.map(({ Icon, name, desc }) => (
-            <div key={name} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left">
-              <Icon width={22} height={22} className="text-[#EFC95E]" />
-              <h3 className="mt-2 text-sm font-semibold uppercase tracking-wider text-white/90">{name}</h3>
-              <p className="mt-1 text-xs leading-relaxed text-white/50">{desc}</p>
+            <div key={name} className="rounded-2xl border border-ink-100 bg-paper-100 p-4">
+              <Icon width={22} height={22} className="text-[#8A6D2F]" />
+              <h3 className="mt-2 text-sm font-semibold uppercase tracking-wider text-ink-900">{name}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-ink-500">{desc}</p>
             </div>
           ))}
         </div>
 
-        <footer className="mt-auto flex items-center justify-between pt-12 text-xs text-white/35">
+        <footer className="mt-auto flex w-full items-center justify-between pt-12 text-xs text-ink-400">
           <span>© 2026 Glomere Inc.</span>
           <span className="flex gap-4">
-            <Link to="/privacy" className="hover:text-white/70">Privacy</Link>
-            <Link to="/terms" className="hover:text-white/70">Terms</Link>
+            <Link to="/privacy" className="hover:text-ink-900">Privacy</Link>
+            <Link to="/terms" className="hover:text-ink-900">Terms</Link>
           </span>
         </footer>
       </div>

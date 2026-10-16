@@ -8,6 +8,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { AvatarCustomizer } from '@/components/ui/AvatarCustomizer';
 import { DEFAULT_AVATAR } from '@/lib/avatar';
 import { SessionCard } from '@/components/cards/SessionCard';
+import { OGBadge } from '@/components/OGBadge';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
 import { ProfileEditSheet } from '@/components/sheets/ProfileEditSheet';
 import { ArchetypeEmblem } from '@/components/ArchetypeEmblem';
@@ -168,8 +169,16 @@ export function Profile() {
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-semibold text-ink-900">{me.display_name}</h1>
             {typeof me.founding_no === 'number' && (
-              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-[linear-gradient(120deg,#F9E29A,#DFAF37)] px-2.5 py-0.5 text-[11px] font-bold text-[#161310]">
-                ⭐ Founding member #{me.founding_no}
+              <span className="mt-1.5 flex items-center gap-2">
+                <OGBadge size={40} />
+                <span className="leading-tight">
+                  <span className="block text-xs font-extrabold tracking-wide text-ink-900">
+                    OG · Founding member
+                  </span>
+                  <span className="block text-[11px] font-medium text-ink-500">
+                    #{me.founding_no} of the first 500
+                  </span>
+                </span>
               </span>
             )}
             {me.pronouns && <p className="text-sm text-ink-500">{me.pronouns}</p>}
