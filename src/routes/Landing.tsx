@@ -160,22 +160,17 @@ export function Landing() {
           </p>
         </div>
 
-        {/* ── Free, with an optional tip jar ── */}
-        <p className="mt-8 max-w-sm text-[13px] leading-relaxed text-ink-500">
-          Crux8 is completely free to start.
-        </p>
+        {/* ── Optional tip jar: just the button (Lucy 2026-10-16:
+            the explaining lines were too wordy) ── */}
         <a
           href={DONATE_URL}
           target="_blank"
           rel="noreferrer"
-          className="mt-3 inline-flex items-center gap-2 rounded-full border-2 border-[#C9A24B] bg-[#C9A24B]/10 px-6 py-3 text-[15px] font-extrabold text-ink-900 shadow-[0_8px_22px_rgba(201,162,75,0.30)] transition hover:bg-[#C9A24B]/20 active:translate-y-[1px]"
+          className="mt-8 inline-flex items-center gap-2 rounded-full border-2 border-[#C9A24B] bg-[#C9A24B]/10 px-6 py-3 text-[15px] font-extrabold text-ink-900 shadow-[0_8px_22px_rgba(201,162,75,0.30)] transition hover:bg-[#C9A24B]/20 active:translate-y-[1px]"
         >
           <span aria-hidden className="text-[16px]">❤️</span>
           Support Crux8
         </a>
-        <p className="mt-2.5 max-w-sm text-xs text-ink-400">
-          Optional — donations power Crux8's continuous optimization.
-        </p>
 
         {/* ── Pillars ── */}
         <div className="mt-12 grid w-full grid-cols-2 gap-3 text-left">
