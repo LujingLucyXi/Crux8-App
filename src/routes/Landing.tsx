@@ -121,7 +121,7 @@ export function Landing() {
             onClick={() => openSheet('password', 'signup')}
             className="w-full rounded-full bg-[linear-gradient(120deg,#F9E29A,#EFC95E,#DFAF37)] py-3.5 text-[15px] font-extrabold text-[#161310] shadow-[0_10px_28px_rgba(201,162,75,0.45)] transition active:translate-y-[2px]"
           >
-            Sign the register — join free
+            Claim your spot. Join FREE NOW!
           </button>
           <button
             onClick={() => openSheet('password', 'signin')}
