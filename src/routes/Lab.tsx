@@ -19,6 +19,8 @@ import { UNIQUE_LOGOS } from '@/components/lab/LogoUnique';
 import { CU_LOGOS } from '@/components/lab/LogoCU';
 import { ROPE_LOGOS } from '@/components/lab/LogoRope';
 import { CartoonAvatar } from '@/components/lab/CartoonAvatar';
+import { CartoonAvatar as ProdCartoonAvatar } from '@/components/ui/CartoonAvatar';
+import type { AvatarConfig } from '@/lib/avatar';
 import { avatarFromSeed } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
 
@@ -94,6 +96,32 @@ export function Lab() {
 
         <h1 className="text-2xl font-extrabold text-ink-900 tracking-tight">Design lab</h1>
         <p className="mt-1 text-sm text-ink-500">Tap around, then tell me which direction to ship.</p>
+
+        {/* ─────────── TEMP (2026-10-16): production avatar beanie check ─────────── */}
+        <SectionLabel>Avatar · beanie fix + polish (production)</SectionLabel>
+        <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
+          <p className="text-xs text-ink-500 mb-3">
+            Same hair, left without / right with the beanie. Hair now stays under the hat — long and bob
+            pour out below the brim, spikes flatten, the bun tucks in. Beanie has a pom + ribbed brim.
+          </p>
+          <div className="flex flex-col gap-3">
+            {([
+              { label: 'Spikes', cfg: { skin: 'sand', hair: 'mohawk', hairColor: 'toxic', eyes: 'sharp', backdrop: 'teal' } },
+              { label: 'Bob', cfg: { skin: 'honey', hair: 'bob', hairColor: 'jet', eyes: 'sharp', backdrop: 'ink' } },
+              { label: 'Bun', cfg: { skin: 'clay', hair: 'topknot', hairColor: 'cherry', eyes: 'stoked', backdrop: 'gold' } },
+              { label: 'Buzz', cfg: { skin: 'porcelain', hair: 'buzz', hairColor: 'bleach', eyes: 'deadpan', backdrop: 'sky' } },
+              { label: 'Long', cfg: { skin: 'umber', hair: 'wavy', hairColor: 'hazard', eyes: 'wink', backdrop: 'coral' } },
+              { label: 'Bald', cfg: { skin: 'espresso', hair: 'bald', hairColor: 'jet', eyes: 'sharp', backdrop: 'slate' } },
+            ] as { label: string; cfg: Omit<AvatarConfig, 'accessory'> }[]).map(({ label, cfg }) => (
+              <div key={label} className="flex items-center gap-4">
+                <span className="w-12 shrink-0 text-xs font-bold text-ink-700">{label}</span>
+                <ProdCartoonAvatar config={{ ...cfg, accessory: 'none' }} size={72} />
+                <ProdCartoonAvatar config={{ ...cfg, accessory: 'beanie' }} size={72} />
+                <ProdCartoonAvatar config={{ ...cfg, accessory: 'beanie' }} size={30} />
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* ─────────── Name showdown: Crux-Up! vs Go-Crux ─────────── */}
         <SectionLabel>Name · Crux-Up! vs Go-Crux</SectionLabel>

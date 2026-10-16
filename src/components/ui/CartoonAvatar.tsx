@@ -88,6 +88,15 @@ export function CartoonAvatar({
   })();
 
   const hair = (() => {
+    // Under a beanie (Lucy 2026-10-16: "the beanie hides any hair
+    // right now" — it did: hair wasn't rendered at all). Hair now
+    // renders in every case and the beanie sits ON it: long/bob sides
+    // pour out below the brim. Two adaptations: spikes flatten to
+    // their buzz base (tips would poke through the knit), and a bun
+    // is tied under the hat (top circle suppressed).
+    if (beanie && bucket === 'spikes') {
+      return <path d="M28 44 Q30 26 50 26 Q70 26 72 44 Q60 36 50 36 Q40 36 28 44 Z" fill={hairCol} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />;
+    }
     switch (bucket) {
       case 'bald':
         return null;
@@ -101,7 +110,7 @@ export function CartoonAvatar({
       case 'bun':
         return (
           <g fill={hairCol} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round">
-            <circle cx="50" cy="20" r="8" />
+            {!beanie && <circle cx="50" cy="20" r="8" />}
             <path d="M28 46 Q28 26 50 26 Q72 26 72 46 Q60 36 50 36 Q40 36 28 46 Z" />
           </g>
         );
@@ -126,7 +135,21 @@ export function CartoonAvatar({
       case 'bandana':
         return <path d="M30 42 Q50 34 70 42 L70 48 Q50 42 30 48 Z" fill="#FF6B6B" stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />;
       case 'beanie':
-        return <path d="M28 42 Q30 24 50 24 Q70 24 72 42 Z" fill="#7C3AED" stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />;
+        // Knit beanie, polished (2026-10-16): cream pom, a ribbed
+        // darker brim band along the bottom edge, three rib ticks.
+        // Drawn over the hair — hair below the brim stays visible.
+        return (
+          <g strokeLinejoin="round">
+            <circle cx="50" cy="19" r="5.5" fill="#F3EAD8" stroke={OUTLINE} strokeWidth={SW} />
+            <path d="M28 42 Q30 24 50 24 Q70 24 72 42 Z" fill="#7C3AED" stroke={OUTLINE} strokeWidth={SW} />
+            <path d="M28.4 37.6 Q50 35.4 71.6 37.6 L72 42 L28 42 Z" fill="#5B21B6" />
+            <g stroke="#5B21B6" strokeWidth="2" strokeLinecap="round" opacity="0.65">
+              <path d="M39 36.8 L39.4 40.6" />
+              <path d="M50 35.9 L50 40.4" />
+              <path d="M61 36.8 L60.6 40.6" />
+            </g>
+          </g>
+        );
       case 'shades':
         // Drawn after the eyes, so it sits over them like real sunglasses.
         return (
@@ -147,13 +170,19 @@ export function CartoonAvatar({
       <circle cx="50" cy="50" r="48" fill="none" stroke="#C9992F" strokeWidth="1.5" />
       <circle cx="50" cy="50" r="43" fill={bg} stroke={OUTLINE} strokeWidth="2" />
 
-      {!beanie && hair}
+      {hair}
 
       <path d="M28 52 Q28 34 50 34 Q72 34 72 52 Q72 72 50 74 Q28 72 28 52 Z"
         fill={skin} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />
 
-      <ellipse cx="36" cy="60" rx="4" ry="2.6" fill="#FF6B6B" opacity="0.45" />
-      <ellipse cx="64" cy="60" rx="4" ry="2.6" fill="#FF6B6B" opacity="0.45" />
+      {/* soft gloss on the backdrop, upper-left (collectible feel) */}
+      <path d="M19 31 A35 35 0 0 1 33 18" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round" opacity="0.3" />
+
+      <ellipse cx="36" cy="60" rx="4" ry="2.6" fill="#FF6B6B" opacity="0.4" />
+      <ellipse cx="64" cy="60" rx="4" ry="2.6" fill="#FF6B6B" opacity="0.4" />
+
+      {/* a whisper of a nose — grounds the face (and the nose ring) */}
+      <path d="M50 56 q2.6 3.2 0 5.4" fill="none" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.5" />
 
       {eyes}
       {accessory}
