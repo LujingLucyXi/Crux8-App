@@ -170,7 +170,7 @@ export function Profile() {
             <h1 className="text-xl font-semibold text-ink-900">{me.display_name}</h1>
             {typeof me.founding_no === 'number' && (
               <span className="mt-1.5 flex items-center gap-2">
-                <OGBadge size={40} />
+                <OGBadge size={40} variant="neon" />
                 <span className="leading-tight">
                   <span className="block text-xs font-extrabold tracking-wide text-ink-900">
                     OG · Founding member

@@ -81,16 +81,16 @@ export function Landing() {
           Find your people. Climb stronger.
         </p>
         <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-ink-500">
-          Crux8 matches you with climbers at your gym, your grade, your hours —
-          sessions, belay partners, and a crew that actually shows up.
+          Crux8 finds you partners for the gym, the crag, and the trail — a crew
+          that actually shows up.
         </p>
 
         {/* ── The Founding Register ── */}
         <div className="mt-10 w-full rounded-[26px] bg-[#161310] px-6 py-7 text-[#F7F3EA] shadow-[0_24px_48px_-20px_rgba(22,19,16,0.6)]">
           <div className="flex justify-center">
-            <OGBadge size={92} />
+            <OGBadge size={92} variant="neon" />
           </div>
-          <p className="mt-4 text-[12px] font-extrabold tracking-[0.3em] text-[#EFC95E]">
+          <p className="mt-4 text-[12px] font-extrabold tracking-[0.3em] text-[#B4FF3A]">
             THE FOUNDING REGISTER
           </p>
           <p className="mx-auto mt-2.5 max-w-xs text-sm leading-relaxed text-white/65">
@@ -99,7 +99,7 @@ export function Landing() {
           </p>
           <div className="mt-5 flex items-baseline justify-between text-[12px] font-bold tracking-[0.14em]">
             <span className="text-white/75">IN THE REGISTER</span>
-            <span className="text-[#EFC95E]">
+            <span className="text-[#B4FF3A]">
               {claimed !== null
                 ? `${String(claimed).padStart(3, '0')} / ${FOUNDING_CAP}`
                 : `0 / ${FOUNDING_CAP}`}
@@ -107,7 +107,7 @@ export function Landing() {
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-[linear-gradient(90deg,#C9A24B,#F9E29A)] transition-all duration-700"
+              className="h-full rounded-full bg-[linear-gradient(90deg,#C9A24B,#B4FF3A)] transition-all duration-700"
               style={{
                 width: claimed !== null ? `${Math.max(2, (claimed / FOUNDING_CAP) * 100)}%` : '2%',
               }}

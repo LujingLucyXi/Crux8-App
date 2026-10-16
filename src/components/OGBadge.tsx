@@ -6,7 +6,7 @@
  * Variants exist so the colorway can change with one word: onyx
  * (default, black + gold), violet (the app's tier enamel), gold.
  */
-export type OGBadgeVariant = 'onyx' | 'violet' | 'gold';
+export type OGBadgeVariant = 'onyx' | 'violet' | 'gold' | 'neon';
 
 const VARIANTS: Record<
   OGBadgeVariant,
@@ -15,6 +15,7 @@ const VARIANTS: Record<
   onyx: { field: '#161412', rim: '#C9A24B', letters: 'url(#og-letters-gold)', diamond: '#C9A24B' },
   violet: { field: 'url(#og-field-violet)', rim: '#E9E4F5', letters: '#FFFFFF', diamond: '#F9E29A' },
   gold: { field: 'url(#og-field-gold)', rim: '#8A6D2F', letters: '#161310', diamond: '#161310' },
+  neon: { field: '#0C0F0A', rim: '#B4FF3A', letters: '#B4FF3A', diamond: '#B4FF3A' },
 };
 
 export function OGBadge({
@@ -30,7 +31,13 @@ export function OGBadge({
   return (
     <span
       className="relative inline-block shrink-0 overflow-hidden rounded-full shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
-      style={{ width: size, height: size }}
+      style={{
+        width: size,
+        height: size,
+        ...(variant === 'neon'
+          ? { filter: 'drop-shadow(0 0 10px rgba(180,255,58,0.45))' }
+          : {}),
+      }}
       role="img"
       aria-label="OG — Founding Member"
     >
