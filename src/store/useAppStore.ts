@@ -148,6 +148,7 @@ interface Store {
   mysteryMemberUntil: string | null;    // ISO expiry of the $15/mo Mystery Crew pass (null = not a member)
   cruxmates: string[];
   collectedCards: CollectedCard[];              // DNA cards collected from people I've connected with
+  sessionCardsCollected: string[];              // session ids whose co-participants I've already collected cards from (finish sweep runs once per session)
   lastCollectedCard: CollectedCard | null;      // most recent collection (drives the reveal UI)
   chats: Record<string, ChatMessage[]>;                 // 1:1 DMs, keyed by userId
   sessionChats: Record<string, SessionChat>;            // group chats, keyed by session/event/call id
@@ -343,6 +344,10 @@ interface Store {
    * the reveal moment, the requester gets the card quietly).
    */
   collectCard: (userId: string, source: 'cruxmate' | 'session', opts?: { silent?: boolean }) => CollectedCard | null;
+  /** Collect cards from everyone I climbed a FINISHED session with.
+   *  Idempotent per session (sessionCardsCollected), silent by design —
+   *  the finish flow has exactly one card surface (the summary card). */
+  collectSessionCards: (sessionId: string) => void;
   clearLastCollectedCard: () => void;
   removeCruxMate: (userId: string) => void;
 
@@ -610,6 +615,7 @@ export const useAppStore = create<Store>()(
       mysteryMemberUntil: null,
       cruxmates: [],
       collectedCards: [],
+      sessionCardsCollected: [],
       lastCollectedCard: null,
       chats: {},
       sessionChats: {},
@@ -743,6 +749,16 @@ export const useAppStore = create<Store>()(
             a.starts_at.localeCompare(b.starts_at),
           );
           set({ sessions });
+          // Finished-session card sweep: covers finishes stamped by
+          // OTHER devices (the host ended it elsewhere) — my finishSession
+          // only fires when this device taps End. Idempotent per session.
+          if (meId) {
+            for (const s of sessions) {
+              if (s.participant_ids.includes(meId)) {
+                get().collectSessionCards(s.id);
+              }
+            }
+          }
           await get().ensureDirectoryProfiles(
             sessions.flatMap((s) => [s.host_id, ...s.participant_ids]),
           );
@@ -866,6 +882,7 @@ export const useAppStore = create<Store>()(
           chatReads: {},
           pairRequests: [],
           collectedCards: [],
+          sessionCardsCollected: [],
           lastCollectedCard: null,
           verifications: initialVerifications,
           gearChecklists: {},
@@ -1433,6 +1450,13 @@ export const useAppStore = create<Store>()(
         const others = present.filter((id) => id !== me.id);
         for (const otherId of others) {
           get().collectCard(otherId, 'session');
+        }
+        // The finish sweep must not count this climb twice: collection
+        // for a call-born session already happened here, at the start.
+        if (!get().sessionCardsCollected.includes(session.id)) {
+          set({
+            sessionCardsCollected: [...get().sessionCardsCollected, session.id],
+          });
         }
         return session.id;
       },
@@ -2506,6 +2530,31 @@ export const useAppStore = create<Store>()(
           ),
         });
         void dbSetSessionLifecycle(sessionId, { finished_at: stamp });
+        // Finishing a session collects the crew's cards (direct sessions
+        // included — the call-start path was previously the only one).
+        get().collectSessionCards(sessionId);
+      },
+
+      collectSessionCards: (sessionId) => {
+        const me = get().me;
+        if (!me) return;
+        if (get().sessionCardsCollected.includes(sessionId)) return;
+        const s = get().sessions.find((x) => x.id === sessionId);
+        if (!s || !s.participant_ids.includes(me.id)) return;
+        const lifecycle = get().sessionLifecycle[sessionId];
+        const started = s.started_at ?? lifecycle?.started_at;
+        const finished = s.finished_at ?? lifecycle?.finished_at;
+        if (!started || !finished) return;
+        // Mark first: the sweep in fetchSessions re-runs often, and a
+        // session must only ever add ONE "sessions together" tick.
+        set({
+          sessionCardsCollected: [...get().sessionCardsCollected, sessionId],
+        });
+        for (const otherId of s.participant_ids) {
+          if (otherId !== me.id) {
+            get().collectCard(otherId, 'session', { silent: true });
+          }
+        }
       },
 
       togglePartnerProp: (sessionId, partnerId, key) => {
@@ -2636,7 +2685,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 22,
+      version: 23,
       /**
        * v16 → v17: sessions + climb calls move to real Supabase tables.
        *   Drop persisted mock sessions/calls (and their chats/pairings/
@@ -2655,6 +2704,11 @@ export const useAppStore = create<Store>()(
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 23) {
+          // v22 → v23: finished-session card collection guard set.
+          if (!Array.isArray(s.sessionCardsCollected)) s.sessionCardsCollected = [];
+          if (!Array.isArray(s.dismissedFollowers)) s.dismissedFollowers = [];
+        }
         if (version < 22) {
           // v21 → v22: manual session lifecycle (start/finish stamps).
           if (!s.sessionLifecycle || typeof s.sessionLifecycle !== 'object') {
