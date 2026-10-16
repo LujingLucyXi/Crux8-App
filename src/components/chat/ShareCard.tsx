@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useAppStore } from '@/store/useAppStore';
 import type { ClimbCall, Session } from '@/seed/types';
@@ -6,7 +6,31 @@ import { formatSessionWhen } from '@/lib/date';
 import { hasStarted, sessionPhase } from '@/lib/sessionPhase';
 import { ClimbCallDetailSheet } from '@/components/sheets/ClimbCallDetailSheet';
 import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
+import { SessionSummarySheet } from '@/components/sheets/SessionSummarySheet';
+import { SessionCardArtwork } from '@/components/SessionCardArtwork';
+import { ShareableCardFrame } from '@/components/ShareableCardFrame';
+import {
+  buildSessionCardData,
+  vibeLabelFor,
+  type CardParticipant,
+} from '@/lib/cardData';
+import { resolveUser } from '@/lib/resolveUser';
+import { normalizeInviteCode, isValidInviteCode } from '@/lib/inviteCode';
 import { cn } from '@/lib/utils';
+
+const FELT_LABELS: Record<number, string> = {
+  1: 'Rough',
+  2: 'Meh',
+  3: 'Good',
+  4: 'Great',
+  5: 'Best ever',
+};
+const DURATION_LABELS: Record<string, string> = {
+  lt1h: 'Under 1h',
+  '1to2h': '1–2h',
+  '2to3h': '2–3h',
+  gt3h: '3h+',
+};
 
 /**
  * In-app shares (crew chats, session chats, invite DMs) post a message
@@ -33,10 +57,16 @@ const CALL_CAT_LABEL: Record<string, string> = {
 export function ShareCard({ call, session }: { call?: ClimbCall; session?: Session }) {
   const me = useAppStore((s) => s.me);
   const gyms = useAppStore((s) => s.gyms);
+  const users = useAppStore((s) => s.users);
+  const directory = useAppStore((s) => s.directory);
+  const collectedCards = useAppStore((s) => s.collectedCards);
+  const recaps = useAppStore((s) => s.recaps);
   const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
   const requestPair = useAppStore((s) => s.requestPair);
   const rsvp = useAppStore((s) => s.rsvp);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const artRef = useRef<HTMLDivElement | null>(null);
 
   if (!me) return null;
 
@@ -112,6 +142,93 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
       session.requires_attestation ||
       session.category === 'top_rope' ||
       session.category === 'lead';
+
+    // A finished session shared to a crew renders the fun part, not a
+    // link: the v20 stamped-postmark summary card itself, built per
+    // viewer from their own recap (same builder as the summary sheet).
+    // Tapping it opens the full summary sheet. (Lucy 2026-10-15.)
+    if (done) {
+      const recap = recaps[session.id];
+      const cardParticipants: CardParticipant[] = [
+        {
+          id: me.id,
+          displayName: me.display_name,
+          photoUrl: me.photo_url ?? null,
+          avatarConfig: me.avatar,
+          archetypeId:
+            collectedCards.find((c) => c.user_id === me.id)?.archetype_id ??
+            me.quiz_result_type ??
+            null,
+        },
+        ...session.participant_ids
+          .filter((id) => id !== me.id)
+          .map((id): CardParticipant => {
+            const u = resolveUser(id, me, users, directory);
+            const npc = users.find((x) => x.id === id) as
+              | { quiz_result_type?: string }
+              | undefined;
+            return {
+              id,
+              displayName: u?.display_name ?? 'Cruxmate',
+              photoUrl: u?.photo_url ?? null,
+              avatarConfig: u?.avatar,
+              archetypeId:
+                collectedCards.find((c) => c.user_id === id)?.archetype_id ??
+                npc?.quiz_result_type ??
+                null,
+            };
+          }),
+      ];
+      const inviteCode =
+        me.invite_code && isValidInviteCode(normalizeInviteCode(me.invite_code))
+          ? normalizeInviteCode(me.invite_code)
+          : null;
+      const cardData = buildSessionCardData({
+        sessionTitle: session.title,
+        startsAt: session.starts_at,
+        area: session.area,
+        ownerId: me.id,
+        participants: cardParticipants,
+        recap: {
+          durationLabel: recap?.duration_bucket
+            ? DURATION_LABELS[recap.duration_bucket]
+            : undefined,
+          feltLabel: recap?.felt ? FELT_LABELS[recap.felt] : undefined,
+          vibeLabel: vibeLabelFor(recap?.vibe_pick ?? session.vibe),
+          note: recap?.note,
+        },
+        gym: gym
+          ? {
+              id: gym.id,
+              name: gym.name,
+              shortName: gym.short_name,
+              city: gym.city,
+              lat: (gym as { lat?: number }).lat,
+              lng: (gym as { lng?: number }).lng,
+            }
+          : null,
+        inviteCode,
+      });
+      return (
+        <>
+          <button
+            onClick={() => setSummaryOpen(true)}
+            className="block w-[270px] max-w-full text-left"
+            aria-label="View session card"
+          >
+            <ShareableCardFrame nodeRef={artRef}>
+              <SessionCardArtwork data={cardData} />
+            </ShareableCardFrame>
+          </button>
+          <SessionSummarySheet
+            session={summaryOpen ? session : null}
+            open={summaryOpen}
+            onOpenChange={setSummaryOpen}
+          />
+        </>
+      );
+    }
+
     return (
       <>
         {shell(
@@ -122,19 +239,9 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
               {place} · {formatSessionWhen(session.starts_at)}
             </p>
             <p className="text-xs text-ink-500">
-              {session.participant_ids.length} {done ? 'climbed' : 'climbing'}
+              {session.participant_ids.length} climbing
             </p>
-            {done ? (
-              <>
-                <p className="mt-1.5 text-xs font-semibold text-brand-600">🎉 Session completed</p>
-                <button
-                  onClick={() => setDetailOpen(true)}
-                  className="mt-2.5 w-full rounded-xl border border-ink-100 py-2 text-sm font-semibold text-ink-700"
-                >
-                  View session →
-                </button>
-              </>
-            ) : joined ? (
+            {joined ? (
               <button
                 onClick={() => setDetailOpen(true)}
                 className="mt-2.5 w-full rounded-xl border border-ink-100 py-2 text-sm font-semibold text-ink-700"
