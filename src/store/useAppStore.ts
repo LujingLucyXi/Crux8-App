@@ -263,6 +263,10 @@ interface Store {
   >;
   signInWithPassword: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   resetPassword: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** Resend the signup confirmation email. Retrying signUp itself never
+   *  resends (Supabase silently returns the existing user), which left
+   *  unconfirmed accounts in a dead loop (Lucy 2026-10-16). */
+  resendConfirmation: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   /**
    * Guest join (front door, 2026-10-14): Supabase anonymous sign-in with a
    * name only. The guest gets a real UID, joins the scanned session, and
@@ -1021,6 +1025,21 @@ export const useAppStore = create<Store>()(
         set({ me: profileRowToProfile(user.id, user.email ?? normalizedEmail, row) });
         get().ensureCruxyThread();
         return { ok: true as const, needsConfirmation: false };
+      },
+
+      /** Resend the signup confirmation email for an unconfirmed account. */
+      resendConfirmation: async (email) => {
+        const { error } = await supabase.auth.resend({
+          type: 'signup',
+          email: email.trim().toLowerCase(),
+        });
+        if (error) {
+          return {
+            ok: false as const,
+            error: passwordErrorMessage(error, 'Could not resend the email — please try again.'),
+          };
+        }
+        return { ok: true as const };
       },
 
       /** Password sign-in for an existing account. */

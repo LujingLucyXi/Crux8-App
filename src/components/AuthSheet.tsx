@@ -34,6 +34,7 @@ export function AuthSheet({
   const sendOtp = useAppStore((s) => s.sendOtp);
   const verifyOtp = useAppStore((s) => s.verifyOtp);
   const signUpWithPassword = useAppStore((s) => s.signUpWithPassword);
+  const resendConfirmation = useAppStore((s) => s.resendConfirmation);
   const signInWithPassword = useAppStore((s) => s.signInWithPassword);
   const resetPassword = useAppStore((s) => s.resetPassword);
 
@@ -52,6 +53,11 @@ export function AuthSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  // Unconfirmed-account dead end: offer a real resend (retrying signup
+  // itself never sends another email).
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
 
   // (Re)open → start on the caller's tab/mode with a clean form.
   useEffect(() => {
@@ -128,12 +134,18 @@ export function AuthSheet({
     setBusy(true);
     setError('');
     setNotice('');
+    setUnconfirmedEmail(null);
+    setResendSent(false);
     const res =
       pwMode === 'signup'
         ? await signUpWithPassword(normalized, password)
         : await signInWithPassword(normalized, password);
     setBusy(false);
     if (!res.ok) {
+      if ('code' in res && res.code === 'already_registered_unconfirmed') {
+        setUnconfirmedEmail(normalized);
+        setResendSent(false);
+      }
       // Already-registered email: password sign-in can be a dead end here
       // (accounts created via email code, e.g. quiz claim, have no password),
       // so route them to the Email code tab with the address prefilled —
@@ -194,6 +206,7 @@ export function AuthSheet({
                 setTab(t);
                 setError('');
                 setNotice('');
+                setUnconfirmedEmail(null);
               }}
               className={cn(
                 'rounded-lg py-2 transition-colors',
@@ -207,6 +220,27 @@ export function AuthSheet({
 
         {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
         {notice ? <p className="mt-3 text-sm font-medium text-emerald-700">{notice}</p> : null}
+        {unconfirmedEmail && tab === 'password' ? (
+          <button
+            type="button"
+            disabled={resendBusy || resendSent}
+            onClick={async () => {
+              setResendBusy(true);
+              const r = await resendConfirmation(unconfirmedEmail);
+              setResendBusy(false);
+              if (r.ok) {
+                setResendSent(true);
+                setError('');
+                setNotice('Confirmation email sent — check your inbox, and the spam folder too.');
+              } else {
+                setError(r.error);
+              }
+            }}
+            className="mt-2 text-sm font-semibold text-teal-600 underline underline-offset-2 disabled:opacity-60"
+          >
+            {resendSent ? 'Sent ✓' : resendBusy ? 'Sending…' : 'Resend confirmation email'}
+          </button>
+        ) : null}
 
         {tab === 'code' ? (
           step === 'email' ? (
