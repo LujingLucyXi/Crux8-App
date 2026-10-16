@@ -18,6 +18,7 @@ import { GuestClaimForm } from '@/components/GuestClaimForm';
 import { LogSendSheet } from '@/components/sheets/LogSendSheet';
 import { EmailVerifySheet } from '@/components/sheets/EmailVerifySheet';
 import { hasFreshPendingIntent } from '@/lib/pendingIntent';
+import { BoltMark } from '@/components/OGBadge';
 import { levelFromXp } from '@/lib/rewards';
 import { computeChallenges, daysLeftInWeek } from '@/lib/challenges';
 import { computeBadgeProgress, nextUpBadges } from '@/lib/badges';
@@ -339,6 +340,46 @@ export function Home() {
           🔥 Log a send
         </button>
       </header>
+
+      {/* ── Climber DNA quiz entry (Lucy 2026-10-16: "quiz entry
+          should be electrifying, and on home page, if not done
+          yet") — volt-on-black hero card with the jittering bolt and
+          a light sweep; it retires itself once a DNA card is claimed
+          (quiz_result_type lands via the play.crux8.app bridge). ── */}
+      {!me.isGuest && !me.quiz_result_type && (
+        <a
+          href="https://play.crux8.app"
+          className="relative mt-4 block overflow-hidden rounded-3xl bg-[#101010] px-5 py-4 shadow-[0_16px_36px_-16px_rgba(12,15,10,0.7)]"
+        >
+          <span
+            aria-hidden
+            className="absolute inset-0 bg-[radial-gradient(120%_140%_at_85%_0%,rgba(180,255,58,0.22),transparent_55%)]"
+          />
+          <span
+            aria-hidden
+            className="og-shine-bar pointer-events-none absolute inset-y-0 left-0 w-[36%] bg-[linear-gradient(100deg,transparent,rgba(255,255,255,0.13),transparent)]"
+          />
+          <span className="relative flex items-center gap-4">
+            <span className="bolt-jitter inline-block shrink-0">
+              <BoltMark size={40} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[10px] font-extrabold tracking-[0.3em] text-[#B4FF3A]">
+                THE CLIMBER DNA QUIZ
+              </span>
+              <span className="mt-1 block text-[17px] font-extrabold leading-snug text-white">
+                Electrify your climb. Find your DNA.
+              </span>
+              <span className="mt-0.5 block text-[13px] leading-snug text-white/55">
+                2 minutes → your archetype card + your house.
+              </span>
+            </span>
+            <span className="shrink-0 rounded-full bg-[#B4FF3A] px-3.5 py-2 text-xs font-extrabold text-[#0C0F0A]">
+              Play →
+            </span>
+          </span>
+        </a>
+      )}
 
       {/* ── Profile nudge (soft orientation) ── */}
       {showProfileNudge && (

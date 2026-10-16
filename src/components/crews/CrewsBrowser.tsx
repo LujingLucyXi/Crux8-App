@@ -39,9 +39,20 @@ export function CrewsBrowser() {
 
   return (
     <div>
-      <div className="relative mb-3">
-        <Search width={16} height={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search crews" className="pl-9" />
+      <div className="mb-3 flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search width={16} height={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-300" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search crews" className="pl-9" />
+        </div>
+        {/* Start-a-crew used to exist ONLY in this browser's empty
+            state (Lucy 2026-10-16: "people should be able to start a
+            crew") — now it's a permanent header action. */}
+        <button
+          onClick={() => setCrewOpen(true)}
+          className="flex shrink-0 items-center gap-1 rounded-full bg-brand-600 px-3.5 py-2 text-xs font-extrabold text-[#161310]"
+        >
+          <Plus width={14} height={14} /> Start a crew
+        </button>
       </div>
 
       <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 -mx-4 px-4">

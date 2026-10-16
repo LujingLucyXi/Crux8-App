@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChatBubble, Community } from 'iconoir-react';
+import { ChatBubble, Community, Plus } from 'iconoir-react';
+import { NewCrewSheet } from '@/components/sheets/NewCrewSheet';
 import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { useAppStore, dmKey, scKey } from '@/store/useAppStore';
 import { InvitesSection } from '@/components/chat/InvitesSection';
@@ -11,6 +12,7 @@ import type { AvatarConfig } from '@/lib/avatar';
 
 export function Chat() {
   const nav = useNavigate();
+  const [crewOpen, setCrewOpen] = useState(false);
   const cruxmates = useAppStore((s) => s.cruxmates);
   const messageRequests = useAppStore((s) => s.messageRequests);
   const fetchMessageRequests = useAppStore((s) => s.fetchMessageRequests);
@@ -63,6 +65,13 @@ export function Chat() {
         <p className="mt-4 text-sm text-ink-500 max-w-xs">
           RSVP to a session or add a CruxMate to start chatting.
         </p>
+        <button
+          onClick={() => setCrewOpen(true)}
+          className="mt-5 flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-2.5 text-sm font-extrabold text-[#161310]"
+        >
+          <Plus width={15} height={15} /> Start a crew
+        </button>
+        <NewCrewSheet open={crewOpen} onOpenChange={setCrewOpen} />
       </div>
     );
   }
@@ -138,7 +147,18 @@ export function Chat() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-ink-900 mb-4">Chats</h1>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold text-ink-900">Chats</h1>
+        {/* Crew chats live here, so crew creation does too (Lucy
+            2026-10-16: "people should be able to start a crew"). */}
+        <button
+          onClick={() => setCrewOpen(true)}
+          className="flex shrink-0 items-center gap-1 rounded-full bg-brand-600 px-3.5 py-2 text-xs font-extrabold text-[#161310]"
+        >
+          <Plus width={14} height={14} /> Start a crew
+        </button>
+      </div>
+      <NewCrewSheet open={crewOpen} onOpenChange={setCrewOpen} />
 
       {/* Invite inbox — accept / deny, or ignore until the climb ends */}
       <InvitesSection />
