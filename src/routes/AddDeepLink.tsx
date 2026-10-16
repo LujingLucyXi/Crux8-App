@@ -282,10 +282,6 @@ export function AddDeepLink() {
           <h2 className="mt-2 text-lg font-bold text-ink-900">
             You're in! {first} brought you here.
           </h2>
-          <p className="mt-1 text-sm text-ink-500">
-            Following is separate — follow {first} below if you'd like,
-            or just start exploring.
-          </p>
         </div>
       ) : (
         <p className="mt-8 text-center text-sm text-ink-500">
