@@ -130,7 +130,7 @@ export function PeopleFinder({
       </div>
       {/* Invite code entry (2026-10-15): type a code from someone's card → their add page */}
       <div className="mt-3 rounded-2xl border border-dashed border-ink-100 bg-paper-100 p-3">
-        <p className="text-xs font-semibold text-ink-700">Have an invite code?</p>
+        <p className="text-xs font-semibold text-ink-700">Add a cruxmate via their code</p>
         <div className="mt-2 flex gap-2">
           <Input
             value={codeInput}
