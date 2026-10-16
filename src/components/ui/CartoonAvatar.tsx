@@ -232,20 +232,24 @@ export function CartoonAvatar({
     // bottom edge gets a stroked line, like a real hairline.
     switch (config.hair) {
       case 'bangs':
+        // Deep fringe (pixel-checked against Lucy's screenshot: the
+        // first fringe sat too high, leaving a wide strip of bare
+        // forehead that read as a skin-colored band under the hair).
+        // The fringe now covers down to ~y47 — unmistakably hair.
         return (
           <g>
-            <path d="M29 30 Q50 25.5 71 30 L71 43.5 Q50 39 29 43.5 Z" fill={hairCol} />
-            <path d="M29 43.5 Q50 39 71 43.5" fill="none" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
+            <path d="M29 30 Q50 25.5 71 30 L71 47 Q50 42.5 29 47 Z" fill={hairCol} />
+            <path d="M29 47 Q50 42.5 71 47" fill="none" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
             <g stroke={OUTLINE} strokeWidth="1.8" strokeLinecap="round" opacity="0.35">
-              <path d="M40 40.2 L40 42.8" /><path d="M50 38.8 L50 41.6" /><path d="M60 40.2 L60 42.8" />
+              <path d="M40 43.5 L40 46.3" /><path d="M50 42.2 L50 45.2" /><path d="M60 43.5 L60 46.3" />
             </g>
           </g>
         );
       case 'curtain':
         return (
           <g>
-            <path d="M29 30 Q50 25.5 71 30 L71 39 Q64.5 46.5 56 44.5 Q51 43 50 37.5 Q49 43 44 44.5 Q35.5 46.5 29 39 Z" fill={hairCol} />
-            <path d="M29 39 Q35.5 46.5 44 44.5 Q49 43 50 37.5 Q51 43 56 44.5 Q64.5 46.5 71 39" fill="none" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
+            <path d="M29 30 Q50 25.5 71 30 L71 40 Q64.5 49.5 55.5 47 Q51 45.5 50 39.5 Q49 45.5 44.5 47 Q35.5 49.5 29 40 Z" fill={hairCol} />
+            <path d="M29 40 Q35.5 49.5 44.5 47 Q49 45.5 50 39.5 Q51 45.5 55.5 47 Q64.5 49.5 71 40" fill="none" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
           </g>
         );
       case 'straight':
