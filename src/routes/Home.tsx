@@ -19,6 +19,7 @@ import { LogSendSheet } from '@/components/sheets/LogSendSheet';
 import { EmailVerifySheet } from '@/components/sheets/EmailVerifySheet';
 import { hasFreshPendingIntent } from '@/lib/pendingIntent';
 import { BoltMark } from '@/components/OGBadge';
+import { ChargeChip, ChargeSheet } from '@/components/Charge';
 import { levelFromXp } from '@/lib/rewards';
 import { computeChallenges, daysLeftInWeek } from '@/lib/challenges';
 import { computeBadgeProgress, nextUpBadges } from '@/lib/badges';
@@ -74,6 +75,7 @@ export function Home() {
   const [mysteryOpen, setMysteryOpen] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [logSendOpen, setLogSendOpen] = useState(false);
+  const [chargeOpen, setChargeOpen] = useState(false);
   const [recapSession, setRecapSession] = useState<Session | null>(null);
 
   // Backfill: users who claimed DNA before house hangouts existed get auto-joined.
@@ -340,6 +342,14 @@ export function Home() {
           🔥 Log a send
         </button>
       </header>
+
+      {/* ── Charge: the bolt meter (Lucy 2026-10-16) ── */}
+      {!me.isGuest && (
+        <>
+          <ChargeChip onTap={() => setChargeOpen(true)} />
+          <ChargeSheet open={chargeOpen} onOpenChange={setChargeOpen} />
+        </>
+      )}
 
       {/* ── Climber DNA quiz entry (Lucy 2026-10-16: "quiz entry
           should be electrifying, and on home page, if not done

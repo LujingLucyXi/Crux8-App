@@ -54,6 +54,14 @@ import {
   LEVELUP_COLORS,
   CHECKIN_COLORS,
 } from '@/lib/rewards';
+import {
+  CHARGE_CAP,
+  CHARGE_POINTS,
+  decayLoss,
+  localDay,
+  type ChargeEntry,
+  type ChargeKind,
+} from '@/lib/charge';
 import { celebrate } from '@/store/useCelebration';
 import {
   fetchSessions as dbFetchSessions,
@@ -226,6 +234,13 @@ interface Store {
 
   // rewards / progression
   xp: number;
+  // Charge — the bolt meter (lib/charge.ts): rises with activity,
+  // fades when you go quiet. XP is forever; charge is right now.
+  charge: number;
+  chargeHistory: ChargeEntry[];
+  chargeLastActiveDay: string | null;
+  chargeSettledDay: string | null;
+  chargeLastLoss: { amount: number; day: string } | null;
   sends: SendLog[];
   lastCheckinDay: string | null;        // yyyy-mm-dd of last XP-earning check-in
 
@@ -341,6 +356,8 @@ interface Store {
   checkOut: () => void;
 
   addXp: (amount: number) => void;
+  addCharge: (kind: ChargeKind) => void;
+  settleChargeDaily: () => void;
   logSend: (input: { grade: string; discipline: SendLog['discipline']; style: SendLog['style']; note?: string }) => void;
 
   joinGroup: (groupId: string) => void;
@@ -707,6 +724,11 @@ export const useAppStore = create<Store>()(
       checkin: null,
       gymPresence: {},
       xp: 0,
+      charge: 0,
+      chargeHistory: [],
+      chargeLastActiveDay: null,
+      chargeSettledDay: null,
+      chargeLastLoss: null,
       sends: [],
       lastCheckinDay: null,
       filters: initialFilters,
@@ -972,6 +994,11 @@ export const useAppStore = create<Store>()(
           checkin: null,
           gymPresence: {},
           xp: 0,
+          charge: 0,
+          chargeHistory: [],
+          chargeLastActiveDay: null,
+          chargeSettledDay: null,
+          chargeLastLoss: null,
           sends: [],
           lastCheckinDay: null,
           filters: initialFilters,
@@ -1235,6 +1262,7 @@ export const useAppStore = create<Store>()(
             }
           });
           get().ensureCruxyThread();
+          get().settleChargeDaily();
         };
         const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
         const sessionUser = data.session?.user ?? null;
@@ -1276,7 +1304,9 @@ export const useAppStore = create<Store>()(
       completeOnboarding: (patch) => {
         const cur = get().me;
         if (!cur) return;
+        const firstTime = cur.onboarded !== true;
         set({ me: { ...cur, ...patch, onboarded: true } });
+        if (firstTime) get().addCharge('finish_onboarding');
         void persistProfilePatch(cur.id, { ...patch, onboarded: true });
       },
 
@@ -1429,6 +1459,11 @@ export const useAppStore = create<Store>()(
           checkin: null,
           gymPresence: {},
           xp: 0,
+          charge: 0,
+          chargeHistory: [],
+          chargeLastActiveDay: null,
+          chargeSettledDay: null,
+          chargeLastLoss: null,
           sends: [],
           lastCheckinDay: null,
           filters: initialFilters,
@@ -1462,7 +1497,10 @@ export const useAppStore = create<Store>()(
               : s
           ),
         });
-        if (!already) get().addXp(XP.rsvp);
+        if (!already) {
+          get().addXp(XP.rsvp);
+          get().addCharge('join_session');
+        }
         // Auto-create session chat for logistics
         const s = get().sessions.find((x) => x.id === sessionId);
         if (s) {
@@ -1583,6 +1621,7 @@ export const useAppStore = create<Store>()(
         // Errors throw to the caller (the sheet shows a toast).
         const created = await dbCreateSession({ ...session, host_id: me.id });        set({ sessions: [created, ...get().sessions] });
         void get().ensureDirectoryProfiles([created.host_id]);
+        get().addCharge('create_session');
         return created;
       },
 
@@ -1652,6 +1691,7 @@ export const useAppStore = create<Store>()(
             sessionCardsCollected: [...get().sessionCardsCollected, session.id],
           });
         }
+        get().addCharge('create_session');
         return session.id;
       },
 
@@ -1747,6 +1787,7 @@ export const useAppStore = create<Store>()(
         if (get().lastCheckinDay !== today) {
           set({ lastCheckinDay: today });
           get().addXp(XP.checkIn);
+          get().addCharge('check_in');
         }
       },
 
@@ -1774,6 +1815,37 @@ export const useAppStore = create<Store>()(
         }
       },
 
+      addCharge: (kind) => {
+        const me = get().me;
+        if (!me || me.isGuest) return;
+        const pts = CHARGE_POINTS[kind].points;
+        const today = localDay();
+        set({
+          charge: Math.min(CHARGE_CAP, get().charge + pts),
+          chargeHistory: [
+            { kind, points: pts, at: new Date().toISOString() },
+            ...get().chargeHistory,
+          ].slice(0, 30),
+          chargeLastActiveDay: today,
+        });
+      },
+
+      // Daily routine (boot / sign-in): absence fades the meter,
+      // showing up tops it up. Day-gated — same-day repeats no-op.
+      settleChargeDaily: () => {
+        const me = get().me;
+        if (!me || me.isGuest) return;
+        const today = localDay();
+        if (get().chargeSettledDay === today) return;
+        const loss = decayLoss(get().chargeLastActiveDay, today);
+        set({
+          charge: Math.max(0, get().charge - loss),
+          chargeSettledDay: today,
+          ...(loss > 0 ? { chargeLastLoss: { amount: loss, day: today } } : {}),
+        });
+        get().addCharge('daily_login');
+      },
+
       logSend: ({ grade, discipline, style, note }) => {
         const send: SendLog = { id: uid('send'), grade, discipline, style, note, at: new Date().toISOString() };
         set({ sends: [send, ...get().sends] });
@@ -1785,6 +1857,7 @@ export const useAppStore = create<Store>()(
           colors: SEND_COLORS,
         });
         get().addXp(totalSendXp(grade, style));
+        get().addCharge('log_send');
         get().checkBadges();
       },
 
@@ -2131,6 +2204,7 @@ export const useAppStore = create<Store>()(
           collectedCards: [card, ...get().collectedCards],
           ...(silent ? {} : { lastCollectedCard: card }),
         });
+        get().addCharge('new_cruxmate');
         return card;
       },
 
@@ -2721,6 +2795,7 @@ export const useAppStore = create<Store>()(
           colors: BRAND_COLORS,
         });
         get().addXp(XP.recap);
+        get().addCharge('post_recap');
         get().checkBadges();
       },
 
@@ -2830,6 +2905,7 @@ export const useAppStore = create<Store>()(
           ),
         });
         void dbSetSessionLifecycle(sessionId, { finished_at: stamp });
+        get().addCharge('complete_session');
         // Finishing a session collects the crew's cards (direct sessions
         // included — the call-start path was previously the only one).
         get().collectSessionCards(sessionId);
@@ -2985,7 +3061,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 23,
+      version: 24,
       /**
        * v16 → v17: sessions + climb calls move to real Supabase tables.
        *   Drop persisted mock sessions/calls (and their chats/pairings/
@@ -3004,6 +3080,15 @@ export const useAppStore = create<Store>()(
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 24) {
+          // v23 → v24: Charge (the bolt meter) arrives. Starts at 0 —
+          // the first settle pays out the daily-login bonus.
+          if (typeof s.charge !== 'number') s.charge = 0;
+          if (!Array.isArray(s.chargeHistory)) s.chargeHistory = [];
+          if (!('chargeLastActiveDay' in s)) s.chargeLastActiveDay = null;
+          if (!('chargeSettledDay' in s)) s.chargeSettledDay = null;
+          if (!('chargeLastLoss' in s)) s.chargeLastLoss = null;
+        }
         if (version < 23) {
           // v22 → v23: finished-session card collection guard set.
           if (!Array.isArray(s.sessionCardsCollected)) s.sessionCardsCollected = [];

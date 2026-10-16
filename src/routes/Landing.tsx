@@ -62,10 +62,17 @@ export function Landing() {
   return (
     <div className="min-h-screen bg-paper-50 text-ink-900">
       <div className="mx-auto flex min-h-screen w-full max-w-[520px] flex-col items-center px-6 py-10 text-center">
-        {/* ── The sign: smaller, and it sways like a hanging sign
-            instead of coin-flipping (lean pass, Lucy 2026-10-16) ── */}
-        <div className="crux-sign-sway flex h-[104px] w-[104px] items-center justify-center rounded-full border-[3px] border-[#C9A24B] bg-paper-100 shadow-[0_12px_26px_-12px_rgba(138,109,47,0.5),inset_0_0_0_4px_#F7F3EA,inset_0_0_0_6px_rgba(201,162,75,0.5)]">
-          <Logo size={66} />
+        {/* ── The sign: coin-spinning slowly again, glow restored
+            (Lucy 2026-10-16: "a bit more visual, like before but
+            spins slower") ── */}
+        <div className="relative" style={{ perspective: 700 }}>
+          <div
+            aria-hidden
+            className="absolute inset-0 scale-125 rounded-full bg-[radial-gradient(circle,rgba(201,162,75,0.32),transparent_65%)]"
+          />
+          <div className="crux-sign-spin relative flex h-[124px] w-[124px] items-center justify-center rounded-full border-[3px] border-[#C9A24B] bg-paper-100 shadow-[0_16px_32px_-12px_rgba(138,109,47,0.55),inset_0_0_0_5px_#F7F3EA,inset_0_0_0_7px_rgba(201,162,75,0.5)]">
+            <Logo size={80} />
+          </div>
         </div>
         <h1 className="mt-5 text-[32px] font-extrabold tracking-tight">CRUX8</h1>
         <p className="mt-1.5 text-[11px] font-semibold tracking-[0.28em] text-[#8A6D2F]">

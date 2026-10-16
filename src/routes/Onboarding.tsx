@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { EyeClosed } from 'iconoir-react';
@@ -8,6 +8,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { AvatarCustomizer } from '@/components/ui/AvatarCustomizer';
 import { avatarFromSeed, type AvatarConfig } from '@/lib/avatar';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
+import { AuthSheet } from '@/components/AuthSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
@@ -168,52 +169,68 @@ export function Onboarding() {
     }
   }, [me?.id]);
 
-  // Eject ONLY on a genuinely dead session (Lucy 2026-10-16, third
-  // report of the flow "jumping away after ~2 sec" — the 1.2s
-  // me-null grace kept expiring under real session churn: boot
-  // reconcile, token refresh, a session revoked on another device).
-  // The decision now reads the Supabase session itself after a grace
-  // window: a live session means WAIT for the profile, never bounce.
-  const lastMeId = useRef<string | null>(null);
-  if (me?.id) lastMeId.current = me.id;
-  const [signedOut, setSignedOut] = useState(false);
+  // The flow NEVER navigates away on its own (Lucy 2026-10-16,
+  // fourth report of being "bumped out of orientation"): earlier
+  // guards bounced to '/' when the session turned out dead mid-flow
+  // — an expired access token whose refresh token was rotated away
+  // by another tab/device reads exactly like that. Now the flow
+  // degrades IN PLACE: a live session with a lagging profile just
+  // waits; a dead session gets an inline sign-in panel, and signing
+  // back in resumes the same step (the draft persists every step).
+  const [authOpen, setAuthOpen] = useState(false);
+  const [sessionGone, setSessionGone] = useState(false);
   useEffect(() => {
     if (me) {
-      setSignedOut(false);
+      setSessionGone(false);
       return;
     }
     const t = setTimeout(async () => {
       const { data } = await supabase.auth
         .getSession()
         .catch(() => ({ data: { session: null } }));
-      if (!data.session) setSignedOut(true);
+      if (!data.session) setSessionGone(true);
     }, 2500);
     return () => clearTimeout(t);
   }, [me]);
-  useEffect(() => {
-    if (!signedOut || me) return;
-    // A bounced prompt must not be eaten by the once-per-device flag:
-    // un-confirm it so signing back in re-prompts the flow.
-    if (lastMeId.current) {
-      try {
-        localStorage.removeItem(`crux8-onboarding-prompted-v3-${lastMeId.current}`);
-      } catch {
-        /* ok */
-      }
-    }
-    nav('/');
-  }, [signedOut, me, nav]);
 
   if (!me) {
+    if (!sessionGone) {
+      return (
+        <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-paper-50 text-sm text-ink-500">
+          <span>Loading…</span>
+          <button
+            onClick={() => nav('/')}
+            className="text-xs font-medium text-ink-400 underline underline-offset-4"
+          >
+            Back to home
+          </button>
+        </div>
+      );
+    }
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-paper-50 text-sm text-ink-500">
-        <span>Loading…</span>
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-paper-50 px-8 text-center">
+        <p className="text-base font-bold text-ink-900">Your sign-in expired</p>
+        <p className="max-w-xs text-sm leading-relaxed text-ink-500">
+          Sessions time out — especially with the app open in a few places at
+          once. Sign back in and orientation picks up right where you left it.
+        </p>
+        <button
+          onClick={() => setAuthOpen(true)}
+          className="rounded-full bg-brand-600 px-6 py-3 text-sm font-extrabold text-[#161310]"
+        >
+          Sign in again
+        </button>
         <button
           onClick={() => nav('/')}
           className="text-xs font-medium text-ink-400 underline underline-offset-4"
         >
           Back to home
         </button>
+        <AuthSheet
+          open={authOpen}
+          onOpenChange={setAuthOpen}
+          onSuccess={() => setAuthOpen(false)}
+        />
       </div>
     );
   }
