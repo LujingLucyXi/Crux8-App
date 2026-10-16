@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { CartoonAvatar, hairBucket, type HairBucket } from './CartoonAvatar';
 import { Button } from './Button';
-import { fileToAvatarDataUrl, dataUrlBytes } from '@/lib/image';
+import { fileToAvatarDataUrl } from '@/lib/image';
 import {
   type AvatarConfig, type HairStyle, type Accessory,
   SKIN_TONES, SKIN_HEX,
@@ -57,7 +57,10 @@ export function AvatarCustomizer({ value: rawValue, onChange, photoUrl, onPhotoC
     try {
       const dataUrl = await fileToAvatarDataUrl(file);
       onPhotoChange(dataUrl);
-      toast('Photo added', { description: `Stored at ~${Math.round(dataUrlBytes(dataUrl) / 1024)} KB` });
+      // Just confirm the add — the byte size was build-time diagnostics
+      // leaking into a user notice (Lucy 2026-10-16: "why would there be
+      // a storage thing in the notice"). Users don't think in KB.
+      toast('Photo added');
     } catch (err) {
       const code = err instanceof Error ? err.message : 'decode-failed';
       toast('Could not use that image', {
@@ -109,7 +112,7 @@ export function AvatarCustomizer({ value: rawValue, onChange, photoUrl, onPhotoC
               )}
             </div>
             <p className="text-[11px] text-ink-300 text-center max-w-[260px]">
-              Photos are cropped square and downscaled to 256px, then stored on this device only.
+              Photos are cropped square, and they stay on this device only.
             </p>
           </>
         )}
