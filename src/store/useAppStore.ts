@@ -1788,13 +1788,18 @@ export const useAppStore = create<Store>()(
         let hangoutId: string;
         if (existing) {
           hangoutId = existing.id;
-          // Cruxy is the default admin of every house hangout — backfill
-          // hangouts created before she took the job.
+          // Backfills for hangouts created before these fields existed:
+          // Cruxy as default admin, and the house picture as the profile
+          // pic (Lucy 2026-10-15: the hangout had no proper profile pic).
+          const patch: Partial<Group> = {};
           if (!existing.admin_ids.includes('cruxy')) {
+            patch.admin_ids = ['cruxy', ...existing.admin_ids];
+          }
+          if (!existing.cover_url) patch.cover_url = `/covers/house-${houseId}.jpg`;
+          if (!existing.avatar_url) patch.avatar_url = `/covers/house-${houseId}.jpg`;
+          if (Object.keys(patch).length > 0) {
             set({
-              groups: get().groups.map((g) =>
-                g.id === existing.id ? { ...g, admin_ids: ['cruxy', ...g.admin_ids] } : g,
-              ),
+              groups: get().groups.map((g) => (g.id === existing.id ? { ...g, ...patch } : g)),
             });
           }
         } else {
@@ -1808,6 +1813,8 @@ export const useAppStore = create<Store>()(
             // counted twice (member_count 1 + join increment = "2 members").
             member_count: 0,
             cover_url: `/covers/house-${houseId}.jpg`,
+            // The house picture doubles as the hangout's profile pic.
+            avatar_url: `/covers/house-${houseId}.jpg`,
             description:
               `Your house, your city. Everyone here got sorted into ${house.name} ` +
               `by the Crux8 quiz. Say hi, find partners who match your vibe, and plan your first hangout.`,
@@ -2112,8 +2119,13 @@ export const useAppStore = create<Store>()(
         const me = get().me;
         if (!me || userId === me.id) return 'already';
         // Seed NPCs (Cruxy included) auto-accept: instant, exactly like the
-        // old addCruxMate. Real people get a request instead.
-        if (get().users.some((u) => u.id === userId)) {
+        // old addCruxMate. Real people get a request instead. The gate is the
+        // id SHAPE, never `users` membership: real directory users are
+        // resolved into `users` too, so a membership check made every real
+        // add instant (Lucy's 2026-10-15 report: "add Cruxmate" auto-added
+        // with no approval). Seed/demo ids are slugs ('cruxy'); real
+        // accounts — guests included — are UUIDs.
+        if (!isUuid(userId)) {
           get().addCruxMate(userId);
           return 'instant';
         }
