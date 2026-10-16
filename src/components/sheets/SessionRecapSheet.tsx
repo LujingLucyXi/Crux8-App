@@ -19,6 +19,7 @@ import {
   type CardParticipant,
 } from '@/lib/cardData';
 import { normalizeInviteCode, isValidInviteCode } from '@/lib/inviteCode';
+import { GuestClaimForm } from '@/components/GuestClaimForm';
 import { ShareableCardFrame } from '@/components/ShareableCardFrame';
 import { shareCardImage } from '@/lib/shareCardImage';
 import { getSessionNumber } from '@/lib/sessionCard';
@@ -73,7 +74,6 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
   const directory = useAppStore((s) => s.directory);
   const gyms = useAppStore((s) => s.gyms);
   const recaps = useAppStore((s) => s.recaps);
-  const claimGuestAccount = useAppStore((s) => s.claimGuestAccount);
   const logSessionRecap = useAppStore((s) => s.logSessionRecap);
   const togglePartnerProp = useAppStore((s) => s.togglePartnerProp);
   const setPartnerCheck = useAppStore((s) => s.setPartnerCheck);
@@ -90,11 +90,9 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
   const [photoOn, setPhotoOn] = useState(true);
   const [sharingCard, setSharingCard] = useState(false);
   const sessions = useAppStore((s) => s.sessions);
-  // Guest claim-by-email inline form (front door, 2026-10-14).
+  // Guest account-claim form (front door, 2026-10-14; shared form
+  // extracted 2026-10-16 so Home's post-session reminder uses it too).
   const [claimOpen, setClaimOpen] = useState(false);
-  const [claimEmail, setClaimEmail] = useState('');
-  const [claimBusy, setClaimBusy] = useState(false);
-  const [claimError, setClaimError] = useState<string | null>(null);
   const groups = useAppStore((s) => s.groups);
   const myGroupMemberships = useAppStore((s) => s.myGroupMemberships);
   const shareSessionToGroup = useAppStore((s) => s.shareSessionToGroup);
@@ -135,8 +133,6 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
     setFlagNote('');
     setShowCard(false);
     setClaimOpen(false);
-    setClaimEmail('');
-    setClaimError(null);
     onOpenChange(false);
   };
 
@@ -260,9 +256,10 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
           </ShareableCardFrame>
 
           <div className="mt-4 flex flex-col gap-2">
-            {/* Post-value orientation prompt (Lucy, 2026-10-14): the card
-                is the guest's/skipped user's first trophy — this is the
-                moment a profile is worth claiming, not before. */}
+            {/* Post-session account/orientation prompt (Lucy, 2026-10-14;
+                wording/flow clarified 2026-10-16): this is the moment a
+                session guest is reminded to create an account; a real
+                account that skipped orientation is sent there instead. */}
             {me.onboarded === false && !claimOpen && (
               <Button
                 variant="punch"
@@ -275,48 +272,11 @@ export function SessionRecapSheet({ session, open, onOpenChange }: Props) {
                   }
                 }}
               >
-                {me.isGuest ? 'Claim your crew card →' : 'Finish your profile →'}
+                {me.isGuest ? 'Create your account →' : 'Finish your profile →'}
               </Button>
             )}
             {me.isGuest && claimOpen && (
-              <div className="rounded-2xl border border-ink-100 bg-paper-100 p-4">
-                <p className="text-sm font-semibold text-ink-900">Keep your card — add your email</p>
-                <p className="mt-1 text-xs text-ink-500">
-                  We email you a claim link. Same account, your session history stays.
-                </p>
-                <Input
-                  className="mt-3"
-                  type="email"
-                  inputMode="email"
-                  placeholder="you@email.com"
-                  value={claimEmail}
-                  onChange={(e) => setClaimEmail(e.target.value)}
-                />
-                <div className="mt-3 flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => setClaimOpen(false)}>
-                    Later
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    disabled={claimBusy || !claimEmail.includes('@')}
-                    onClick={async () => {
-                      setClaimBusy(true);
-                      setClaimError(null);
-                      const res = await claimGuestAccount(claimEmail);
-                      setClaimBusy(false);
-                      if (!res.ok) {
-                        setClaimError(res.error);
-                        return;
-                      }
-                      toast.success('Claim link sent — check your inbox ✉️');
-                      setClaimOpen(false);
-                    }}
-                  >
-                    {claimBusy ? 'Sending…' : 'Send link'}
-                  </Button>
-                </div>
-                {claimError && <p className="mt-2 text-xs text-red-600">{claimError}</p>}
-              </div>
+              <GuestClaimForm onDone={() => setClaimOpen(false)} />
             )}
             <Button onClick={() => void shareCard()} disabled={sharingCard}>
               {sharingCard ? 'Rendering…' : 'Share card'}

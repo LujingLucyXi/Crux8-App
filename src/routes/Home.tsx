@@ -14,6 +14,7 @@ import { EventDetailSheet } from '@/components/sheets/EventDetailSheet';
 import { AiMatchSheet } from '@/components/sheets/AiMatchSheet';
 import { CheckInSheet } from '@/components/sheets/CheckInSheet';
 import { SessionRecapSheet } from '@/components/sheets/SessionRecapSheet';
+import { GuestClaimForm } from '@/components/GuestClaimForm';
 import { LogSendSheet } from '@/components/sheets/LogSendSheet';
 import { levelFromXp } from '@/lib/rewards';
 import { computeChallenges, daysLeftInWeek } from '@/lib/challenges';
@@ -118,6 +119,16 @@ export function Home() {
       .slice(0, 4);
   }, [me, sessions, recaps, sessionLifecycle]);
 
+  // Most recent finished session — drives the guest account reminder.
+  const latestCompleted = useMemo(() => {
+    if (!me) return null;
+    const now = Date.now();
+    return sessions
+      .filter((s) => s.participant_ids.includes(me.id)
+        && sessionPhase(s, sessionLifecycle[s.id], now) === 'done')
+      .sort((a, b) => new Date(b.ends_at).getTime() - new Date(a.ends_at).getTime())[0] ?? null;
+  }, [me, sessions, sessionLifecycle]);
+
   /* ── Suggested (AI-ranked things I'm NOT already on) ── */
   const suggestedSessions = useMemo(() => {
     if (!me) return [];
@@ -200,6 +211,16 @@ export function Home() {
       return false;
     }
   });
+  const [guestClaimOpen, setGuestClaimOpen] = useState(false);
+  const [guestReminderDismissedFor, setGuestReminderDismissedFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (!me) return;
+    try {
+      setGuestReminderDismissedFor(localStorage.getItem(`crux8-guest-account-reminder-${me.id}`));
+    } catch {
+      /* ok */
+    }
+  }, [me?.id]);
 
   const myGroups = groups.filter((g) => myGroupMemberships.includes(g.id));
 
@@ -207,8 +228,22 @@ export function Home() {
 
   // Orientation is a nudge, not a gate (Lucy, 2026-10-14): new accounts
   // land in the app immediately; this banner is the in-app reminder.
-  // Guests get their prompt from the session-complete card instead.
+  // Guests get a dedicated account reminder after a finished session
+  // (Lucy, 2026-10-16) — guest entry belongs to session invites only.
   const showProfileNudge = me.onboarded === false && !me.isGuest && !nudgeDismissed;
+  const showGuestReminder = !!me.isGuest
+    && !!latestCompleted
+    && guestReminderDismissedFor !== latestCompleted.id;
+  const dismissGuestReminder = () => {
+    if (!latestCompleted) return;
+    try {
+      localStorage.setItem(`crux8-guest-account-reminder-${me.id}`, latestCompleted.id);
+    } catch {
+      /* ok */
+    }
+    setGuestReminderDismissedFor(latestCompleted.id);
+    setGuestClaimOpen(false);
+  };
   const dismissProfileNudge = () => {
     try {
       localStorage.setItem('crux8-profile-nudge-dismissed', '1');
@@ -272,6 +307,35 @@ export function Home() {
             ✕
           </button>
         </div>
+      )}
+
+      {/* ── Guest account reminder (after a completed session) ── */}
+      {showGuestReminder && (
+        guestClaimOpen ? (
+          <div className="mt-4">
+            <GuestClaimForm onDone={dismissGuestReminder} />
+          </div>
+        ) : (
+          <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-100/40 p-4 flex items-center gap-3">
+            <p className="min-w-0 flex-1 text-sm text-ink-900">
+              <span className="font-bold">Session complete.</span> Create your account to keep
+              your card, history, and cruxmates.
+            </p>
+            <button
+              onClick={() => setGuestClaimOpen(true)}
+              className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
+            >
+              Create account →
+            </button>
+            <button
+              onClick={dismissGuestReminder}
+              aria-label="Dismiss"
+              className="shrink-0 text-ink-400 hover:text-ink-700 text-lg leading-none"
+            >
+              ✕
+            </button>
+          </div>
+        )
       )}
 
       {/* ── On the wall now (check-in) ── */}

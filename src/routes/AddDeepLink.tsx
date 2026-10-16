@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { AuthSheet } from '@/components/AuthSheet';
 import { Logo } from '@/components/layout/Logo';
-import { GuestJoinForm } from '@/components/GuestJoinForm';
+import { GuestClaimForm } from '@/components/GuestClaimForm';
 import { Avatar } from '@/components/ui/Avatar';
 import { InviteSection } from '@/components/InviteSection';
 import { savePendingIntent, consumePendingIntentFor } from '@/lib/pendingIntent';
@@ -33,7 +33,9 @@ interface AddTarget {
  * Following is a separate, in-app choice: after joining, the page
  * offers the inviter's card with an optional Follow, nothing automatic
  * and nothing framed as the link's purpose.
- * - Logged out → join first (guest name or email), then back here.
+ * - Logged out → create/sign into a real account first (no guest
+ *   shortcut on a general invite — guests belong to session invites),
+ *   then back here with an optional orientation prompt.
  * - Logged in → "you're in" + the inviter's card + optional Follow.
  * - Unknown code → friendly dead-end.
  * - The intent is stashed before any auth detour and consumed on
@@ -57,6 +59,7 @@ export function AddDeepLink() {
   const [resolving, setResolving] = useState(true);
   const [added, setAdded] = useState(false);
   const [justJoined, setJustJoined] = useState(false);
+  const [claimOpen, setClaimOpen] = useState(false);
 
   // Resolve the code: my own → public directory → local seed users.
   useEffect(() => {
@@ -191,8 +194,11 @@ export function AddDeepLink() {
     );
   };
 
-  // ── Logged out: a JOIN landing. The link invites you INTO Crux8;
-  // following the inviter is a separate choice, offered after. ──
+  // ── Logged out: a JOIN landing for a real account. Lucy, 2026-10-16:
+  // a general invite link prompts sign-up; name-only guest entry is
+  // reserved for a specific session/call invite, where the climb is
+  // the immediate value. After account creation, orientation appears
+  // below as a choice — never as a wall, never missing entirely. ──
   if (!me) {
     return shell(
       <>
@@ -204,25 +210,22 @@ export function AddDeepLink() {
               : "You've been invited to join Crux8"}
           </h2>
           <p className="mt-2 text-sm text-ink-500">
-            Find climbing partners, join sessions, collect climber DNA
-            cards. Join with just your name — no sign-up.
+            Find climbing partners, join sessions, collect climber DNA cards.
           </p>
-          <div className="mt-5 text-left">
-            <GuestJoinForm buttonLabel="Join Crux8" />
-          </div>
-          <div className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-ink-100" />
-            <span className="text-xs text-ink-400">or</span>
-            <div className="h-px flex-1 bg-ink-100" />
-          </div>
-          <Button variant="outline" className="w-full" onClick={() => setSheetOpen(true)}>
-            Sign in with email
+          <Button className="mt-5 w-full" size="lg" onClick={() => setSheetOpen(true)}>
+            Sign up or sign in
           </Button>
-          <p className="mt-2 text-[11px] text-ink-400">
-            Following people happens inside the app, after you join.
+          <p className="mt-3 text-[11px] text-ink-400">
+            Create an account first — orientation is optional after.
           </p>
         </div>
-        <AuthSheet open={sheetOpen} onOpenChange={setSheetOpen} title="Sign in" initialTab="code" />
+        <AuthSheet
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          title="Join Crux8"
+          initialTab="password"
+          initialPwMode="signup"
+        />
       </>
     );
   }
@@ -288,6 +291,38 @@ export function AddDeepLink() {
           🔗 You opened {first}'s invite link — you're already on Crux8.
         </p>
       )}
+      {me.isGuest ? (
+        claimOpen ? (
+          <div className="mt-4">
+            <GuestClaimForm onDone={() => setClaimOpen(false)} />
+          </div>
+        ) : (
+          <div className="mt-4 rounded-2xl border border-brand-600 bg-brand-100 p-5 text-center">
+            <h3 className="text-base font-bold text-ink-900">You're here as a guest</h3>
+            <p className="mt-1 text-sm text-ink-500">
+              Create an account to join Crux8 and keep your history.
+            </p>
+            <Button variant="punch" className="mt-3 w-full" onClick={() => setClaimOpen(true)}>
+              Create your account →
+            </Button>
+          </div>
+        )
+      ) : me.onboarded === false ? (
+        <div className="mt-4 rounded-2xl border border-brand-600 bg-brand-100 p-5 text-center">
+          <h3 className="text-base font-bold text-ink-900">Orientation is optional</h3>
+          <p className="mt-1 text-sm text-ink-500">
+            Set up your climbing profile now, or skip it and explore first.
+          </p>
+          <div className="mt-3 flex flex-col gap-2">
+            <Button variant="punch" className="w-full" onClick={() => nav('/onboarding')}>
+              Start orientation →
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => nav('/home')}>
+              Skip for now
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {personCard(target)}
       <div className="mt-4 flex flex-col gap-2">
         {added || isCruxmate ? (
