@@ -30,8 +30,12 @@ export function InviteSection({ code, displayName }: Props) {
       try {
         await navigator.share({
           title: 'Join me on Crux8',
-          text: `🧗 Join me on Crux8 — find climbing partners, join sessions, and collect climber DNA cards. Use my invite link to join:`,
-          url: link,
+          // The link rides INSIDE the text on purpose: passing it as
+          // the separate `url` field makes iOS hand WeChat a 113-byte
+          // mystery "file" instead of a tappable link (Lucy's WeChat
+          // test, 2026-10-16 — chat showed the text bubble with no URL
+          // plus an unopenable hex-named file). Text links work there.
+          text: `🧗 Join me on Crux8 — find climbing partners, join sessions, and collect climber DNA cards. Use my invite link to join: ${link}`,
         });
       } catch {
         /* user dismissed */

@@ -58,8 +58,9 @@ export function PeopleFinder({
       try {
         await navigator.share({
           title: 'Join me on Crux8',
-          text: `🧗 Join me on Crux8 — find climbing partners, join sessions, and collect climber DNA cards. Use my invite link to join:`,
-          url: link,
+          // Link inside the text, NOT the `url` field — WeChat turns a
+          // shared `url` into an unopenable file (see InviteSection).
+          text: `🧗 Join me on Crux8 — find climbing partners, join sessions, and collect climber DNA cards. Use my invite link to join: ${link}`,
         });
       } catch {
         /* user dismissed */

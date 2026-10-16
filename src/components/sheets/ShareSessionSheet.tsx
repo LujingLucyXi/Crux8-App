@@ -78,7 +78,9 @@ export function ShareSessionSheet({ session, open, onOpenChange }: Props) {
   const handleNativeShare = async () => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Climb session on Crux8', text: live ? "We're climbing now 🧗" : 'Come climb with us?', url: link });
+        // Link inside the text — a separate `url` field becomes an
+        // unopenable file in WeChat (see InviteSection, 2026-10-16).
+        await navigator.share({ title: 'Climb session on Crux8', text: `${live ? "We're climbing now 🧗" : 'Come climb with us?'} ${link}` });
       } catch {
         /* user dismissed */
       }
