@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -7,7 +7,6 @@ import {
   Trash,
   Check,
   Xmark,
-  Refresh,
   StarSolid,
   ChatBubble,
 } from 'iconoir-react';
@@ -15,7 +14,15 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { NewSessionSheet } from '@/components/sheets/NewSessionSheet';
 import { useAppStore } from '@/store/useAppStore';
+import { fileToAvatarDataUrl } from '@/lib/image';
 import type { AvatarConfig } from '@/lib/avatar';
+
+/** Default crew profile picture (Lucy 2026-10-17): one deterministic
+ *  image per crew — the same picsum seed convention as the seeded
+ *  crews in seed/groups.ts. Admins can replace it with their own
+ *  photo; there is no cover/banner and no shuffle. */
+const defaultCrewPic = (groupId: string) =>
+  `https://picsum.photos/seed/cruxmate-logo-${groupId.replace('grp_', '')}/200/200`;
 
 type PersonLite = { id: string; display_name: string; avatar?: AvatarConfig; photo_url?: string };
 
@@ -45,6 +52,8 @@ export function GroupManage() {
   const [description, setDescription] = useState(group?.description ?? '');
   const [questions, setQuestions] = useState<string[]>(group?.survey_questions ?? []);
   const [newQ, setNewQ] = useState('');
+  const picRef = useRef<HTMLInputElement>(null);
+  const [picBusy, setPicBusy] = useState(false);
 
   // Real members/admins resolve via the directory — fetch whoever
   // this page is about to name (declared before the early returns,
@@ -104,13 +113,19 @@ export function GroupManage() {
     updateGroup(group.id, { name, tagline, description });
     toast.success('Group profile updated');
   };
-  const shuffle = (field: 'cover_url' | 'avatar_url') => {
-    const seed = Math.random().toString(36).slice(2, 8);
-    const url =
-      field === 'cover_url'
-        ? `https://picsum.photos/seed/${seed}/800/400`
-        : `https://picsum.photos/seed/${seed}/200/200`;
-    updateGroup(group.id, { [field]: url });
+  const changePic = async (file: File | undefined) => {
+    if (!file) return;
+    setPicBusy(true);
+    try {
+      const dataUrl = await fileToAvatarDataUrl(file);
+      updateGroup(group.id, { avatar_url: dataUrl });
+      toast.success('Crew picture updated');
+    } catch {
+      toast('Could not use that image', { description: 'Pick a JPG, PNG, or WebP under 12 MB.' });
+    } finally {
+      setPicBusy(false);
+      if (picRef.current) picRef.current.value = '';
+    }
   };
   const addQuestion = () => {
     if (!newQ.trim()) return;
@@ -358,17 +373,32 @@ export function GroupManage() {
       {/* ── Group profile ── */}
       <Section title="Group profile">
         <div className="flex items-center gap-3">
-          <img src={group.avatar_url} alt="" className="h-14 w-14 rounded-2xl object-cover border border-ink-100" />
-          <div className="flex flex-col gap-1.5">
-            <button onClick={() => shuffle('avatar_url')} className="inline-flex items-center gap-1 text-xs font-medium text-teal-600">
-              <Refresh width={13} height={13} /> Shuffle logo
-            </button>
-            <button onClick={() => shuffle('cover_url')} className="inline-flex items-center gap-1 text-xs font-medium text-teal-600">
-              <Refresh width={13} height={13} /> Shuffle banner
-            </button>
+          <img
+            src={group.avatar_url || defaultCrewPic(group.id)}
+            alt=""
+            className="h-14 w-14 rounded-2xl object-cover border border-ink-100"
+          />
+          <div className="flex flex-col items-start gap-1.5">
+            <input
+              ref={picRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => void changePic(e.target.files?.[0])}
+            />
+            <Button size="sm" variant="outline" disabled={picBusy} onClick={() => picRef.current?.click()}>
+              {picBusy ? 'Processing…' : 'Change picture'}
+            </Button>
+            {group.avatar_url && (
+              <button
+                onClick={() => updateGroup(group.id, { avatar_url: undefined })}
+                className="text-xs font-medium text-ink-500 hover:text-ink-800"
+              >
+                Reset to default
+              </button>
+            )}
           </div>
         </div>
-        <img src={group.cover_url} alt="" className="mt-3 w-full h-24 rounded-xl object-cover border border-ink-100" />
 
         <div className="mt-4 flex flex-col gap-3">
           <label className="block">
