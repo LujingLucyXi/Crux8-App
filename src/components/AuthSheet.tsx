@@ -1,7 +1,7 @@
 // Shared auth sheet: email-code OTP and email+password in one place.
 // Used by both the landing page and the /claim route so every entry
 // point offers the same sign-in options.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Input, Label } from '@/components/ui/Input';
@@ -23,63 +23,6 @@ interface AuthSheetProps {
 
 const looksLikeEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim().toLowerCase());
 
-// ── Google Identity Services (clean in-page Google sign-in) ──────────
-// The button runs on crux8.app and yields an ID token, which the store
-// exchanges with Supabase — so the consent screen carries the Crux8
-// name and the *.supabase.co auth domain is never user-visible. The
-// client ID is public by design (it appears in sign-in URLs).
-const GOOGLE_CLIENT_ID =
-  '419469341549-983g2qoptvbmgd3pdnqgcfn3f2imnrur.apps.googleusercontent.com';
-
-interface GoogleCredentialResponse {
-  credential: string;
-}
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (cfg: {
-            client_id: string;
-            nonce: string;
-            callback: (resp: GoogleCredentialResponse) => void;
-          }) => void;
-          renderButton: (
-            el: HTMLElement,
-            opts: Record<string, unknown>,
-          ) => void;
-        };
-      };
-    };
-  }
-}
-
-let gisLoadPromise: Promise<void> | null = null;
-function loadGoogleIdentity(): Promise<void> {
-  if (window.google?.accounts) return Promise.resolve();
-  if (!gisLoadPromise) {
-    gisLoadPromise = new Promise<void>((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error('gis load failed'));
-      document.head.appendChild(script);
-    });
-  }
-  return gisLoadPromise;
-}
-
-function newRawNonce(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function sha256Hex(input: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
 export function AuthSheet({
   open,
   onOpenChange,
@@ -93,10 +36,7 @@ export function AuthSheet({
   const signUpWithPassword = useAppStore((s) => s.signUpWithPassword);
   const resendConfirmation = useAppStore((s) => s.resendConfirmation);
   const signInWithGoogle = useAppStore((s) => s.signInWithGoogle);
-  const signInWithGoogleToken = useAppStore((s) => s.signInWithGoogleToken);
   const [googleBusy, setGoogleBusy] = useState(false);
-  const [gisFailed, setGisFailed] = useState(false);
-  const gisRef = useRef<HTMLDivElement>(null);
   const isWeChatBrowser =
     typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent);
 
@@ -171,45 +111,6 @@ export function AuthSheet({
     onOpenChange(false);
     onSuccess?.();
   };
-
-  // Mount the in-page Google button whenever the sheet opens. A fresh
-  // nonce is minted per opening; GIS gets its SHA-256 hash, Supabase
-  // gets the raw value with the token (per Supabase's GIS guide).
-  useEffect(() => {
-    if (!open || isWeChatBrowser || gisFailed) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        await loadGoogleIdentity();
-        if (cancelled || !gisRef.current || !window.google) return;
-        const raw = newRawNonce();
-        const hashed = await sha256Hex(raw);
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          nonce: hashed,
-          callback: async (resp) => {
-            const res = await signInWithGoogleToken(resp.credential, raw);
-            if (res.ok) succeed();
-            else setError(res.error);
-          },
-        });
-        gisRef.current.innerHTML = '';
-        window.google.accounts.id.renderButton(gisRef.current, {
-          theme: 'outline',
-          size: 'large',
-          text: 'continue_with',
-          shape: 'rectangular',
-          width: Math.max(240, Math.min(400, gisRef.current.clientWidth || 320)),
-        });
-      } catch {
-        if (!cancelled) setGisFailed(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open ]);
 
   const switchPwMode = (m: PwMode) => {
     setPwMode(m);
@@ -318,24 +219,27 @@ export function AuthSheet({
       }}
     >
       <SheetContent title={title}>
-        {/* Continue with Google — one tap, email comes pre-verified.
-            In-page GIS button (branded consent, no supabase.co detour);
-            WeChat and GIS-load failures fall back to the redirect flow. */}
-        {isWeChatBrowser || gisFailed ? (
-          <button
-            type="button"
-            onClick={startGoogle}
-            disabled={googleBusy}
-            className="mb-3 flex w-full items-center justify-center gap-2.5 rounded-xl border border-ink-100 bg-paper-100 py-2.5 text-sm font-semibold text-ink-900 transition-colors hover:bg-paper-50 disabled:opacity-60"
-          >
-            <span aria-hidden className="text-base font-extrabold leading-none text-[#4285F4]">
-              G
-            </span>
-            {googleBusy ? 'Opening Google…' : 'Continue with Google'}
-          </button>
-        ) : (
-          <div ref={gisRef} className="mb-3 flex min-h-[44px] w-full items-center justify-center" />
-        )}
+        {/* Continue with Google — full-page OAuth redirect flow.
+            (The in-page GIS button silently swallowed taps on iOS
+            Safari — Google's popup never opened and nothing told the
+            user; Lucy hit exactly that on 2026-10-16. The redirect
+            flow is the one verified end-to-end: Supabase authorize
+            302 -> Google consent with Crux8 branding -> back into
+            the app.) */}
+        <button
+          type="button"
+          onClick={startGoogle}
+          disabled={googleBusy}
+          className="mb-3 flex w-full items-center justify-center gap-2.5 rounded-xl bg-white py-2.5 text-sm font-semibold text-[#1f1f1f] shadow-sm transition-opacity hover:opacity-90 disabled:opacity-60"
+        >
+          <svg viewBox="0 0 48 48" className="h-[18px] w-[18px]" aria-hidden>
+            <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.5 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z" />
+            <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.5 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+            <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+            <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z" />
+          </svg>
+          {googleBusy ? 'Opening Google…' : 'Continue with Google'}
+        </button>
         <div className="mb-3 flex items-center gap-3 text-[11px] font-medium text-ink-400">
           <span className="h-px flex-1 bg-ink-100" />
           or with email
