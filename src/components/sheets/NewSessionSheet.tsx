@@ -132,7 +132,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
   // THREE steps (Lucy 2026-10-17): 1) Activity — type + indoor/
   // outdoor filter; 2) Logistics — location, people, level, invites;
   // 3) Optional — name + description, skippable.
-  const [createStep, setCreateStep] = useState<'activity' | 'logistics' | 'optional'>('activity');
+  const [createStep, setCreateStep] = useState<'place' | 'activity' | 'logistics' | 'optional'>('place');
   const [locFilter, setLocFilter] = useState<'indoor' | 'outdoor'>('indoor');
   const [inviteOpen, setInviteOpen] = useState(false);
   useEffect(() => {
@@ -248,7 +248,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
     setLeanHeadcount(2);
     setLeanStep('type');
     setLeanGrade('All levels');
-    setCreateStep('activity');
+    setCreateStep('place');
     setLocFilter('indoor');
     setInviteOpen(false);
     setMode('indoor');
@@ -509,6 +509,13 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
       setMode('event');
     }
     setCreateStep('logistics');
+  };
+  // Step 1 of the create flow (Lucy 2026-10-17): Indoor vs Outdoor
+  // gets its OWN step, then Activity shows the matching choices
+  // (outdoor keeps Hike; indoor doesn't have one).
+  const pickPlace = (p: 'indoor' | 'outdoor') => {
+    setLocFilter(p);
+    setCreateStep('activity');
   };
   const createTypeLabel =
     mode === 'event'
@@ -795,48 +802,51 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
         if (!o) reset();
       }}
     >
-      <SheetContent title={createStep === 'activity' ? 'Activity' : sheetTitle}>
-        {createStep === 'activity' ? (
-          <div>
-            {/* Indoor / Outdoor is a plain radio selection with a
-                round fill (Lucy 2026-10-17) — NOT a toggle/filter:
-                outdoor has all the same activities (top rope and
-                lead included), so the activity list never changes.
-                Hike implies outdoor when tapped. */}
-            <div className="mb-5 flex gap-7">
-              {([
-                { v: 'indoor', l: 'Indoor' },
-                { v: 'outdoor', l: 'Outdoor' },
-              ] as const).map((f) => (
-                <button
-                  key={f.v}
-                  type="button"
-                  onClick={() => setLocFilter(f.v)}
-                  className="flex items-center gap-2"
-                  aria-pressed={locFilter === f.v}
+      <SheetContent title={createStep === 'place' ? 'Indoor or outdoor' : createStep === 'activity' ? 'Activity' : sheetTitle}>
+        {createStep === 'place' ? (
+          <div className="flex flex-col gap-3">
+            {(['indoor', 'outdoor'] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => pickPlace(p)}
+                className="flex items-center gap-3 rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50"
+              >
+                <span
+                  className={
+                    'flex h-5 w-5 items-center justify-center rounded-full border-2 ' +
+                    (locFilter === p ? 'border-brand-600' : 'border-ink-300')
+                  }
                 >
-                  <span
-                    className={cn(
-                      'flex h-5 w-5 items-center justify-center rounded-full border-2',
-                      locFilter === f.v ? 'border-brand-600' : 'border-ink-300',
-                    )}
-                  >
-                    {locFilter === f.v && <span className="h-2.5 w-2.5 rounded-full bg-brand-600" />}
-                  </span>
-                  <span className={cn('text-sm', locFilter === f.v ? 'font-bold text-ink-900' : 'text-ink-500')}>
-                    {f.l}
-                  </span>
-                </button>
-              ))}
+                  {locFilter === p && <span className="h-2.5 w-2.5 rounded-full bg-brand-600" />}
+                </span>
+                <span className="text-base font-bold text-ink-900">{p === 'indoor' ? 'Indoor' : 'Outdoor'}</span>
+              </button>
+            ))}
+          </div>
+        ) : createStep === 'activity' ? (
+          <div>
+            <div className="mb-5 -mt-1 flex items-center justify-between gap-2">
+              <button type="button" onClick={() => setCreateStep('place')} className="text-sm font-semibold text-brand-600">
+                ‹ Back
+              </button>
+              <span className="text-sm font-bold text-ink-900">{locFilter === 'indoor' ? 'Indoor' : 'Outdoor'}</span>
+              <span className="text-xs text-ink-500">Step 2 of 4</span>
             </div>
             <div className="flex flex-col gap-3">
               {(
-                [
-                  { t: 'boulder', label: 'Boulder' },
-                  { t: 'top_rope', label: 'Top rope' },
-                  { t: 'lead', label: 'Lead' },
-                  { t: 'hike', label: 'Hike' },
-                ] as const
+                locFilter === 'indoor'
+                  ? ([
+                      { t: 'boulder', label: 'Boulder' },
+                      { t: 'top_rope', label: 'Top rope' },
+                      { t: 'lead', label: 'Lead' },
+                    ] as const)
+                  : ([
+                      { t: 'boulder', label: 'Boulder' },
+                      { t: 'top_rope', label: 'Top rope' },
+                      { t: 'lead', label: 'Lead' },
+                      { t: 'hike', label: 'Hike' },
+                    ] as const)
               ).map(({ t, label }) => (
                 <button
                   key={t}
@@ -864,7 +874,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
             </button>
             <span className="text-sm font-bold text-ink-900">{createTypeLabel}</span>
             <span className="text-xs text-ink-500">
-              {createStep === 'logistics' ? 'Step 2 of 3' : 'Step 3 of 3 · Optional'}
+              {createStep === 'logistics' ? 'Step 3 of 4' : 'Step 4 of 4 · Optional'}
             </span>
           </div>
         {/* ───────── BELAY (climb call) ───────── */}
