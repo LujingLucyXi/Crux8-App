@@ -103,7 +103,13 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   // optional stuff at the bottom. The old single page stacked every
   // mode/discipline/field at once ("visually too crowded…
   // 一整个页面太花花绿绿了").
-  const [createStep, setCreateStep] = useState<'type' | 'form'>('type');
+  const BOULDER_RANGES = ['All levels', 'V0–V2', 'V2–V4', 'V4–V6', 'V6–V8', 'V8+'];
+  // THREE steps (Lucy 2026-10-17): 1) Activity — type + indoor/
+  // outdoor filter; 2) Logistics — location, people, level, invites;
+  // 3) Optional — name + description, skippable.
+  const [createStep, setCreateStep] = useState<'activity' | 'logistics' | 'optional'>('activity');
+  const [locFilter, setLocFilter] = useState<'indoor' | 'outdoor'>('indoor');
+  const [inviteOpen, setInviteOpen] = useState(false);
   useEffect(() => {
     if (open && preselectInvite) {
       setInviteIds([preselectInvite]);
@@ -217,7 +223,9 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     setLeanHeadcount(2);
     setLeanStep('type');
     setLeanGrade('All levels');
-    setCreateStep('type');
+    setCreateStep('activity');
+    setLocFilter('indoor');
+    setInviteOpen(false);
     setMode('indoor');
     setDiscipline('belay');
     setOutdoorLoc('');
@@ -455,7 +463,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
 
   const pickCreateType = (t: 'boulder' | 'top_rope' | 'lead' | 'hike' | 'event') => {
     if (t === 'boulder') {
-      setMode('indoor');
+      setMode(locFilter);
       setDiscipline('boulder');
     } else if (t === 'top_rope' || t === 'lead') {
       setMode('indoor');
@@ -467,7 +475,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     } else {
       setMode('event');
     }
-    setCreateStep('form');
+    setCreateStep('logistics');
   };
   const createTypeLabel =
     mode === 'event'
@@ -480,6 +488,50 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
             ? 'Lead'
             : 'Top rope';
 
+  // Invite picker as ONE collapsed row (Lucy 2026-10-17, 'Shorten
+  // this'): the full people list was the tallest thing in the form.
+  // Collapsed it shows who's invited; tap to expand and pick.
+  const inviteBlock = () => {
+    if (invitable.length === 0) {
+      return (
+        <div className="rounded-2xl border border-dashed border-ink-100 bg-paper-100 p-4">
+          <p className="text-sm font-semibold text-ink-900">No cruxmates yet — invite them once it&apos;s posted</p>
+          <p className="mt-1 text-xs text-ink-500">
+            Every posted session gets a share link + QR code, and anyone can add you with your invite code.
+          </p>
+        </div>
+      );
+    }
+    const picked = inviteIds.length;
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => setInviteOpen(!inviteOpen)}
+          className="flex w-full items-center justify-between rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5"
+        >
+          <span className="text-sm text-ink-900">Invite cruxmates (optional)</span>
+          <span className="text-xs font-semibold text-brand-600">
+            {picked > 0 ? `${picked} invited · ` : ''}{inviteOpen ? 'Done' : 'Add'}
+          </span>
+        </button>
+        {inviteOpen && (
+          <div className="mt-2">
+            <CruxmatePicker
+              invitable={invitable}
+              invited={inviteIds}
+              selectMode
+              onInvite={(id) => toggleInvite(id)}
+            />
+            <p className="mt-1.5 text-[11px] text-ink-400">
+              Cruxy joins the moment you post. Others get an invite they can accept or deny.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // ── Lean direct-invite form ─────────────────────────────────────
   // Shown INSTEAD of the full template when this sheet was opened
   // from a friend's profile ("Invite to climb"). Four choices + one
@@ -489,7 +541,6 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     const firstName = directUser?.display_name.split(' ')[0] ?? 'your friend';
     const leanGyms =
       leanStyle === 'boulder' ? sessionGyms : gymsForCategory(gyms, leanStyle);
-    const BOULDER_RANGES = ['All levels', 'V0–V2', 'V2–V4', 'V4–V6', 'V6–V8', 'V8+'];
     const pickLeanStyle = (st: 'boulder' | 'top_rope' | 'lead') => {
       setLeanStyle(st);
       setLeanBelayOk(false);
@@ -714,69 +765,71 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
         if (!o) reset();
       }}
     >
-      <SheetContent title={createStep === 'type' ? 'What are we doing?' : sheetTitle}>
-        {createStep === 'type' ? (
-          <div className="flex flex-col gap-3">
-            {(
-              [
-                { t: 'boulder', label: 'Boulder' },
-                { t: 'top_rope', label: 'Top rope' },
-                { t: 'lead', label: 'Lead' },
-                { t: 'hike', label: 'Hike' },
-                { t: 'event', label: 'Event' },
-              ] as const
-            ).map(({ t, label }) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => pickCreateType(t)}
-                className="rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50"
-              >
-                <span className="block text-base font-bold text-ink-900">{label}</span>
-              </button>
-            ))}
+      <SheetContent title={createStep === 'activity' ? 'Activity' : sheetTitle}>
+        {createStep === 'activity' ? (
+          <div>
+            <div className="flex gap-2 mb-4">
+              {([
+                { v: 'indoor', l: 'Indoor' },
+                { v: 'outdoor', l: 'Outdoor' },
+              ] as const).map((f) => (
+                <button
+                  key={f.v}
+                  type="button"
+                  onClick={() => setLocFilter(f.v)}
+                  className={cn(
+                    'flex-1 rounded-xl border py-2 text-xs font-semibold transition-colors',
+                    locFilter === f.v ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-500 border-ink-100',
+                  )}
+                >
+                  {f.l}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-col gap-3">
+              {(locFilter === 'indoor'
+                ? ([
+                    { t: 'boulder', label: 'Boulder' },
+                    { t: 'top_rope', label: 'Top rope' },
+                    { t: 'lead', label: 'Lead' },
+                    { t: 'event', label: 'Event' },
+                  ] as const)
+                : ([
+                    { t: 'boulder', label: 'Boulder' },
+                    { t: 'hike', label: 'Hike' },
+                    { t: 'event', label: 'Event' },
+                  ] as const)
+              ).map(({ t, label }) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => pickCreateType(t)}
+                  className="rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50"
+                >
+                  <span className="block text-base font-bold text-ink-900">{label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           <>
-            <div className="mb-5 -mt-1 flex items-center justify-between rounded-2xl border border-ink-100 bg-paper-100 px-4 py-3">
-              <span className="text-sm font-bold text-ink-900">{createTypeLabel}</span>
-              <button
-                type="button"
-                onClick={() => setCreateStep('type')}
-                className="text-sm font-semibold text-brand-600"
-              >
-                Change
-              </button>
-            </div>
-            {discipline === 'boulder' && mode !== 'event' && (
-              <div className="flex gap-2 mb-5">
-                {([
-                  { v: 'indoor', l: 'Indoor' },
-                  { v: 'outdoor', l: 'Outdoor' },
-                ] as const).map((m) => (
-                  <button
-                    key={m.v}
-                    type="button"
-                    onClick={() => setMode(m.v)}
-                    className={cn(
-                      'flex-1 rounded-xl border py-2 text-xs font-semibold transition-colors',
-                      mode === m.v ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-500 border-ink-100',
-                    )}
-                  >
-                    {m.l}
-                  </button>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
+          <div className="mb-5 -mt-1 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setCreateStep(createStep === 'optional' ? 'logistics' : 'activity')}
+              className="text-sm font-semibold text-brand-600"
+            >
+              ‹ Back
+            </button>
+            <span className="text-sm font-bold text-ink-900">{createTypeLabel}</span>
+            <span className="text-xs text-ink-500">
+              {createStep === 'logistics' ? 'Step 2 of 3' : 'Step 3 of 3 · Optional'}
+            </span>
+          </div>
         {/* ───────── BELAY (climb call) ───────── */}
-        {createStep === 'form' && mode !== 'event' && discipline === 'belay' && (
+        {mode !== 'event' && discipline === 'belay' && createStep === 'logistics' && (
           <div className="flex flex-col gap-5">
-            {/* Logistics first: when, where, how many (Lucy 2026-10-17). */}
             {whenField()}
-            {/* Roped calls list only gyms with that rope discipline */}
             {locationField(callGymId, setCallGymId, callGyms, () => { setSuggestFor('call'); setSuggestGymOpen(true); })}
             <div>
               <Label>People</Label>
@@ -836,33 +889,15 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 ))}
               </div>
             </div>
-            {/* Optional, at the bottom: name, invites, duration, details. */}
+            {inviteBlock()}
+            <Button onClick={() => setCreateStep('optional')}>Continue →</Button>
+          </div>
+        )}
+        {mode !== 'event' && discipline === 'belay' && createStep === 'optional' && (
+          <div className="flex flex-col gap-5">
             <div>
               <Label>Call name (optional)</Label>
               <Input value={callTitle} onChange={(e) => setCallTitle(e.target.value.slice(0, 48))} placeholder="e.g. Sunset lead sesh" />
-            </div>
-            <div>
-              <Label>Invite cruxmates (optional)</Label>
-              {invitable.length > 0 ? (
-                <>
-                  <CruxmatePicker
-                    invitable={invitable}
-                    invited={inviteIds}
-                    selectMode
-                    onInvite={(id) => toggleInvite(id)}
-                  />
-                  <p className="mt-1.5 text-[11px] text-ink-400">
-                    Cruxy joins the moment you post. Others get an invite they can accept or deny.
-                  </p>
-                </>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-ink-100 bg-paper-100 p-4">
-                  <p className="text-sm font-semibold text-ink-900">No cruxmates yet — invite them once it&apos;s posted</p>
-                  <p className="mt-1 text-xs text-ink-500">
-                    Every posted session gets a share link + QR code, and anyone can add you with your invite code.
-                  </p>
-                </div>
-              )}
             </div>
             <div>
               <Label>Duration (hours)</Label>
@@ -883,38 +918,47 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
             <Button className="bg-teal-600 hover:bg-teal-500 border-teal-600" onClick={handleSubmitCall}>
               Drop climb call
             </Button>
+            <button type="button" onClick={handleSubmitCall} className="text-sm font-medium text-ink-500">
+              Skip and post
+            </button>
           </div>
         )}
 
         {/* ───────── BOULDER / HIKE (session) ───────── */}
-        {createStep === 'form' && mode !== 'event' && discipline !== 'belay' && (
+        {mode !== 'event' && discipline !== 'belay' && createStep === 'logistics' && (
           <div className="flex flex-col gap-5">
-            {/* Logistics first: when, where, how long, how many. */}
             {whenField()}
             {locationField(gymId, setGymId, sessionGyms, () => { setSuggestFor('session'); setSuggestGymOpen(true); })}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Duration</Label>
-                <select value={durationHours} onChange={(e) => setDurationHours(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
-                  {[1, 2, 3, 4, 6, 8].map((h) => (<option key={h} value={h}>{h}h</option>))}
-                </select>
-              </div>
-              <div>
-                <Label>Capacity</Label>
-                <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
-                  {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((c) => (<option key={c} value={c}>{c} people</option>))}
-                  <option value={UNCAPPED_CAPACITY}>10+ (uncapped)</option>
-                </select>
-              </div>
-            </div>
             <div>
-              <Label>{discipline === 'hike' ? 'Distance & difficulty' : 'Grade or level'}</Label>
-              <Input
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value.slice(0, 60))}
-                placeholder={discipline === 'hike' ? 'e.g. 6 mi · moderate · 1,800 ft gain' : "e.g. V3 – V6, or 'All levels welcome'"}
-              />
+              <Label>People</Label>
+              <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
+                {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((c) => (<option key={c} value={c}>{c} people</option>))}
+                <option value={UNCAPPED_CAPACITY}>10+ (uncapped)</option>
+              </select>
             </div>
+            {discipline === 'hike' ? (
+              <div>
+                <Label>Distance & difficulty</Label>
+                <Input
+                  value={subtitle}
+                  onChange={(e) => setSubtitle(e.target.value.slice(0, 60))}
+                  placeholder="e.g. 6 mi · moderate · 1,800 ft gain"
+                />
+              </div>
+            ) : (
+              <div>
+                <Label>Level</Label>
+                <select
+                  value={BOULDER_RANGES.includes(subtitle) ? subtitle : 'All levels'}
+                  onChange={(e) => setSubtitle(e.target.value === 'All levels' ? '' : e.target.value)}
+                  className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
+                >
+                  {BOULDER_RANGES.map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             {discipline === 'hike' && (
               <div>
                 <Label>Type</Label>
@@ -959,7 +1003,12 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 )}
               </div>
             )}
-            {/* Optional, at the bottom: name, vibe, invites, details. */}
+            {inviteBlock()}
+            <Button onClick={() => setCreateStep('optional')}>Continue →</Button>
+          </div>
+        )}
+        {mode !== 'event' && discipline !== 'belay' && createStep === 'optional' && (
+          <div className="flex flex-col gap-5">
             <div>
               <Label>{discipline === 'hike' ? 'Hike name (optional)' : 'Session name (optional)'}</Label>
               <Input
@@ -967,6 +1016,12 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 onChange={(e) => setSessionTitle(e.target.value.slice(0, 48))}
                 placeholder={discipline === 'hike' ? 'e.g. Mailbox Peak sunrise' : 'Defaults to "Boulder Session"'}
               />
+            </div>
+            <div>
+              <Label>Duration</Label>
+              <select value={durationHours} onChange={(e) => setDurationHours(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
+                {[1, 2, 3, 4, 6, 8].map((h) => (<option key={h} value={h}>{h}h</option>))}
+              </select>
             </div>
             <div>
               <Label>Vibe</Label>
@@ -978,54 +1033,26 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 ))}
               </RadioGroup.Root>
             </div>
-            <div>
-              <Label>Invite cruxmates (optional)</Label>
-              {invitable.length > 0 ? (
-                <>
-                  <CruxmatePicker
-                    invitable={invitable}
-                    invited={inviteIds}
-                    selectMode
-                    onInvite={(id) => toggleInvite(id)}
-                  />
-                  <p className="mt-1.5 text-[11px] text-ink-400">
-                    Cruxy joins the moment you post. Others get an invite DM with the link.
-                  </p>
-                </>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-ink-100 bg-paper-100 p-4">
-                  <p className="text-sm font-semibold text-ink-900">No cruxmates yet — invite them once it&apos;s posted</p>
-                  <p className="mt-1 text-xs text-ink-500">
-                    Every posted session gets a share link + QR code, and anyone can add you with your invite code.
-                  </p>
-                </div>
-              )}
-            </div>
             {descriptionField(note, setNote)}
             <Button onClick={handleSubmitSession}>{discipline === 'hike' ? 'Post hike' : 'Post boulder session'}</Button>
+            <button type="button" onClick={handleSubmitSession} className="text-sm font-medium text-ink-500">
+              Skip and post
+            </button>
           </div>
         )}
 
         {/* ───────── EVENT ───────── */}
-        {createStep === 'form' && mode === 'event' && (
+        {mode === 'event' && createStep === 'logistics' && (
           <div className="flex flex-col gap-5">
             <div>
-              <Label>Title</Label>
-              <Input value={evtTitle} onChange={(e) => setEvtTitle(e.target.value)} placeholder="e.g. Queer Climb Night" />
-            </div>
-            <div>
-              <Label>One-line tagline</Label>
-              <Input value={evtTagline} onChange={(e) => setEvtTagline(e.target.value)} />
+              <Label>Venue</Label>
+              <Input value={evtVenue} onChange={(e) => setEvtVenue(e.target.value)} placeholder="Gym name or address" />
             </div>
             <div>
               <Label>Type</Label>
               <select value={evtType} onChange={(e) => setEvtType(e.target.value as EventType)} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
                 {EVENT_TYPES.map((t2) => (<option key={t2} value={t2}>{t2.replace('_', ' ')}</option>))}
               </select>
-            </div>
-            <div>
-              <Label>Venue</Label>
-              <Input value={evtVenue} onChange={(e) => setEvtVenue(e.target.value)} placeholder="Gym name or address" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -1046,14 +1073,33 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 </select>
               </div>
             )}
+            <Button onClick={() => setCreateStep('optional')}>Continue →</Button>
+          </div>
+        )}
+        {mode === 'event' && createStep === 'optional' && (
+          <div className="flex flex-col gap-5">
+            <div>
+              <Label>Title</Label>
+              <Input value={evtTitle} onChange={(e) => setEvtTitle(e.target.value)} placeholder="e.g. Queer Climb Night" />
+            </div>
+            <div>
+              <Label>One-line tagline</Label>
+              <Input value={evtTagline} onChange={(e) => setEvtTagline(e.target.value)} />
+            </div>
             <div>
               <Label>Description</Label>
               <Textarea value={evtDesc} onChange={(e) => setEvtDesc(e.target.value.slice(0, 600))} rows={6} placeholder="What is it? Who's it for? Schedule, cost breakdown, what to bring…" />
               <p className="text-[10px] text-ink-300 mt-1 text-right">{evtDesc.length} / 600</p>
             </div>
             <Button onClick={handleSubmitEvent}>Post event</Button>
+            <button type="button" onClick={handleSubmitEvent} className="text-sm font-medium text-ink-500">
+              Skip and post
+            </button>
           </div>
         )}
+          </>
+        )}
+
       </SheetContent>
     </Sheet>
     <SuggestGymSheet
