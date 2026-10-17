@@ -20,6 +20,9 @@ import type {
   Invite,
   MateRequest,
   MessageRequest,
+  Group,
+  CollectedCard,
+  Reaction,
 } from '@/seed/types';
 
 export interface DirectoryProfile {
@@ -802,4 +805,158 @@ export async function setMessageRequestStatusRemote(
 ): Promise<void> {
   const { error } = await supabase.from('message_requests').update({ status }).eq('id', id);
   if (error) throw new Error(`setMessageRequestStatusRemote: ${error.message}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Server-backed crews, chat messages, and collected cards
+// (2026-10-17 — Lucy: "I don't want anything to live on device only."
+// Migrations: 2026-10-17-server-groups.sql,
+// 2026-10-17-server-chats-cards.sql. Until those run, these throw and
+// callers swallow — the app keeps working device-local, exactly the
+// tolerance pattern the rest of this file uses.)
+// ─────────────────────────────────────────────────────────────────────
+
+/** Upsert one user-created crew document (owner stamped on the row). */
+export async function upsertGroupRemote(group: Group): Promise<void> {
+  if (!group.owner_id) return;
+  const { error } = await supabase.from('groups').upsert(
+    {
+      id: group.id,
+      owner_id: group.owner_id,
+      data: group,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'id' },
+  );
+  if (error) throw new Error(`upsertGroupRemote: ${error.message}`);
+}
+
+/**
+ * Every server crew I own, am a member of, or admin. Membership lives
+ * inside the document (member_ids / admin_ids), so membership reads
+ * are jsonb containment queries, merged and deduped by id.
+ */
+export async function fetchMyGroupsRemote(myId: string): Promise<Group[]> {
+  const byId = new Map<string, Group>();
+  const absorb = (rows: unknown) => {
+    for (const r of asRows<{ data: Group }>(rows)) {
+      if (r.data?.id) byId.set(r.data.id, r.data);
+    }
+  };
+  const byOwner = await supabase.from('groups').select('data').eq('owner_id', myId);
+  if (byOwner.error) throw new Error(`fetchMyGroupsRemote: ${byOwner.error.message}`);
+  absorb(byOwner.data);
+  const byMember = await supabase
+    .from('groups')
+    .select('data')
+    .filter('data', 'cs', JSON.stringify({ member_ids: [myId] }));
+  if (!byMember.error) absorb(byMember.data);
+  const byAdmin = await supabase
+    .from('groups')
+    .select('data')
+    .filter('data', 'cs', JSON.stringify({ admin_ids: [myId] }));
+  if (!byAdmin.error) absorb(byAdmin.data);
+  return [...byId.values()];
+}
+
+export interface RemoteChatMessage {
+  id: string;
+  thread_kind: 'dm' | 'session' | 'event' | 'call' | 'group';
+  thread_id: string;
+  sender_id: string;
+  peer_id: string | null;
+  body: string;
+  reactions: Reaction[];
+  created_at: string;
+}
+
+/** Canonical DM thread key: both participants compute the same one. */
+export function dmThreadKey(a: string, b: string): string {
+  return [a, b].sort().join(':');
+}
+
+export async function insertChatMessageRemote(row: RemoteChatMessage): Promise<void> {
+  const { error } = await supabase
+    .from('chat_messages')
+    .upsert(row, { onConflict: 'id', ignoreDuplicates: true });
+  if (error) throw new Error(`insertChatMessageRemote: ${error.message}`);
+}
+
+export async function fetchThreadMessagesRemote(
+  threadKind: RemoteChatMessage['thread_kind'],
+  threadId: string,
+): Promise<RemoteChatMessage[]> {
+  const { data, error } = await supabase
+    .from('chat_messages')
+    .select('id,thread_kind,thread_id,sender_id,peer_id,body,reactions,created_at')
+    .eq('thread_kind', threadKind)
+    .eq('thread_id', threadId)
+    .order('created_at', { ascending: true })
+    .limit(500);
+  if (error) throw new Error(`fetchThreadMessagesRemote: ${error.message}`);
+  return asRows<RemoteChatMessage>(data);
+}
+
+/** All DM messages where I am either party — sign-in hydration so a
+ *  thread started on another device (or by the other person) exists. */
+export async function fetchMyDmMessagesRemote(myId: string): Promise<RemoteChatMessage[]> {
+  const { data, error } = await supabase
+    .from('chat_messages')
+    .select('id,thread_kind,thread_id,sender_id,peer_id,body,reactions,created_at')
+    .eq('thread_kind', 'dm')
+    .or(`sender_id.eq.${myId},peer_id.eq.${myId}`)
+    .order('created_at', { ascending: true })
+    .limit(1000);
+  if (error) throw new Error(`fetchMyDmMessagesRemote: ${error.message}`);
+  return asRows<RemoteChatMessage>(data);
+}
+
+export async function updateChatMessageReactionsRemote(
+  id: string,
+  reactions: Reaction[],
+): Promise<void> {
+  const { error } = await supabase.from('chat_messages').update({ reactions }).eq('id', id);
+  if (error) throw new Error(`updateChatMessageReactionsRemote: ${error.message}`);
+}
+
+export async function upsertCollectedCardRemote(
+  ownerId: string,
+  card: CollectedCard,
+): Promise<void> {
+  const { error } = await supabase.from('collected_cards').upsert(
+    {
+      owner_id: ownerId,
+      card_user_id: card.user_id,
+      archetype_id: card.archetype_id,
+      house_id: card.house_id,
+      collected_at: card.collected_at,
+      sessions_together: card.sessions_together,
+      source: card.source,
+    },
+    { onConflict: 'owner_id,card_user_id' },
+  );
+  if (error) throw new Error(`upsertCollectedCardRemote: ${error.message}`);
+}
+
+export async function fetchCollectedCardsRemote(ownerId: string): Promise<CollectedCard[]> {
+  const { data, error } = await supabase
+    .from('collected_cards')
+    .select('card_user_id,archetype_id,house_id,collected_at,sessions_together,source')
+    .eq('owner_id', ownerId);
+  if (error) throw new Error(`fetchCollectedCardsRemote: ${error.message}`);
+  return asRows<{
+    card_user_id: string;
+    archetype_id: string;
+    house_id: string;
+    collected_at: string;
+    sessions_together: number;
+    source: 'cruxmate' | 'session';
+  }>(data).map((r) => ({
+    user_id: r.card_user_id,
+    archetype_id: r.archetype_id,
+    house_id: r.house_id,
+    collected_at: r.collected_at,
+    sessions_together: r.sessions_together,
+    source: r.source,
+  }));
 }

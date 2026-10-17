@@ -74,6 +74,13 @@ export function ChatDetail() {
     void fetchInvites();
   }, [fetchInvites]);
 
+  // Server messages for this thread (2026-10-17): pulls anything the
+  // other side sent, or that I sent from another device.
+  const fetchThreadMessages = useAppStore((s) => s.fetchThreadMessages);
+  useEffect(() => {
+    if (userId) void fetchThreadMessages('dm', userId);
+  }, [userId, fetchThreadMessages]);
+
   if (!user) {
     return (
       <div className="pt-10 text-center">

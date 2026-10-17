@@ -29,6 +29,7 @@ export function SessionChatDetail() {
   const ensureDirectoryProfiles = useAppStore((s) => s.ensureDirectoryProfiles);
   const toggleReactionSession = useAppStore((s) => s.toggleReactionSession);
   const markThreadRead = useAppStore((s) => s.markThreadRead);
+  const fetchThreadMessages = useAppStore((s) => s.fetchThreadMessages);
 
   const [text, setText] = useState('');
   const [detailOpen, setDetailOpen] = useState(false);
@@ -36,6 +37,14 @@ export function SessionChatDetail() {
 
   const chat = sessionChatId ? sessionChats[sessionChatId] : null;
   const messages = chat?.messages ?? [];
+
+  // Server messages for this thread (2026-10-17): session / call /
+  // group chats hydrate from chat_messages on open, so what was said
+  // on another device (or by someone else) is here.
+  useEffect(() => {
+    if (sessionChatId && chat) void fetchThreadMessages(chat.source, sessionChatId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionChatId, chat?.id]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });

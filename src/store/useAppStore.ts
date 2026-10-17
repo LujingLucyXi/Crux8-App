@@ -97,6 +97,15 @@ import {
   setCallPairing,
   fetchDirectoryProfiles,
   type DirectoryProfile,
+  upsertGroupRemote,
+  fetchMyGroupsRemote,
+  insertChatMessageRemote,
+  fetchThreadMessagesRemote,
+  fetchMyDmMessagesRemote,
+  updateChatMessageReactionsRemote,
+  dmThreadKey,
+  upsertCollectedCardRemote,
+  fetchCollectedCardsRemote,
 } from '@/lib/db';
 import { resolveUser } from '@/lib/resolveUser';
 import { normalizeInviteCode, isValidInviteCode, randomInviteCode } from '@/lib/inviteCode';
@@ -210,6 +219,13 @@ interface Store {
    *  one-sided follow. */
   mateRequests: MateRequest[];
   fetchMateRequests: () => Promise<void>;
+  fetchMyGroups: () => Promise<void>;
+  fetchMyMessages: () => Promise<void>;
+  fetchThreadMessages: (
+    kind: 'dm' | 'session' | 'event' | 'call' | 'group',
+    id: string,
+  ) => Promise<void>;
+  fetchCollectedCards: () => Promise<void>;
   /** Message requests (2026-10-16): a DM to someone you follow (not yet
    *  a cruxmate) starts as a request; the chat opens when they accept. */
   messageRequests: MessageRequest[];
@@ -703,6 +719,37 @@ async function ensureProfileRow(userId: string, email: string | null | undefined
   }
 }
 
+// ── Server sync helpers: crews / chats / cards (2026-10-17) ─────────
+// Lucy's rule from the day a device-local wipe ate her crew, her
+// chats, and her friend list: nothing user-created lives on device
+// only. Crews sync as whole documents; the seeded demo crews and
+// auto-generated house hangouts are identical built-in content on
+// every client and never sync.
+const SEED_GROUP_IDS = new Set(SEED_GROUPS.map((g) => g.id));
+let groupHydrating = false;
+function groupSyncable(g: Group): boolean {
+  return !!g.owner_id && g.kind !== 'house_hangout' && !SEED_GROUP_IDS.has(g.id);
+}
+function groupToRemote(g: Group, myId: string): Group {
+  // Locally, my pending join requests carry the 'me' token; the
+  // server document carries my real id so other devices resolve me.
+  return {
+    ...g,
+    pending: (g.pending ?? []).map((r) => (r.user_id === 'me' ? { ...r, user_id: myId } : r)),
+  };
+}
+function groupFromRemote(g: Group, myId: string): Group {
+  return {
+    ...g,
+    pending: (g.pending ?? []).map((r) => (r.user_id === myId ? { ...r, user_id: 'me' } : r)),
+  };
+}
+function mergeChatMessages(local: ChatMessage[], remote: ChatMessage[]): ChatMessage[] {
+  const byId = new Map(local.map((m) => [m.id, m]));
+  for (const m of remote) byId.set(m.id, m);
+  return [...byId.values()].sort((a, b) => a.sent_at.localeCompare(b.sent_at));
+}
+
 export const useAppStore = create<Store>()(
   persist(
     (set, get) => ({
@@ -829,6 +876,9 @@ export const useAppStore = create<Store>()(
         void get().fetchInvites();
         void get().fetchMateRequests();
         void get().fetchMessageRequests();
+        void get().fetchMyGroups();
+        void get().fetchMyMessages();
+        void get().fetchCollectedCards();
         get().ensureCruxyThread();
       },
 
@@ -1321,6 +1371,13 @@ export const useAppStore = create<Store>()(
           });
           get().ensureCruxyThread();
           get().settleChargeDaily();
+          // Server-backed crews / DMs / Vault cards hydrate with the
+          // session (2026-10-17) — the account carries them, not the
+          // device. Each fetch self-guards on a real uuid user and
+          // swallows pending-migration errors.
+          void get().fetchMyGroups();
+          void get().fetchMyMessages();
+          void get().fetchCollectedCards();
         };
         const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
         const sessionUser = data.session?.user ?? null;
@@ -2349,6 +2406,9 @@ export const useAppStore = create<Store>()(
             collectedCards: get().collectedCards.map((c) => (c.user_id === userId ? updated : c)),
             ...(silent ? {} : { lastCollectedCard: updated }),
           });
+          if (me && isUuid(me.id)) {
+            void upsertCollectedCardRemote(me.id, updated).catch(() => {});
+          }
           return updated;
         }
         const card: CollectedCard = {
@@ -2363,6 +2423,9 @@ export const useAppStore = create<Store>()(
           collectedCards: [card, ...get().collectedCards],
           ...(silent ? {} : { lastCollectedCard: card }),
         });
+        if (me && isUuid(me.id)) {
+          void upsertCollectedCardRemote(me.id, card).catch(() => {});
+        }
         get().addCharge('new_cruxmate');
         return card;
       },
@@ -2381,6 +2444,23 @@ export const useAppStore = create<Store>()(
           chats: { ...get().chats, [userId]: [...existing, msg] },
           chatReads: { ...get().chatReads, [dmKey(userId)]: msg.sent_at },
         });
+        // Server write-through (2026-10-17): real-user DMs persist in
+        // chat_messages, so the thread exists on every device and
+        // reaches the recipient. NPC threads (cruxy, seed users) have
+        // no uuid on the other side and stay local by design.
+        const meDm = get().me;
+        if (meDm && isUuid(meDm.id) && isUuid(userId)) {
+          void insertChatMessageRemote({
+            id: msg.id,
+            thread_kind: 'dm',
+            thread_id: dmThreadKey(meDm.id, userId),
+            sender_id: meDm.id,
+            peer_id: userId,
+            body: text,
+            reactions: [],
+            created_at: msg.sent_at,
+          }).catch(() => {});
+        }
         // Cruxy bot auto-replies (rule-based, no backend needed).
         if (userId === 'cruxy') {
           const reply = cruxyReply(text);
@@ -2408,6 +2488,24 @@ export const useAppStore = create<Store>()(
           },
           chatReads: { ...get().chatReads, [scKey(sessionChatId)]: now },
         });
+        // Server write-through (2026-10-17): session / call / group
+        // chat messages persist in chat_messages under the thread's
+        // own id, so the conversation follows the account, not the
+        // device. NPC-simulated messages never pass through here —
+        // this action only fires for the signed-in user's sends.
+        const meSc = get().me;
+        if (meSc && isUuid(meSc.id)) {
+          void insertChatMessageRemote({
+            id: msg.id,
+            thread_kind: existing.source,
+            thread_id: sessionChatId,
+            sender_id: meSc.id,
+            peer_id: null,
+            body: text,
+            reactions: [],
+            created_at: msg.sent_at,
+          }).catch(() => {});
+        }
       },
 
       shareClimbCallToGroup: (callId, groupId) => {
@@ -2624,6 +2722,132 @@ export const useAppStore = create<Store>()(
         }
       },
 
+      // ── Server-backed crews / chats / cards: hydration (2026-10-17) ──
+      fetchMyGroups: async () => {
+        const me = get().me;
+        if (!me || !isUuid(me.id)) return;
+        try {
+          const remote = await fetchMyGroupsRemote(me.id);
+          if (remote.length === 0) return;
+          const translated = remote.map((g) => groupFromRemote(g, me.id));
+          groupHydrating = true;
+          const byId = new Map(get().groups.map((g) => [g.id, g]));
+          for (const g of translated) byId.set(g.id, g);
+          const memberships = new Set(get().myGroupMemberships);
+          for (const g of translated) {
+            if (g.owner_id === me.id || (g.member_ids ?? []).includes(me.id)) {
+              memberships.add(g.id);
+            }
+          }
+          set({ groups: [...byId.values()], myGroupMemberships: [...memberships] });
+          groupHydrating = false;
+          void get().ensureDirectoryProfiles(
+            translated.flatMap((g) => [...(g.member_ids ?? []), ...(g.admin_ids ?? [])]),
+          );
+        } catch {
+          groupHydrating = false;
+        }
+      },
+
+      fetchMyMessages: async () => {
+        const me = get().me;
+        if (!me || !isUuid(me.id)) return;
+        try {
+          const rows = await fetchMyDmMessagesRemote(me.id);
+          if (rows.length === 0) return;
+          const byPeer = new Map<string, ChatMessage[]>();
+          for (const r of rows) {
+            const peer = r.sender_id === me.id ? r.peer_id : r.sender_id;
+            if (!peer) continue;
+            const arr = byPeer.get(peer) ?? [];
+            arr.push({
+              id: r.id,
+              from: r.sender_id === me.id ? 'me' : r.sender_id,
+              text: r.body,
+              sent_at: r.created_at,
+              reactions: r.reactions?.length ? r.reactions : undefined,
+            });
+            byPeer.set(peer, arr);
+          }
+          const chats = { ...get().chats };
+          for (const [peer, msgs] of byPeer) {
+            chats[peer] = mergeChatMessages(chats[peer] ?? [], msgs);
+          }
+          set({ chats });
+        } catch {
+          /* chats table pending — device-local threads keep working */
+        }
+      },
+
+      fetchThreadMessages: async (kind, id) => {
+        const me = get().me;
+        if (!me || !isUuid(me.id)) return;
+        try {
+          if (kind === 'dm') {
+            if (!isUuid(id)) return;
+            const rows = await fetchThreadMessagesRemote('dm', dmThreadKey(me.id, id));
+            if (rows.length === 0) return;
+            const msgs: ChatMessage[] = rows.map((r) => ({
+              id: r.id,
+              from: r.sender_id === me.id ? 'me' : r.sender_id,
+              text: r.body,
+              sent_at: r.created_at,
+              reactions: r.reactions?.length ? r.reactions : undefined,
+            }));
+            set({
+              chats: { ...get().chats, [id]: mergeChatMessages(get().chats[id] ?? [], msgs) },
+            });
+          } else {
+            const rows = await fetchThreadMessagesRemote(kind, id);
+            if (rows.length === 0) return;
+            const existing = get().sessionChats[id];
+            if (!existing) return;
+            const msgs: ChatMessage[] = rows.map((r) => ({
+              id: r.id,
+              from: r.sender_id,
+              text: r.body,
+              sent_at: r.created_at,
+              reactions: r.reactions?.length ? r.reactions : undefined,
+            }));
+            set({
+              sessionChats: {
+                ...get().sessionChats,
+                [id]: { ...existing, messages: mergeChatMessages(existing.messages, msgs) },
+              },
+            });
+          }
+        } catch {
+          /* chats table pending — device-local threads keep working */
+        }
+      },
+
+      fetchCollectedCards: async () => {
+        const me = get().me;
+        if (!me || !isUuid(me.id)) return;
+        try {
+          const remote = await fetchCollectedCardsRemote(me.id);
+          if (remote.length === 0) return;
+          const remoteIds = new Set(remote.map((c) => c.user_id));
+          // Backfill once: cards collected while the table didn't
+          // exist are pushed up so the Vault becomes whole server-side.
+          for (const c of get().collectedCards) {
+            if (!remoteIds.has(c.user_id)) {
+              void upsertCollectedCardRemote(me.id, c).catch(() => {});
+            }
+          }
+          const byId = new Map(get().collectedCards.map((c) => [c.user_id, c]));
+          for (const rc of remote) {
+            const local = byId.get(rc.user_id);
+            if (!local || rc.sessions_together >= local.sessions_together) {
+              byId.set(rc.user_id, rc);
+            }
+          }
+          set({ collectedCards: [...byId.values()] });
+        } catch {
+          /* cards table pending — on-device Vault keeps working */
+        }
+      },
+
       sendMessageRequest: (toId) => {
         const me = get().me;
         if (!me || !isUuid(me.id) || !isUuid(toId)) return;
@@ -2835,6 +3059,10 @@ export const useAppStore = create<Store>()(
             }),
           },
         });
+        const updatedDm = get().chats[userId]?.find((m) => m.id === msgId);
+        if (updatedDm && isUuid(me.id) && isUuid(userId)) {
+          void updateChatMessageReactionsRemote(msgId, updatedDm.reactions ?? []).catch(() => {});
+        }
       },
 
       toggleReactionSession: (sessionChatId: string, msgId: string, key: ReactionKey) => {
@@ -2859,6 +3087,10 @@ export const useAppStore = create<Store>()(
             },
           },
         });
+        const updatedSc = get().sessionChats[sessionChatId]?.messages.find((m) => m.id === msgId);
+        if (updatedSc && isUuid(me.id)) {
+          void updateChatMessageReactionsRemote(msgId, updatedSc.reactions ?? []).catch(() => {});
+        }
       },
 
       ensureSessionChat: (
@@ -3582,3 +3814,34 @@ export const useAppStore = create<Store>()(
     }
   )
 );
+
+// Crew server sync (2026-10-17): ANY local mutation of a user-created
+// crew — create, join, leave, member/admin changes, join-request
+// review, profile edits — pushes the whole crew document up,
+// debounced per crew so multi-step flows write once. The document is
+// the unit of sync, so a missed intermediate state self-heals on the
+// next change. Hydration merges (fetchMyGroups) set groupHydrating
+// so server echoes don't bounce straight back as writes.
+const groupPushTimers = new Map<string, ReturnType<typeof setTimeout>>();
+useAppStore.subscribe((state, prev) => {
+  if (groupHydrating || state.groups === prev.groups) return;
+  const meId = state.me?.id;
+  if (!meId || !isUuid(meId)) return;
+  const prevById = new Map(prev.groups.map((g) => [g.id, g]));
+  for (const g of state.groups) {
+    if (!groupSyncable(g) || prevById.get(g.id) === g) continue;
+    const t = groupPushTimers.get(g.id);
+    if (t) clearTimeout(t);
+    groupPushTimers.set(
+      g.id,
+      setTimeout(() => {
+        groupPushTimers.delete(g.id);
+        const s = useAppStore.getState();
+        const cur = s.groups.find((x) => x.id === g.id);
+        const meNow = s.me?.id;
+        if (!cur || !meNow || !isUuid(meNow)) return;
+        void upsertGroupRemote(groupToRemote(cur, meNow)).catch(() => {});
+      }, 400),
+    );
+  }
+});
