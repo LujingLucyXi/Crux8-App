@@ -513,6 +513,24 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
   // Step 1 of the create flow (Lucy 2026-10-17): Indoor vs Outdoor
   // gets its OWN step, then Activity shows the matching choices
   // (outdoor keeps Hike; indoor doesn't have one).
+  // Tactile press (Lucy 2026-10-17: 'the button doesn't feel
+  // clicked'): selection cards scale down + gold-tint while pressed,
+  // and the step advance waits ~140ms so the press is actually seen
+  // before the screen swaps.
+  const [pressing, setPressing] = useState<string | null>(null);
+  const pressAdvance = (key: string, fn: () => void) => {
+    setPressing(key);
+    window.setTimeout(() => {
+      setPressing(null);
+      fn();
+    }, 140);
+  };
+  const pressCls = (key: string) =>
+    cn(
+      'transition duration-100 active:scale-[0.97] active:bg-brand-100',
+      pressing === key && 'scale-[0.97] bg-brand-100 border-brand-600/60',
+    );
+
   const pickPlace = (p: 'indoor' | 'outdoor') => {
     setLocFilter(p);
     setCreateStep('activity');
@@ -627,8 +645,11 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
                 <button
                   key={st}
                   type="button"
-                  onClick={() => pickLeanStyle(st)}
-                  className="rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50"
+                  onClick={() => pressAdvance(`lean-${st}`, () => pickLeanStyle(st))}
+                  className={cn(
+                    'rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left',
+                    pressCls(`lean-${st}`),
+                  )}
                 >
                   <span className="block text-base font-bold text-ink-900">{label}</span>
                 </button>
@@ -809,8 +830,11 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
               <button
                 key={p}
                 type="button"
-                onClick={() => pickPlace(p)}
-                className="rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50"
+                onClick={() => pressAdvance(`place-${p}`, () => pickPlace(p))}
+                className={cn(
+                  'rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left',
+                  pressCls(`place-${p}`),
+                )}
               >
                 <span className="block text-base font-bold text-ink-900">{p === 'indoor' ? 'Indoor' : 'Outdoor'}</span>
               </button>
@@ -843,8 +867,11 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
                 <button
                   key={t}
                   type="button"
-                  onClick={() => pickCreateType(t)}
-                  className="rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50"
+                  onClick={() => pressAdvance(`act-${t}`, () => pickCreateType(t))}
+                  className={cn(
+                    'rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left',
+                    pressCls(`act-${t}`),
+                  )}
                 >
                   <span className="block text-base font-bold text-ink-900">{label}</span>
                 </button>
