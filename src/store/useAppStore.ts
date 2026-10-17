@@ -1180,7 +1180,19 @@ export const useAppStore = create<Store>()(
         await ensureProfileRow(user.id, user.email);
         const row = await fetchProfileRowRetried(user.id);
         get().prepareForUser(user.id);
-        set({ me: profileRowToProfile(user.id, user.email ?? '', row) });
+        // Same name heal as applySessionUser: without it a Google
+        // account's server row stays display_name NULL until
+        // onboarding, and the user is nameless to everyone else.
+        const metaName =
+          (user.user_metadata?.full_name as string | undefined) ??
+          (user.user_metadata?.name as string | undefined);
+        const effectiveRow =
+          row && !row.display_name && metaName ? { ...row, display_name: metaName } : row;
+        const profile = profileRowToProfile(user.id, user.email ?? '', effectiveRow);
+        set({ me: profile });
+        if (!row?.display_name && profile.display_name) {
+          void persistProfilePatch(user.id, { display_name: profile.display_name });
+        }
         get().ensureCruxyThread();
         return { ok: true as const };
       },
@@ -1198,6 +1210,7 @@ export const useAppStore = create<Store>()(
           email: string,
           isGuest: boolean,
           emailConfirmedAt?: string | null,
+          nameHint?: string,
         ) => {
           // Guest sessions are constructed by signInAsGuest with the chosen
           // name (written to the profile row fire-and-forget). Don't clobber
@@ -1214,7 +1227,24 @@ export const useAppStore = create<Store>()(
           get().prepareForUser(userId);
           const row = await fetchProfileRowRetried(userId);
           get().prepareForUser(userId);
-          const profile = profileRowToProfile(userId, email, row);
+          // Name survival (Lucy field report 2026-10-16): accounts are
+          // born with display_name NULL on the server (the auth trigger
+          // writes id + email only) and the name is only persisted when
+          // onboarding completes — so anyone who joins a session before
+          // finishing onboarding (exactly the scanned-QR flow) is a
+          // GHOST to everyone else: the host sees a blank participant
+          // and the summary card shows no name. The computed profile
+          // always carries a usable name (provider name → email
+          // prefix); prefer the provider's real name when we have it,
+          // and write the result back so the server row heals.
+          const effectiveRow =
+            row && !row.display_name && nameHint
+              ? { ...row, display_name: nameHint }
+              : row;
+          const profile = profileRowToProfile(userId, email, effectiveRow);
+          if (!row?.display_name && profile.display_name) {
+            void persistProfilePatch(userId, { display_name: profile.display_name });
+          }
           // Photo survival (Lucy 2026-10-16: uploaded photo "never got
           // kept", drawn avatar came back): this rebuild REPLACES `me`
           // with the server row on every launch / token refresh, so a
@@ -1278,7 +1308,7 @@ export const useAppStore = create<Store>()(
         if (!sessionUser) {
           if (get().me) set({ me: null });
         } else {
-          await applySessionUser(sessionUser.id, sessionUser.email ?? '', sessionUser.is_anonymous === true, sessionUser.email_confirmed_at);
+          await applySessionUser(sessionUser.id, sessionUser.email ?? '', sessionUser.is_anonymous === true, sessionUser.email_confirmed_at, (sessionUser.user_metadata?.full_name as string | undefined) ?? (sessionUser.user_metadata?.name as string | undefined));
         }
         // The server is the source of truth: pull fresh sessions + calls
         // on EVERY launch, not only at first seed. Without this, a session
@@ -1302,7 +1332,7 @@ export const useAppStore = create<Store>()(
             if (event === 'SIGNED_OUT') {
               set({ me: null });
             } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-              await applySessionUser(session.user.id, session.user.email ?? '', session.user.is_anonymous === true, session.user.email_confirmed_at);
+              await applySessionUser(session.user.id, session.user.email ?? '', session.user.is_anonymous === true, session.user.email_confirmed_at, (session.user.user_metadata?.full_name as string | undefined) ?? (session.user.user_metadata?.name as string | undefined));
               void get().fetchSessions();
               void get().fetchClimbCalls();
             }

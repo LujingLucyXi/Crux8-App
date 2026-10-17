@@ -60,7 +60,10 @@ export function resolveUser(
   if (dir) {
     return {
       id: dir.id,
-      display_name: dir.display_name,
+      // Server rows can carry display_name NULL (accounts that never
+      // finished onboarding) — never hand the UI a null name; the
+      // owner's app heals the real name back on their next launch.
+      display_name: dir.display_name?.trim() ? dir.display_name : 'Climber',
       photo_url: dir.photo_url ?? null,
       avatar: dir.avatar ?? undefined,
       top_grade: dir.top_grade ?? undefined,
