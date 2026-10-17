@@ -41,6 +41,13 @@ export function CartoonAvatar({
   const bg = BACKDROP_HEX[config.backdrop] ?? '#FDE9C8';
   const bucket = hairBucket(config.hair);
   const hatOn = config.accessory === 'beanie' || config.accessory === 'cap';
+  // Softens a hex color toward white (the braid's base fill — Lucy
+  // 2026-10-16: a full-strength black braid read as a heavy lump).
+  const lighten = (hex: string, f: number) => {
+    const n = parseInt(hex.slice(1), 16);
+    const mix = (c: number) => Math.round(c + (255 - c) * f);
+    return `rgb(${mix((n >> 16) & 255)},${mix((n >> 8) & 255)},${mix(n & 255)})`;
+  };
   // Length is its own trait (Lucy 2026-10-16); saved configs from
   // before it existed read as 'medium'.
   const len = config.hairLength ?? 'medium';
@@ -210,9 +217,9 @@ export function CartoonAvatar({
         // braid itself hangs over one shoulder (front layer). A small
         // gather wedge behind the jaw connects cap to braid.
         return (
-          <g {...HS}>
-            <path d={CAP_D} />
-            <path d="M29 43 Q22 47 22.5 57 L34.5 57 Q34 48 29 43 Z" />
+          <g>
+            <path d={CAP_D} {...HS} />
+            <path d="M29 43 Q22 47 22.5 57 L34.5 57 Q34 48 29 43 Z" fill={lighten(hairCol, 0.35)} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />
           </g>
         );
       case 'locs': {
@@ -283,26 +290,33 @@ export function CartoonAvatar({
     // 'braids' also lives here: the French braid band sits ON the cap.
     switch (config.hair) {
       case 'braids': {
-        // One clean braid over the left shoulder, v7.1: EVEN width
-        // and smooth sides (v7's fix stands) — but the woven PATTERN
-        // stays: stacked shallow-V plait rows inside the column.
-        // (v7 stripped the pattern to faint seams; Lucy: "i did not
-        // mean to drop all the pattern at all.")
+        // One clean braid over the left shoulder, v8 (Lucy: "lighten
+        // up the fill, make the pattern more obvious, smooth and
+        // cute"): the column's base fill is the hair color lightened
+        // ~35% so it stops reading as a heavy lump; the pattern is a
+        // stack of plump, smooth PETAL lobes in the full hair color,
+        // alternating lean and overlapping like a real plait — no
+        // angles, no scratchy lines.
         const cx = 28;
         const top = 51;
         const yB = len === 'short' ? 66 : len === 'long' ? 80 : 73;
         const d = `M${cx - 5.6} ${top} Q${cx} ${top - 3.4} ${cx + 5.6} ${top} L${cx + 5.3} ${yB} Q${cx} ${yB + 2.8} ${cx - 5.3} ${yB} Z`;
-        const rows: string[] = [];
-        for (let y = top + 3.5; y < yB - 3.5; y += 5.6) {
-          rows.push(`M${cx - 4.9} ${y.toFixed(1)} L${cx} ${(y + 4.1).toFixed(1)} L${cx + 4.9} ${y.toFixed(1)}`);
+        const lobes: string[] = [];
+        const n = Math.max(2, Math.round((yB - top) / 6.2));
+        for (let i = 0; i < n; i++) {
+          const cy = top + 3.4 + i * 6.2;
+          const lean = i % 2 === 0 ? -1.5 : 1.5;
+          lobes.push(
+            `M${cx - 6} ${cy - 3.2} Q${cx - 6.3} ${cy + 3} ${cx + lean} ${cy + 4.6} Q${cx + 6.3} ${cy + 3} ${cx + 6} ${cy - 3.2} Q${cx + lean} ${cy + 0.6} ${cx - 6} ${cy - 3.2} Z`,
+          );
         }
         return (
           <g>
             <path d="M50 25.5 L50 33.5" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4" />
-            <path d={d} {...HS} />
-            <g stroke={OUTLINE} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" fill="none">
-              {rows.map((r) => (
-                <path key={r} d={r} />
+            <path d={d} fill={lighten(hairCol, 0.35)} stroke={OUTLINE} strokeWidth={SW} strokeLinejoin="round" />
+            <g fill={hairCol} stroke={OUTLINE} strokeWidth="1.7" strokeLinejoin="round">
+              {lobes.map((l) => (
+                <path key={l} d={l} />
               ))}
             </g>
             <path
