@@ -18,6 +18,10 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultGroupId?: string;
+  /** Crew Manage's "Post event as …" opens the sheet already in the
+   * event flow (Lucy 2026-10-17: Event leaves the main create
+   * selection and lives in the crew flow until more crews onboard). */
+  startAsEvent?: boolean;
 }
 
 const VIBES: Vibe[] = ['chill', 'projecting', 'training', 'social'];
@@ -43,7 +47,7 @@ const EVENT_TYPES: EventType[] = [
   'social',
 ];
 
-export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
+export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEvent }: Props) {
   const gyms = useAppStore((s) => s.gyms);
   const me = useAppStore((s) => s.me);
   const groups = useAppStore((s) => s.groups);
@@ -461,6 +465,14 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     </div>
   );
 
+  useEffect(() => {
+    if (open && startAsEvent) {
+      setMode('event');
+      setCreateStep('logistics');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, startAsEvent]);
+
   const pickCreateType = (t: 'boulder' | 'top_rope' | 'lead' | 'hike' | 'event') => {
     if (t === 'boulder') {
       setMode(locFilter);
@@ -778,7 +790,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                   type="button"
                   onClick={() => setLocFilter(f.v)}
                   className={cn(
-                    'flex-1 rounded-xl border py-2 text-xs font-semibold transition-colors',
+                    'flex-1 rounded-xl border py-2 text-xs font-semibold',
                     locFilter === f.v ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-500 border-ink-100',
                   )}
                 >
@@ -786,25 +798,28 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 </button>
               ))}
             </div>
+            {/* All cards stay mounted; the filter just hides the ones
+                that don't fit — no remount, no height animation
+                friction when switching Indoor/Outdoor (Lucy
+                2026-10-17). Event is NOT here: it lives in the crew
+                flow until more crews are onboarded. */}
             <div className="flex flex-col gap-3">
-              {(locFilter === 'indoor'
-                ? ([
-                    { t: 'boulder', label: 'Boulder' },
-                    { t: 'top_rope', label: 'Top rope' },
-                    { t: 'lead', label: 'Lead' },
-                    { t: 'event', label: 'Event' },
-                  ] as const)
-                : ([
-                    { t: 'boulder', label: 'Boulder' },
-                    { t: 'hike', label: 'Hike' },
-                    { t: 'event', label: 'Event' },
-                  ] as const)
-              ).map(({ t, label }) => (
+              {(
+                [
+                  { t: 'boulder', label: 'Boulder', show: true },
+                  { t: 'top_rope', label: 'Top rope', show: locFilter === 'indoor' },
+                  { t: 'lead', label: 'Lead', show: locFilter === 'indoor' },
+                  { t: 'hike', label: 'Hike', show: locFilter === 'outdoor' },
+                ] as const
+              ).map(({ t, label, show }) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => pickCreateType(t)}
-                  className="rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50"
+                  className={cn(
+                    'rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50',
+                    !show && 'hidden',
+                  )}
                 >
                   <span className="block text-base font-bold text-ink-900">{label}</span>
                 </button>
@@ -816,7 +831,10 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
           <div className="mb-5 -mt-1 flex items-center justify-between gap-2">
             <button
               type="button"
-              onClick={() => setCreateStep(createStep === 'optional' ? 'logistics' : 'activity')}
+              onClick={() => {
+                if (startAsEvent && createStep === 'logistics') onOpenChange(false);
+                else setCreateStep(createStep === 'optional' ? 'logistics' : 'activity');
+              }}
               className="text-sm font-semibold text-brand-600"
             >
               ‹ Back

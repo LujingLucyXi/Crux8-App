@@ -403,7 +403,7 @@ export function GroupManage() {
         </Button>
       </div>
 
-      <NewSessionSheet open={eventOpen} onOpenChange={setEventOpen} defaultGroupId={group.id} />
+      <NewSessionSheet open={eventOpen} onOpenChange={setEventOpen} defaultGroupId={group.id} startAsEvent />
     </div>
   );
 }
