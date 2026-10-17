@@ -30,6 +30,8 @@ export function ChatDetail() {
   const requestCruxmate = useAppStore((s) => s.requestCruxmate);
   const toggleReactionDm = useAppStore((s) => s.toggleReactionDm);
   const markThreadRead = useAppStore((s) => s.markThreadRead);
+  const setNewSessionPreselectInvite = useAppStore((s) => s.setNewSessionPreselectInvite);
+  const setNewSessionOpen = useAppStore((s) => s.setNewSessionOpen);
   const me = useAppStore((s) => s.me);
   const [text, setText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -99,8 +101,8 @@ export function ChatDetail() {
           <NavArrowLeft width={22} height={22} className="text-ink-700" />
         </button>
         <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={36} fallback={user.display_name} />
-        <div className="flex-1">
-          <p className="font-semibold text-ink-900">{user.display_name}</p>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-ink-900 truncate">{user.display_name}</p>
           <div className="flex gap-1 mt-0.5">
             {(['top_rope', 'lead', 'trad'] as const)
               .filter((c) => verifMap[c] === 'verified')
@@ -115,6 +117,24 @@ export function ChatDetail() {
               ))}
           </div>
         </div>
+        {access === 'open' && userId && (
+          <button
+            type="button"
+            onClick={() => {
+              // Same invitation as the profile card's Invite to climb
+              // (Lucy 2026-10-17: chat gets its own invite button —
+              // '和点进头像是一样的'). The lean two-step invite sheet
+              // opens with this person preselected; sending creates
+              // the session/call and drops the invitation card right
+              // back into this conversation.
+              setNewSessionPreselectInvite(userId);
+              setNewSessionOpen(true);
+            }}
+            className="shrink-0 rounded-full bg-brand-600 px-3.5 py-2 text-xs font-bold text-[#161310]"
+          >
+            🧗 Invite to climb
+          </button>
+        )}
       </div>
 
       {access === 'request' && (
