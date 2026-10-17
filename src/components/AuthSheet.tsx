@@ -1,7 +1,7 @@
 // Shared auth sheet: email-code OTP and email+password in one place.
 // Used by both the landing page and the /claim route so every entry
 // point offers the same sign-in options.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Input, Label } from '@/components/ui/Input';
@@ -23,6 +23,68 @@ interface AuthSheetProps {
 
 const looksLikeEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim().toLowerCase());
 
+// ── Google Identity Services, REDIRECT mode ────────────────────────
+// The clean Google flow (consent names Crux8, never *.supabase.co)
+// with the transport fixed: the button navigates the WHOLE PAGE to
+// Google instead of opening a popup. Popup mode silently died on
+// iOS Safari (the popup inside Google's iframe never opens there —
+// Lucy's "nothing happens at all", 2026-10-16) and behaved
+// inconsistently elsewhere. In redirect mode Google POSTs the ID
+// token to /api/google-login, which hands it to the /google-auth
+// route; that route exchanges it via the store — one identical path
+// for sign-up and sign-in. The OAuth redirect flow below remains
+// the fallback when the Google script itself can't load, and the
+// only path inside WeChat (where Google blocks its own pages).
+const GOOGLE_CLIENT_ID =
+  '419469341549-983g2qoptvbmgd3pdnqgcfn3f2imnrur.apps.googleusercontent.com';
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (cfg: {
+            client_id: string;
+            nonce: string;
+            ux_mode: 'redirect';
+            login_uri: string;
+          }) => void;
+          renderButton: (
+            el: HTMLElement,
+            opts: Record<string, unknown>,
+          ) => void;
+        };
+      };
+    };
+  }
+}
+
+let gisLoadPromise: Promise<void> | null = null;
+function loadGoogleIdentity(): Promise<void> {
+  if (window.google?.accounts) return Promise.resolve();
+  if (!gisLoadPromise) {
+    gisLoadPromise = new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('gis load failed'));
+      document.head.appendChild(script);
+    });
+  }
+  return gisLoadPromise;
+}
+
+function newRawNonce(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export function AuthSheet({
   open,
   onOpenChange,
@@ -37,6 +99,8 @@ export function AuthSheet({
   const resendConfirmation = useAppStore((s) => s.resendConfirmation);
   const signInWithGoogle = useAppStore((s) => s.signInWithGoogle);
   const [googleBusy, setGoogleBusy] = useState(false);
+  const [gisFailed, setGisFailed] = useState(false);
+  const gisRef = useRef<HTMLDivElement>(null);
   const isWeChatBrowser =
     typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent);
 
@@ -111,6 +175,50 @@ export function AuthSheet({
     onOpenChange(false);
     onSuccess?.();
   };
+
+  // Mount the in-page Google button (redirect mode) whenever the
+  // sheet opens. A fresh nonce is minted per opening: GIS gets its
+  // SHA-256 hash; the raw value waits in sessionStorage for the
+  // /google-auth route to present with the returned token. The
+  // current path is stashed too, so the round trip lands back here.
+  useEffect(() => {
+    if (!open || isWeChatBrowser || gisFailed) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await loadGoogleIdentity();
+        if (cancelled || !gisRef.current || !window.google) return;
+        const raw = newRawNonce();
+        const hashed = await sha256Hex(raw);
+        try {
+          sessionStorage.setItem('crux8-google-nonce', raw);
+          sessionStorage.setItem('crux8-google-return', window.location.pathname);
+        } catch {
+          /* the exchange can still proceed; return path is a nicety */
+        }
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          nonce: hashed,
+          ux_mode: 'redirect',
+          login_uri: `${window.location.origin}/api/google-login`,
+        });
+        gisRef.current.innerHTML = '';
+        window.google.accounts.id.renderButton(gisRef.current, {
+          theme: 'outline',
+          size: 'large',
+          text: 'continue_with',
+          shape: 'rectangular',
+          width: Math.max(240, Math.min(400, gisRef.current.clientWidth || 320)),
+        });
+      } catch {
+        if (!cancelled) setGisFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open ]);
 
   const switchPwMode = (m: PwMode) => {
     setPwMode(m);
@@ -219,13 +327,11 @@ export function AuthSheet({
       }}
     >
       <SheetContent title={title}>
-        {/* Continue with Google — full-page OAuth redirect flow.
-            (The in-page GIS button silently swallowed taps on iOS
-            Safari — Google's popup never opened and nothing told the
-            user; Lucy hit exactly that on 2026-10-16. The redirect
-            flow is the one verified end-to-end: Supabase authorize
-            302 -> Google consent with Crux8 branding -> back into
-            the app.) */}
+        {/* Continue with Google — GIS button in redirect mode
+            (clean consent, whole-page transport); the OAuth redirect
+            button underneath is the fallback for WeChat and for
+            Google-script load failures. */}
+        {isWeChatBrowser || gisFailed ? (
         <button
           type="button"
           onClick={startGoogle}
@@ -240,6 +346,9 @@ export function AuthSheet({
           </svg>
           {googleBusy ? 'Opening Google…' : 'Continue with Google'}
         </button>
+        ) : (
+          <div ref={gisRef} className="mb-3 flex min-h-[44px] w-full items-center justify-center" />
+        )}
         <div className="mb-3 flex items-center gap-3 text-[11px] font-medium text-ink-400">
           <span className="h-px flex-1 bg-ink-100" />
           or with email

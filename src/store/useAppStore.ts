@@ -299,7 +299,7 @@ interface Store {
    *  project's *.supabase.co domain never appears to users. */
   signInWithGoogleToken: (
     token: string,
-    nonce: string,
+    nonce?: string,
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
   /**
    * Guest join (front door, 2026-10-14): Supabase anonymous sign-in with a

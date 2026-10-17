@@ -5,6 +5,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Landing } from '@/routes/Landing';
 import { Onboarding } from '@/routes/Onboarding';
 import { Claim } from '@/routes/Claim'; // quiz → app DNA bridge (public; handles its own auth)
+import GoogleAuth from '@/routes/GoogleAuth'; // GIS redirect-mode landing (public; exchanges the ID token)
 import { CallDeepLink } from '@/routes/CallDeepLink'; // shared climb call deep link (public; handles its own auth)
 import { SessionDeepLink } from '@/routes/SessionDeepLink'; // shared session deep link (public; handles its own auth)
 import { AddDeepLink } from '@/routes/AddDeepLink'; // personal add-friend link: /add/:code (public; handles its own auth)
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
   { path: '/', element: <LandingOrHome />, errorElement: <RouteError /> },
   { path: '/onboarding', element: <Onboarding />, errorElement: <RouteError /> },
   { path: '/claim', element: <Claim />, errorElement: <RouteError /> },
+  { path: '/google-auth', element: <GoogleAuth />, errorElement: <RouteError /> },
   { path: '/call/:callId', element: <CallDeepLink />, errorElement: <RouteError /> },
   { path: '/session/:sessionId', element: <SessionDeepLink />, errorElement: <RouteError /> },
   { path: '/add/:code', element: <AddDeepLink />, errorElement: <RouteError /> },
