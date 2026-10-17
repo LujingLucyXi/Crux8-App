@@ -278,7 +278,15 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     if (inviteIds.includes('cruxy')) inviteCruxyToCall(created.id);
     const humans = inviteIds.filter((id) => id !== 'cruxy');
     if (humans.length > 0) inviteCruxmatesToCall(created.id, humans);
-    toast('Climb call live', { description: `Belay partners can request to pair.` });
+    if (directInviteId) {
+      // Direct-invite mode: the point was the invite, not a public
+      // post — say so (Lucy 2026-10-16 flagged the 'appears at the
+      // top of Find' note as wrong-feeling for invitations).
+      const dn = resolveUser(directInviteId, me, users, directory)?.display_name.split(' ')[0];
+      toast.success(dn ? `Invite sent to ${dn}` : 'Invite sent');
+    } else {
+      toast('Climb call live', { description: `Belay partners can request to pair.` });
+    }
     onOpenChange(false);
     reset();
   };
@@ -314,6 +322,13 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
       if (inviteIds.includes('cruxy')) inviteCruxy(session.id);
       const humans = inviteIds.filter((id) => id !== 'cruxy');
       if (humans.length > 0) inviteCruxmatesToSession(session.id, humans);
+      if (directInviteId) {
+        const dn = resolveUser(directInviteId, me, users, directory)?.display_name.split(' ')[0];
+        toast.success(dn ? `Invite sent to ${dn}` : 'Invite sent');
+        onOpenChange(false);
+        reset();
+        return;
+      }
       toast('Session posted', {
         description: `${session.capacity >= UNCAPPED_CAPACITY ? 'Open invite' : `${session.capacity - 1} spots open`} · appears at the top of Find.`,
       });

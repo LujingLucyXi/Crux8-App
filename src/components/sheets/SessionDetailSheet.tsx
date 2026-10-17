@@ -298,8 +298,13 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
               </Button>
               {!canStartSession(session) && (
                 <p className="text-xs text-ink-500 text-center mt-2">
-                  Starting opens 30 min before the session. If nobody starts it within
-                  1 hr of the start time, it lapses.
+                  {/* Plain + concrete (Lucy 2026-10-16: the old 'it
+                      lapses' note 'feels off — not sure what it
+                      means'). Just say when starting opens. */}
+                  Starting opens{' '}
+                  {formatSessionWhen(
+                    new Date(new Date(session.starts_at).getTime() - 30 * 60_000).toISOString(),
+                  )}
                 </p>
               )}
             </div>
