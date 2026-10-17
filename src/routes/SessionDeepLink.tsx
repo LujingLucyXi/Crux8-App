@@ -21,6 +21,7 @@ export function SessionDeepLink() {
   const nav = useNavigate();
   const me = useAppStore((s) => s.me);
   const sessions = useAppStore((s) => s.sessions);
+  const sessionsLoading = useAppStore((s) => s.sessionsLoading);
   const rsvp = useAppStore((s) => s.rsvp);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(true);
@@ -40,6 +41,21 @@ export function SessionDeepLink() {
     if (me && session) consumePendingIntentFor('session', session.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me?.id, session?.id]);
+
+  if (!session && sessionsLoading) {
+    // A scanned link often lands before the session list has loaded —
+    // declaring "gone" here made live sessions look dead to exactly
+    // the friends who scanned the host's code (Lucy field report,
+    // 2026-10-16). Wait for the fetch before judging.
+    return (
+      <div className="min-h-screen bg-paper-50">
+        <div className="mx-auto flex max-w-[560px] flex-col items-center px-6 py-16 text-center">
+          <Logo size={56} />
+          <p className="mt-6 text-sm font-medium text-ink-500">Loading your session…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!session) {
     return (

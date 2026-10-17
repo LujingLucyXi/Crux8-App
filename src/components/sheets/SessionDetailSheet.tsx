@@ -29,6 +29,18 @@ interface Props {
 }
 
 const ROPE_CATS: Session['category'][] = ['top_rope', 'lead', 'trad', 'multi_pitch', 'outdoor_sport'];
+// The gear checklist gates ONLY outdoor sessions (Lucy 2026-10-16,
+// refined twice in one evening: first boulder was exempted — a friend
+// scanning into her boulder session hit the checklist wall and never
+// got in — then she generalized it: boulder, trad, top rope, lead,
+// events all skip the step; only outdoor sessions keep it, where
+// forgotten kit actually strands people).
+const GEAR_CHECK_CATS: Session['category'][] = [
+  'outdoor_sport',
+  'outdoor_boulder',
+  'multi_pitch',
+  'hiking',
+];
 
 function catToVerification(cat: Session['category']): VerificationCategory | null {
   if (cat === 'top_rope') return 'top_rope';
@@ -131,7 +143,13 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
       setAttestOpen(true);
       return;
     }
-    doRsvp();
+    // Indoor sessions (and trad, and events) join in one tap — no
+    // checklist ceremony. Outdoor sessions keep the gear gate.
+    if (GEAR_CHECK_CATS.includes(session.category)) {
+      doRsvp();
+      return;
+    }
+    void confirmRsvp();
   };
 
   return (
