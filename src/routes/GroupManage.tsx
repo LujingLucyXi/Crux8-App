@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -24,6 +24,11 @@ export function GroupManage() {
   const nav = useNavigate();
   const groups = useAppStore((s) => s.groups);
   const users = useAppStore((s) => s.users);
+  const directory = useAppStore((s) => s.directory);
+  const ensureDirectoryProfiles = useAppStore((s) => s.ensureDirectoryProfiles);
+  const cruxmates = useAppStore((s) => s.cruxmates);
+  const mateRequests = useAppStore((s) => s.mateRequests);
+  const addMember = useAppStore((s) => s.addGroupMember);
   const me = useAppStore((s) => s.me);
   const approve = useAppStore((s) => s.approveJoinRequest);
   const decline = useAppStore((s) => s.declineJoinRequest);
@@ -40,6 +45,19 @@ export function GroupManage() {
   const [description, setDescription] = useState(group?.description ?? '');
   const [questions, setQuestions] = useState<string[]>(group?.survey_questions ?? []);
   const [newQ, setNewQ] = useState('');
+
+  // Real members/admins resolve via the directory — fetch whoever
+  // this page is about to name (declared before the early returns,
+  // like every hook here).
+  useEffect(() => {
+    if (!group) return;
+    void ensureDirectoryProfiles([
+      ...group.admin_ids,
+      ...(group.member_ids ?? []),
+      ...(group.pending ?? []).map((r) => r.user_id),
+    ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group?.id]);
 
   if (!group || !me) {
     return (
@@ -62,10 +80,21 @@ export function GroupManage() {
     );
   }
 
-  const person = (id: string): PersonLite =>
-    id === 'me'
-      ? { id: 'me', display_name: me.display_name ?? 'You', avatar: me.avatar, photo_url: me.photo_url }
-      : users.find((u) => u.id === id) ?? { id, display_name: id };
+  // Resolve through the same chain as everywhere else (me → seed
+  // users → real-user directory). The old helper fell back to the raw
+  // UUID as the 'name' — Lucy hit it as a crew Owner row literally
+  // labeled 'a81cd163-…' and asked who the crew admin was (it was
+  // her own main account). A raw id must never render as a name.
+  const person = (id: string): PersonLite => {
+    if (id === 'me' || id === me.id) {
+      return { id: me.id, display_name: me.display_name ?? 'You', avatar: me.avatar, photo_url: me.photo_url };
+    }
+    const npc = users.find((u) => u.id === id);
+    if (npc) return { id, display_name: npc.display_name, avatar: npc.avatar, photo_url: npc.photo_url };
+    const dir = directory[id];
+    if (dir) return { id, display_name: dir.display_name?.trim() ? dir.display_name : 'Climber', avatar: dir.avatar, photo_url: dir.photo_url ?? undefined };
+    return { id, display_name: 'Climber' };
+  };
 
   const isOwner = (id: string) => group.owner_id === id || (group.owner_id === undefined && id === group.admin_ids[0]);
   const pending = group.pending ?? [];
@@ -235,6 +264,49 @@ export function GroupManage() {
           </div>
         )}
       </Section>
+
+      {/* ── Add members from the friend list (Lucy 2026-10-17) ── */}
+      {(() => {
+        const inGroup = new Set([
+          ...group.admin_ids,
+          ...(group.member_ids ?? []),
+          ...(group.pending ?? []).map((r) => r.user_id),
+          me.id,
+          'me',
+        ]);
+        const friendIds = new Set<string>(cruxmates);
+        for (const r of mateRequests) {
+          if (r.from_id === me.id && r.status !== 'denied') friendIds.add(r.to_id);
+        }
+        const candidates = [...friendIds].filter((id) => !inGroup.has(id));
+        if (candidates.length === 0) return null;
+        return (
+          <Section title="Add members">
+            <div className="flex flex-col gap-2">
+              {candidates.map((id) => {
+                const p = person(id);
+                return (
+                  <div key={id} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Avatar photoUrl={p.photo_url} config={p.avatar} seed={p.id} alt={p.display_name} size={30} fallback={p.display_name} />
+                      <span className="text-sm text-ink-900 truncate">{p.display_name}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        addMember(group.id, id);
+                        toast.success(`${p.display_name} added to the crew`);
+                      }}
+                      className="rounded-full bg-brand-600 px-3.5 py-1.5 text-xs font-bold text-[#161310]"
+                    >
+                      Add
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </Section>
+        );
+      })()}
 
       {/* ── Join settings ── */}
       <Section title="Who can join">

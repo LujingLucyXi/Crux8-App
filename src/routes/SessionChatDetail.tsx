@@ -8,6 +8,9 @@ import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { ReactionPicker } from '@/components/chat/ReactionPicker';
 import { ShareCard, parseShareLink } from '@/components/chat/ShareCard';
 import { useAppStore, scKey } from '@/store/useAppStore';
+import { formatSessionWhen } from '@/lib/date';
+import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
+import { ClimbCallDetailSheet } from '@/components/sheets/ClimbCallDetailSheet';
 import { cn } from '@/lib/utils';
 import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
 
@@ -20,6 +23,7 @@ export function SessionChatDetail() {
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
   const groups = useAppStore((s) => s.groups);
+  const gyms = useAppStore((s) => s.gyms);
   const me = useAppStore((s) => s.me);
   const sendSessionMessage = useAppStore((s) => s.sendSessionMessage);
   const ensureDirectoryProfiles = useAppStore((s) => s.ensureDirectoryProfiles);
@@ -27,6 +31,7 @@ export function SessionChatDetail() {
   const markThreadRead = useAppStore((s) => s.markThreadRead);
 
   const [text, setText] = useState('');
+  const [detailOpen, setDetailOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const chat = sessionChatId ? sessionChats[sessionChatId] : null;
@@ -126,6 +131,33 @@ export function SessionChatDetail() {
           </div>
         </div>
       </div>
+
+      {/* Time + place strip (Lucy 2026-10-17: session chats showed
+          neither). The session/call is looked up live by the chat's
+          id, so edits show here too; tapping opens the full sheet. */}
+      {(() => {
+        const linkedSession = chat.source === 'session' ? sessions.find((x) => x.id === chat.id) : undefined;
+        const linkedCall = chat.source === 'call' ? climbCalls.find((x) => x.id === chat.id) : undefined;
+        const startsAt = linkedSession?.starts_at ?? linkedCall?.starts_at;
+        if (!startsAt) {
+          return chat.subtitle ? (
+            <div className="border-b border-ink-100 bg-paper-50 px-4 py-2 text-xs text-ink-600">
+              📍 {chat.subtitle}
+            </div>
+          ) : null;
+        }
+        const place = linkedSession
+          ? (gyms.find((g) => g.id === linkedSession.gym_id)?.name ?? linkedSession.area ?? 'Outdoor')
+          : (gyms.find((g) => g.id === linkedCall?.gym_id)?.name ?? linkedCall?.area ?? 'Outdoor');
+        return (
+          <button
+            onClick={() => setDetailOpen(true)}
+            className="block w-full border-b border-ink-100 bg-paper-50 px-4 py-2 text-left text-xs text-ink-600"
+          >
+            📅 {formatSessionWhen(startsAt)} <span className="text-ink-300">·</span> 📍 {place}
+          </button>
+        );
+      })()}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
         <div className="flex flex-col gap-3">
@@ -228,6 +260,17 @@ export function SessionChatDetail() {
           <Send width={18} height={18} />
         </Button>
       </form>
+
+      <SessionDetailSheet
+        session={detailOpen && chat.source === 'session' ? (sessions.find((x) => x.id === chat.id) ?? null) : null}
+        open={detailOpen && chat.source === 'session'}
+        onOpenChange={setDetailOpen}
+      />
+      <ClimbCallDetailSheet
+        call={detailOpen && chat.source === 'call' ? (climbCalls.find((x) => x.id === chat.id) ?? null) : null}
+        open={detailOpen && chat.source === 'call'}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 }

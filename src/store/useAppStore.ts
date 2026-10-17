@@ -386,6 +386,7 @@ interface Store {
   addGroupAdmin: (groupId: string, userId: string) => void;
   removeGroupAdmin: (groupId: string, userId: string) => void;
   removeGroupMember: (groupId: string, userId: string) => void;
+  addGroupMember: (groupId: string, userId: string) => void;
   updateGroup: (groupId: string, patch: Partial<Group>) => void;
   openGroupChat: (groupId: string) => void;
   /** Find or create the house hangout crew for (house × user's city); joins it. Returns group id. */
@@ -2115,6 +2116,26 @@ export const useAppStore = create<Store>()(
           groups: get().groups.map((g) =>
             g.id === groupId && g.owner_id !== userId
               ? { ...g, admin_ids: g.admin_ids.filter((id) => id !== userId) }
+              : g
+          ),
+        });
+      },
+
+      // Crew owners/admins add people straight from their friend
+      // list (Lucy 2026-10-17: 'crew creator could not add members —
+      // they should be able to add members from friend list'). Crews
+      // are device-local today, so this updates the local roster.
+      addGroupMember: (groupId, userId) => {
+        set({
+          groups: get().groups.map((g) =>
+            g.id === groupId &&
+            !(g.member_ids ?? []).includes(userId) &&
+            !g.admin_ids.includes(userId)
+              ? {
+                  ...g,
+                  member_ids: [...(g.member_ids ?? []), userId],
+                  member_count: g.member_count + 1,
+                }
               : g
           ),
         });
