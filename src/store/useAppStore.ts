@@ -83,6 +83,7 @@ import {
   updateClimbCallRemote,
   createInviteRemote,
   befriendInviterRemote,
+  befriendUserRemote,
   fetchMyInvites,
   setInviteStatusRemote,
   createMateRequestRemote,
@@ -222,6 +223,10 @@ interface Store {
    *  Returns what happened so callers can pick the right copy. */
   requestCruxmate: (userId: string) => 'sent' | 'requested' | 'accepted' | 'already' | 'instant';
   autoBefriendInviter: (inviterId: string) => void;
+  /** Invite auto-friend (Lucy 2026-10-17): anyone I invite (session,
+   *  call, or crew) becomes my cruxmate at send time — no follow
+   *  step, no follow-back wait. */
+  befriendOnInvite: (userId: string) => void;
   /** Unfollow: removes my follow row (and the cruxmate state, if any). */
   cancelMateRequest: (userId: string) => void;
   /** Follow back from the inbox, by incoming row id. */
@@ -2203,6 +2208,9 @@ export const useAppStore = create<Store>()(
               : g
           ),
         });
+        // Adding someone to my crew is an invite (Lucy 2026-10-17):
+        // the pair are cruxmates from this tap, no follow step.
+        get().befriendOnInvite(userId);
       },
 
       removeGroupMember: (groupId, userId) => {
@@ -2448,6 +2456,8 @@ export const useAppStore = create<Store>()(
           if (isUuid(uid) && get().me?.id) {
             void createInviteRemote('call', callId, get().me!.id, uid).catch(() => {});
           }
+          // Inviting IS befriending (Lucy 2026-10-17) — no follow step.
+          get().befriendOnInvite(uid);
         }
       },
 
@@ -2496,6 +2506,8 @@ export const useAppStore = create<Store>()(
           if (isUuid(uid) && get().me?.id) {
             void createInviteRemote('session', sessionId, get().me!.id, uid).catch(() => {});
           }
+          // Inviting IS befriending (Lucy 2026-10-17) — no follow step.
+          get().befriendOnInvite(uid);
         }
       },
 
@@ -2674,6 +2686,35 @@ export const useAppStore = create<Store>()(
         if (out) return 'outgoing';
         if (inc) return 'incoming';
         return null;
+      },
+
+      // Invite auto-friend (Lucy 2026-10-17): anyone I INVITE — to
+      // a session, a climb call, or my crew — becomes my cruxmate at
+      // send time. No follow step, no follow-back wait: the follow
+      // gate inside the invite flow was pure redundancy (her field
+      // case: a man she invited, who already followed her, still
+      // wasn't in her friend list). Same optimistic shape as
+      // autoBefriendInviter, then the befriend_user RPC writes both
+      // follow rows server-side and the graph re-fetches. Real
+      // accounts only — seed NPCs keep their existing invite paths.
+      befriendOnInvite: (userId) => {
+        const me = get().me;
+        if (!me || userId === me.id || !isUuid(userId) || !isUuid(me.id)) return;
+        if (!get().cruxmates.includes(userId)) {
+          const now = new Date().toISOString();
+          const rows = [...get().mateRequests];
+          if (!rows.some((r) => r.from_id === me.id && r.to_id === userId && r.status !== 'denied')) {
+            rows.push({ id: crypto.randomUUID(), from_id: me.id, to_id: userId, status: 'pending', created_at: now });
+          }
+          if (!rows.some((r) => r.from_id === userId && r.to_id === me.id && r.status !== 'denied')) {
+            rows.push({ id: crypto.randomUUID(), from_id: userId, to_id: me.id, status: 'pending', created_at: now });
+          }
+          set({ mateRequests: rows, cruxmates: [...get().cruxmates, userId] });
+          get().collectCard(userId, 'cruxmate');
+        }
+        void befriendUserRemote(userId)
+          .then(() => get().fetchMateRequests())
+          .catch(() => {});
       },
 
       // Invite auto-friend (Lucy 2026-10-17): a join through an

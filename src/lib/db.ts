@@ -307,6 +307,19 @@ export async function befriendInviterRemote(inviterId: string): Promise<boolean>
   return !error;
 }
 
+/**
+ * Invite auto-friend (Lucy 2026-10-17): inviting a real user (to a
+ * session, a call, or a crew) makes the pair cruxmates at send time —
+ * the server creates BOTH follow rows via the befriend_user RPC.
+ * Returns false when the RPC isn't available yet (SQL not run) —
+ * callers keep the local optimistic state, so nothing breaks
+ * pre-migration.
+ */
+export async function befriendUserRemote(otherId: string): Promise<boolean> {
+  const { error } = await supabase.rpc('befriend_user', { p_other: otherId });
+  return !error;
+}
+
 export async function setSessionLifecycle(
   id: string,
   patch: { started_at?: string; finished_at?: string },
