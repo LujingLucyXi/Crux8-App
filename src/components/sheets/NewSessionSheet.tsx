@@ -477,11 +477,11 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
               <p className="text-sm text-ink-500">What are we climbing?</p>
               {(
                 [
-                  { st: 'boulder', label: 'Boulder', hint: 'No ropes — just shoes and chalk' },
-                  { st: 'top_rope', label: 'Top rope', hint: 'Take turns belaying' },
-                  { st: 'lead', label: 'Lead', hint: 'Clip as you climb' },
+                  { st: 'boulder', label: 'Boulder' },
+                  { st: 'top_rope', label: 'Top rope' },
+                  { st: 'lead', label: 'Lead' },
                 ] as const
-              ).map(({ st, label, hint }) => (
+              ).map(({ st, label }) => (
                 <button
                   key={st}
                   type="button"
@@ -489,7 +489,6 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                   className="rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50"
                 >
                   <span className="block text-base font-bold text-ink-900">{label}</span>
-                  <span className="block text-sm text-ink-500">{hint}</span>
                 </button>
               ))}
             </div>
