@@ -29,6 +29,15 @@ export interface DirectoryProfile {
   top_grade?: string | null;
   boulder_grade?: string | null;
   home_gym_id?: string | null;
+  /** Rich fields — present only after the directory-rich migration
+   *  (2026-10-16-directory-rich.sql); absent/null before it runs. */
+  avatar?: import('@/lib/avatar').AvatarConfig | null;
+  about?: string | null;
+  signature?: string | null;
+  preferred_styles?: string[] | null;
+  quiz_result_type?: string | null;
+  quiz_house_id?: string | null;
+  location?: string | null;
 }
 
 /** DB row shapes (the supabase-js client is untyped; cast at the boundary). */
@@ -336,9 +345,10 @@ export async function fetchPublicVerifications(
 }
 
 /** Distinct partners who confirmed 'has_cert', per category, for one user. */
-/** Founding Member number from the founding_members view (first 500
+/** Founding Member number from the founding_members view (first 88
  *  accounts by creation). Null when the account isn't in the first
- *  500 — or when the view doesn't exist yet (migration not run). */
+ *  88 — or when the view doesn't exist yet (migration not run). Works
+ *  for any user id (the view is public-read), not just your own. */
 export async function fetchMyFoundingNo(userId: string): Promise<number | null> {
   if (!isUuid(userId)) return null;
   const { data, error } = await supabase
@@ -524,6 +534,13 @@ export async function fetchDirectoryProfiles(ids: string[]): Promise<DirectoryPr
   // boulder_grade joins the view only after the 2026-10-16 migration —
   // try the extended select first and fall back so the directory never
   // breaks while the migration is pending.
+  const rich = await supabase
+    .from('directory_profiles')
+    .select(
+      'id,display_name,photo_url,top_grade,boulder_grade,home_gym_id,avatar,about,signature,preferred_styles,quiz_result_type,quiz_house_id,location',
+    )
+    .in('id', unique);
+  if (!rich.error) return asRows<DirectoryProfile>(rich.data);
   const extended = await supabase
     .from('directory_profiles')
     .select('id,display_name,photo_url,top_grade,boulder_grade,home_gym_id')

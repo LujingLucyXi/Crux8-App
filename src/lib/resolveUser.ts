@@ -9,6 +9,13 @@ export interface ResolvedUser {
   avatar?: AvatarConfig;
   top_grade?: string;
   boulder_grade?: string;
+  home_gym_id?: string;
+  about?: string;
+  signature?: string;
+  preferred_styles?: string[];
+  quiz_result_type?: string;
+  quiz_house_id?: string;
+  location?: string;
 }
 
 /**
@@ -31,6 +38,13 @@ export function resolveUser(
       avatar: me.avatar,
       top_grade: me.top_grade,
       boulder_grade: me.boulder_grade,
+      home_gym_id: me.home_gym_id,
+      about: me.about,
+      signature: me.signature,
+      preferred_styles: me.preferred_styles,
+      quiz_result_type: me.quiz_result_type,
+      quiz_house_id: me.quiz_house_id,
+      location: me.location,
     };
   }
   const npc = users.find((u) => u.id === id);
@@ -48,8 +62,16 @@ export function resolveUser(
       id: dir.id,
       display_name: dir.display_name,
       photo_url: dir.photo_url ?? null,
+      avatar: dir.avatar ?? undefined,
       top_grade: dir.top_grade ?? undefined,
       boulder_grade: dir.boulder_grade ?? undefined,
+      home_gym_id: dir.home_gym_id ?? undefined,
+      about: dir.about ?? undefined,
+      signature: dir.signature ?? undefined,
+      preferred_styles: dir.preferred_styles ?? undefined,
+      quiz_result_type: dir.quiz_result_type ?? undefined,
+      quiz_house_id: dir.quiz_house_id ?? undefined,
+      location: dir.location ?? undefined,
     };
   }
   return undefined;

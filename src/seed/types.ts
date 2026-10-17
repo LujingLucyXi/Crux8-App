@@ -226,7 +226,7 @@ export interface Profile {
   email?: string;            // the account email (from the auth user)
   email_verified?: boolean;
   created_at?: string;       // profile row creation time (fresh-signup detection)
-  founding_no?: number;      // Founding Member number (first 500 accounts; server view)
+  founding_no?: number;      // Founding Member number (first 88 accounts; server view)
   // ── hiking (set during onboarding; section is skippable) ──
   hike_distance?: string;    // e.g. '5-10'
   hike_pace?: string;        // e.g. 'steady'

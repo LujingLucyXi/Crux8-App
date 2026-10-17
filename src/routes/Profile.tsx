@@ -119,7 +119,7 @@ export function Profile() {
                     OG · Founding member
                   </span>
                   <span className="block text-[11px] font-medium text-ink-500">
-                    #{me.founding_no} of the first 500
+                    #{me.founding_no} of the first 88
                   </span>
                 </span>
               </span>

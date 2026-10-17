@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAppStore } from '@/store/useAppStore';
 import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
+import { UserProfileSheet } from '@/components/sheets/UserProfileSheet';
 import { normalizeInviteCode, isValidInviteCode, inviteLink } from '@/lib/inviteCode';
 
 /**
@@ -40,6 +41,7 @@ export function PeopleFinder({
   const mateRequests = useAppStore((s) => s.mateRequests);
   const ensureInviteCode = useAppStore((s) => s.ensureInviteCode);
   const [q, setQ] = useState('');
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [codeInput, setCodeInput] = useState('');
   const [codeHint, setCodeHint] = useState<string | null>(null);
 
@@ -168,15 +170,22 @@ export function PeopleFinder({
                 key={p.id}
                 className="flex items-center gap-3 rounded-2xl border border-ink-100 bg-paper-100 px-4 py-3"
               >
-                <Avatar photoUrl={p.photo_url ?? undefined} seed={p.display_name} size={36} alt={p.display_name} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-ink-900 truncate">{p.display_name}</p>
-                  {isFriend ? (
-                    <p className="text-xs font-semibold text-teal-600">✓ Cruxmate</p>
-                  ) : (
-                    p.top_grade && <p className="text-xs text-ink-500">{p.top_grade}</p>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setProfileUserId(p.id)}
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  aria-label={`View ${p.display_name}'s profile`}
+                >
+                  <Avatar photoUrl={p.photo_url ?? undefined} seed={p.display_name} size={36} alt={p.display_name} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-ink-900 truncate">{p.display_name}</p>
+                    {isFriend ? (
+                      <p className="text-xs font-semibold text-teal-600">✓ Cruxmate</p>
+                    ) : (
+                      p.top_grade && <p className="text-xs text-ink-500">{p.top_grade}</p>
+                    )}
+                  </div>
+                </button>
                 {isFriend ? (
                   <button
                     onClick={() => nav(`/chat/${p.id}`)}
@@ -222,6 +231,11 @@ export function PeopleFinder({
           })}
         </div>
       )}
+      <UserProfileSheet
+        userId={profileUserId}
+        open={!!profileUserId}
+        onOpenChange={(o) => !o && setProfileUserId(null)}
+      />
     </div>
   );
 }

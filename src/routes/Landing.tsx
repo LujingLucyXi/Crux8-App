@@ -13,7 +13,7 @@ const PILLARS = [
   { Icon: Rhombus, name: 'Safety', desc: 'Look out for each other. Climb smart.' },
 ];
 
-const FOUNDING_CAP = 500;
+const FOUNDING_CAP = 88;
 /** Optional-donation Payment Link (Stripe, Glomere Inc. — created
  *  2026-10-16). Crux8 is completely free; this is purely a tip jar. */
 const DONATE_URL = 'https://donate.stripe.com/9B67sL2wI9M90rH9RE67S08';
@@ -21,7 +21,7 @@ const DONATE_URL = 'https://donate.stripe.com/9B67sL2wI9M90rH9RE67S08';
 /**
  * Public front door (original Crux8 edition, Lucy 2026-10-16): our
  * own sign — the gold figure-8 mark coin-spinning in its ring — over
- * the Founding Register: the first 500 accounts are engraved as
+ * the Founding Register: the first 88 accounts are engraved as
  * Founding Members with the OG badge (founding_members view). The
  * doors stay open (exclusivity as status, not a wall — the
  * 2026-10-14 friction lesson), the counter is the live account

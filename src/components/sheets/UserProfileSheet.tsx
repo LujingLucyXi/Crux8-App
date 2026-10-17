@@ -1,11 +1,26 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ShieldCheck } from 'iconoir-react';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
+import { OGBadge } from '@/components/OGBadge';
+import { ArchetypeEmblem } from '@/components/ArchetypeEmblem';
 import { useAppStore } from '@/store/useAppStore';
 import { resolveUser } from '@/lib/resolveUser';
+import { fetchMyFoundingNo } from '@/lib/db';
+import { getArchetype, getHouse } from '@/lib/quizMeta';
+
+const STYLE_LABEL: Record<string, string> = {
+  top_rope: 'Top rope',
+  lead: 'Lead',
+  trad: 'Trad',
+  bouldering: 'Bouldering',
+  outdoor_sport: 'Outdoor sport',
+  outdoor_boulder: 'Outdoor boulder',
+  hiking: 'Hiking',
+};
 
 interface Props {
   userId: string | null;
@@ -27,14 +42,31 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
   const mateRequests = useAppStore((s) => s.mateRequests);
   const messageRequests = useAppStore((s) => s.messageRequests);
 
+  // Founding number (public view; null until the migration runs or
+  // for accounts past the first 88). Fetched per person on open.
+  const [foundingNo, setFoundingNo] = useState<number | null>(null);
+  useEffect(() => {
+    setFoundingNo(null);
+    if (!open || !userId) return;
+    let live = true;
+    void fetchMyFoundingNo(userId).then((n) => {
+      if (live) setFoundingNo(n);
+    });
+    return () => {
+      live = false;
+    };
+  }, [open, userId]);
+
   const user = userId ? resolveUser(userId, me, users, directory) : undefined;
   if (!user) return null;
+  const archetype = getArchetype(user.quiz_result_type);
+  const house = getHouse(user.quiz_house_id) ?? (archetype ? getHouse(archetype.house_id) : null);
   // NPC seed users carry verifications inline; real users' come from their
   // public profile status (directoryVerifications).
   const npcUser = users.find((u) => u.id === user.id);
   const userVerifications =
     npcUser?.verifications ?? directoryVerifications[user.id];
-  const homeGymId = npcUser?.home_gym_id ?? (user.id === me?.id ? me?.home_gym_id : undefined);
+  const homeGymId = npcUser?.home_gym_id ?? user.home_gym_id;
   const gym = gyms.find((g) => g.id === homeGymId);
   const isCruxmate = cruxmates.includes(user.id);
   const reqDir = isCruxmate ? null : mateRequestFor(user.id);
@@ -64,6 +96,31 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
           <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={96} fallback={user.display_name} />
           <h2 className="mt-3 text-xl font-semibold text-ink-900">{user.display_name}</h2>
           {npcUser?.pronouns && <p className="text-sm text-ink-500">{npcUser.pronouns}</p>}
+          {user.signature && (
+            <p className="mt-1 max-w-[280px] text-center text-sm italic text-ink-500">
+              “{user.signature}”
+            </p>
+          )}
+          {typeof foundingNo === 'number' && (
+            <span className="mt-2.5 flex items-center gap-2">
+              <OGBadge size={30} variant="neon" />
+              <span className="text-left leading-tight">
+                <span className="block text-[11px] font-extrabold tracking-wide text-ink-900">
+                  OG · Founding member
+                </span>
+                <span className="block text-[11px] font-medium text-ink-500">
+                  #{foundingNo} of the first 88
+                </span>
+              </span>
+            </span>
+          )}
+          {archetype && (
+            <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-gold-500">
+              <ArchetypeEmblem archetypeId={archetype.id} className="inline-block h-4 w-4" fallbackClassName="text-sm" />
+              {archetype.name_en}
+              {house ? <span className="font-medium text-ink-500">· {house.emoji} {house.name}</span> : null}
+            </p>
+          )}
 
           <div className="mt-3 flex flex-wrap gap-1.5 justify-center">
             <span className="rounded-full border border-teal-600 text-teal-600 text-[11px] font-medium px-2.5 py-0.5">
@@ -109,6 +166,27 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
             })}
           </div>
         </div>
+
+        {(user.about || (user.preferred_styles && user.preferred_styles.length > 0) || user.location) && (
+          <div className="mb-4 rounded-2xl border border-ink-100 bg-paper-100 px-4 py-3.5">
+            {user.about && (
+              <>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500">About</h3>
+                <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-700">{user.about}</p>
+              </>
+            )}
+            {user.preferred_styles && user.preferred_styles.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {user.preferred_styles.map((st) => (
+                  <span key={st} className="rounded-full bg-brand-100 px-2.5 py-0.5 text-[11px] font-semibold text-ink-700">
+                    {STYLE_LABEL[st] ?? st.replace(/_/g, ' ')}
+                  </span>
+                ))}
+              </div>
+            )}
+            {user.location && <p className="mt-3 text-xs text-ink-500">📍 {user.location}</p>}
+          </div>
+        )}
 
         <div className="flex flex-col gap-2">
           <Button

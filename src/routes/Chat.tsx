@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChatBubble, Community, Plus } from 'iconoir-react';
 import { NewCrewSheet } from '@/components/sheets/NewCrewSheet';
 import { Avatar, AvatarStack } from '@/components/ui/Avatar';
+import { UserProfileSheet } from '@/components/sheets/UserProfileSheet';
 import { useAppStore, dmKey, scKey } from '@/store/useAppStore';
 import { InvitesSection } from '@/components/chat/InvitesSection';
 import { formatChatTimestamp } from '@/lib/date';
@@ -13,6 +14,7 @@ import type { AvatarConfig } from '@/lib/avatar';
 export function Chat() {
   const nav = useNavigate();
   const [crewOpen, setCrewOpen] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const cruxmates = useAppStore((s) => s.cruxmates);
   const messageRequests = useAppStore((s) => s.messageRequests);
   const fetchMessageRequests = useAppStore((s) => s.fetchMessageRequests);
@@ -180,7 +182,17 @@ export function Chat() {
                     onClick={() => nav(`/chat/${r.from_id}`)}
                     className="w-full flex items-center gap-3 p-3 rounded-2xl bg-brand-100/60 hover:bg-brand-100 transition-colors text-left"
                   >
-                    <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} />
+                    <span
+                      role="button"
+                      aria-label={`View ${user.display_name}'s profile`}
+                      className="shrink-0 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProfileUserId(r.from_id);
+                      }}
+                    >
+                      <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} />
+                    </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="font-semibold text-ink-900 truncate">{user.display_name}</p>
@@ -241,7 +253,15 @@ export function Chat() {
                     onClick={() => nav(`/chat/${id}`)}
                     className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-paper-100 transition-colors text-left"
                   >
-                    <div className="relative shrink-0">
+                    <div
+                      className="relative shrink-0 cursor-pointer"
+                      role="button"
+                      aria-label={`View ${user.display_name}'s profile`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProfileUserId(id);
+                      }}
+                    >
                       <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} />
                       {unread && (
                         <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-coral-500 ring-2 ring-paper-50" />
@@ -267,6 +287,11 @@ export function Chat() {
           </ul>
         </section>
       )}
+      <UserProfileSheet
+        userId={profileUserId}
+        open={!!profileUserId}
+        onOpenChange={(o) => !o && setProfileUserId(null)}
+      />
     </div>
   );
 }

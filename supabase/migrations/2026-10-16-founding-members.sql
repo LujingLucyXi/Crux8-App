@@ -1,4 +1,4 @@
--- Founding members (Lucy 2026-10-16): the first 500 accounts ever
+-- Founding members (Lucy 2026-10-16): the first 88 accounts ever
 -- created carry Founding Member status forever, shown on the profile.
 -- Ranked by profiles.created_at. A view keeps the rule honest and
 -- server-side — no client can fake its number.
@@ -9,6 +9,6 @@ with ranked as (
 )
 select id, rn as founding_no
 from ranked
-where rn <= 500;
+where rn <= 88;
 
 grant select on public.founding_members to anon, authenticated;

@@ -1260,7 +1260,7 @@ export const useAppStore = create<Store>()(
               myConfirmCounts: counts as Partial<Record<VerificationCategory, number>>,
             }),
           );
-          // Founding Member number (first 500 accounts) — server view;
+          // Founding Member number (first 88 accounts) — server view;
           // silently absent until its migration runs / for accounts
           // past #500.
           void fetchMyFoundingNo(userId).then((n) => {

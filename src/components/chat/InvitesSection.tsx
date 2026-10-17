@@ -6,6 +6,7 @@ import { formatSessionWhen } from '@/lib/date';
 import { getArchetype } from '@/lib/quizMeta';
 import { ArchetypeEmblem } from '@/components/ArchetypeEmblem';
 import { Avatar } from '@/components/ui/Avatar';
+import { UserProfileSheet } from '@/components/sheets/UserProfileSheet';
 import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
 import type { Invite, MateRequest, Session } from '@/seed/types';
 
@@ -34,6 +35,7 @@ export function InvitesSection() {
   const acceptMateRequest = useAppStore((s) => s.acceptMateRequest);
   const dismissFollower = useAppStore((s) => s.dismissFollower);
   const dismissedFollowers = useAppStore((s) => s.dismissedFollowers);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [detailSession, setDetailSession] = useState<Session | null>(null);
 
   useEffect(() => {
@@ -132,14 +134,21 @@ export function InvitesSection() {
             className="rounded-2xl border border-brand-600/50 bg-paper-100 p-3.5"
           >
             <div className="flex items-center gap-3">
-              <Avatar
-                photoUrl={sender.photo_url ?? undefined}
-                config={sender.avatar}
-                seed={sender.display_name}
-                alt={sender.display_name}
-                size={40}
-                fallback={sender.display_name}
-              />
+              <button
+                type="button"
+                onClick={() => setProfileUserId(sender.id)}
+                aria-label={`View ${sender.display_name}'s profile`}
+                className="shrink-0"
+              >
+                <Avatar
+                  photoUrl={sender.photo_url ?? undefined}
+                  config={sender.avatar}
+                  seed={sender.display_name}
+                  alt={sender.display_name}
+                  size={40}
+                  fallback={sender.display_name}
+                />
+              </button>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-ink-900 truncate">
                   {sender.display_name}
@@ -217,6 +226,11 @@ export function InvitesSection() {
         session={detailSession}
         open={!!detailSession}
         onOpenChange={(o) => !o && setDetailSession(null)}
+      />
+      <UserProfileSheet
+        userId={profileUserId}
+        open={!!profileUserId}
+        onOpenChange={(o) => !o && setProfileUserId(null)}
       />
     </section>
   );
