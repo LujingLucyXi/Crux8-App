@@ -50,8 +50,8 @@ export function ErrorScreen({ error }: { error?: unknown }) {
         </button>
       </div>
 
-      {import.meta.env.DEV && message && (
-        <pre className="mt-8 max-w-full overflow-auto text-left text-[11px] text-coral-500 bg-paper-100 border border-ink-100 rounded-xl p-3">
+      {message && (
+        <pre className="mt-8 max-w-full overflow-auto text-left text-[11px] text-ink-400 bg-paper-100 border border-ink-100 rounded-xl p-3">
           {message}
         </pre>
       )}

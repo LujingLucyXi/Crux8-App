@@ -66,6 +66,14 @@ export function ChatDetail() {
     void fetchMessageRequests();
   }, [fetchMessageRequests]);
 
+  // Invitation cards in this thread read the invites store — refresh
+  // it on open so a session invite shows its invitation format here
+  // immediately, not only after a trip to Notifications.
+  const fetchInvites = useAppStore((s) => s.fetchInvites);
+  useEffect(() => {
+    void fetchInvites();
+  }, [fetchInvites]);
+
   if (!user) {
     return (
       <div className="pt-10 text-center">

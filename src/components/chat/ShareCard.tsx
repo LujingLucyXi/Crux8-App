@@ -85,9 +85,20 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
   // inviter, the climb, Accept / Decline — not a generic share card).
   // Matches my server invite for this target; the Invites section in
   // Chats renders the same invite with the same actions.
-  const myInvite = invites.find(
-    (i) => i.target_id === (session?.id ?? call?.id) && i.kind === (session ? 'session' : 'call'),
-  );
+  const myInvite =
+    invites.find(
+      (i) =>
+        i.to_id === me.id &&
+        i.status === 'pending' &&
+        i.target_id === (session?.id ?? call?.id) &&
+        i.kind === (session ? 'session' : 'call'),
+    ) ??
+    invites.find(
+      (i) =>
+        i.to_id === me.id &&
+        i.target_id === (session?.id ?? call?.id) &&
+        i.kind === (session ? 'session' : 'call'),
+    );
   const invitationCard = (title: string, place: string, startsAt: string) => {
     if (!myInvite) return null;
     const inviter = resolveUser(myInvite.from_id, me, users, directory);
