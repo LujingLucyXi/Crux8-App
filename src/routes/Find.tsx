@@ -132,12 +132,20 @@ export function Find() {
     const now = Date.now();
     return sessions
       .filter((s) => s.participant_ids.length > 0)
-      // Started sessions are closed: only participants still see them.
-      .filter((s) => !hasStarted(s, sessionLifecycle[s.id]) || (me ? s.participant_ids.includes(me.id) : false))
-      // Expired unstarted sessions (past start + grace, never started)
-      // must not surface in discovery at all (2026-10-14 field report:
-      // a brand-new user saw a host's long-expired sessions in feeds).
-      .filter((s) => sessionPhase(s, sessionLifecycle[s.id], now) !== 'expired')
+      // Discovery visibility (Lucy's rule, restated 2026-10-16 after
+      // finished sessions kept showing in Find): upcoming sessions are
+      // public; LIVE (started) sessions are visible only to their
+      // participants — everyone else reaches them only via a share;
+      // DONE and EXPIRED sessions never surface here at all (they live
+      // in My Climbs → Past). The old filter pair let 'done' through:
+      // hasStarted() is false once finished_at lands, and 'done' is
+      // not 'expired' — so ended sessions leaked to every user.
+      .filter((s) => {
+        const ph = sessionPhase(s, sessionLifecycle[s.id], now);
+        if (ph === 'upcoming') return true;
+        if (ph === 'live') return me ? s.participant_ids.includes(me.id) : false;
+        return false;
+      })
       .filter((s) => s.location_type === env && envCats.includes(s.category))
       .filter((s) => {
         if (styles.length > 0 && !styles.includes(s.category)) return false;
@@ -155,9 +163,14 @@ export function Find() {
     const now = Date.now();
     return sessions
       .filter((s) => s.participant_ids.length > 0)
-      .filter((s) => !hasStarted(s, sessionLifecycle[s.id]) || (me ? s.participant_ids.includes(me.id) : false))
-      // Expired unstarted sessions never surface in discovery (2026-10-14).
-      .filter((s) => sessionPhase(s, sessionLifecycle[s.id], now) !== 'expired')
+      // Same discovery rule as climbs: upcoming public, live
+      // participants-only, done/expired never.
+      .filter((s) => {
+        const ph = sessionPhase(s, sessionLifecycle[s.id], now);
+        if (ph === 'upcoming') return true;
+        if (ph === 'live') return me ? s.participant_ids.includes(me.id) : false;
+        return false;
+      })
       .filter((s) => s.category === 'hiking')
       .filter((s) => {
         if (types.length > 0 && !(s.hike_type && types.includes(s.hike_type))) return false;

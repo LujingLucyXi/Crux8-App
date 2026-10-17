@@ -11,6 +11,8 @@ import { useAppStore } from '@/store/useAppStore';
 import { resolveUser } from '@/lib/resolveUser';
 import { fetchMyFoundingNo } from '@/lib/db';
 import { getArchetype, getHouse } from '@/lib/quizMeta';
+import { sessionPhase } from '@/lib/sessionPhase';
+import { formatSessionWhen } from '@/lib/date';
 
 const STYLE_LABEL: Record<string, string> = {
   top_rope: 'Top rope',
@@ -41,12 +43,19 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
   const mateRequestFor = useAppStore((s) => s.mateRequestFor);
   const mateRequests = useAppStore((s) => s.mateRequests);
   const messageRequests = useAppStore((s) => s.messageRequests);
+  const sessions = useAppStore((s) => s.sessions);
+  const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
+  const inviteCruxmatesToSession = useAppStore((s) => s.inviteCruxmatesToSession);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [invitedIds, setInvitedIds] = useState<string[]>([]);
 
   // Founding number (public view; null until the migration runs or
   // for accounts past the first 88). Fetched per person on open.
   const [foundingNo, setFoundingNo] = useState<number | null>(null);
   useEffect(() => {
     setFoundingNo(null);
+    setInvitedIds([]);
+    setInviteOpen(false);
     if (!open || !userId) return;
     let live = true;
     void fetchMyFoundingNo(userId).then((n) => {
@@ -59,6 +68,25 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
 
   const user = userId ? resolveUser(userId, me, users, directory) : undefined;
   if (!user) return null;
+  // Sessions this person can be invited to climb at (Lucy 2026-10-16:
+  // from a friend's profile page, invite the cruxmate — or someone you
+  // follow — to climb): ones I'm in, they're not, still upcoming or
+  // live, with room left.
+  const invitableSessions = me
+    ? sessions
+        .filter(
+          (s) =>
+            s.participant_ids.includes(me.id) &&
+            !s.participant_ids.includes(user.id) &&
+            s.participant_ids.length < s.capacity,
+        )
+        .filter((s) => {
+          const ph = sessionPhase(s, sessionLifecycle[s.id]);
+          return ph === 'upcoming' || ph === 'live';
+        })
+        .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+        .slice(0, 5)
+    : [];
   const archetype = getArchetype(user.quiz_result_type);
   const house = getHouse(user.quiz_house_id) ?? (archetype ? getHouse(archetype.house_id) : null);
   // NPC seed users carry verifications inline; real users' come from their
@@ -228,6 +256,49 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
             >
               Message
             </Button>
+          )}
+          {(isCruxmate || reqDir === 'outgoing') && (
+            <Button variant="outline" onClick={() => setInviteOpen((v) => !v)}>
+              Invite to climb 🧗
+            </Button>
+          )}
+          {inviteOpen && (isCruxmate || reqDir === 'outgoing') && (
+            <div className="flex flex-col gap-2">
+              {invitableSessions.length === 0 ? (
+                <p className="rounded-xl bg-paper-50 border border-ink-100 p-3 text-center text-xs text-ink-500">
+                  No climbs to invite them to yet — sessions you&apos;re part of will show up here.
+                </p>
+              ) : (
+                invitableSessions.map((s) => {
+                  const sGym = gyms.find((g) => g.id === s.gym_id);
+                  const invited = invitedIds.includes(s.id);
+                  return (
+                    <div
+                      key={s.id}
+                      className="flex items-center gap-3 rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-ink-900">{s.title}</p>
+                        <p className="text-xs text-ink-500">
+                          {formatSessionWhen(s.starts_at)} · {sGym?.short_name ?? s.area ?? ''}
+                        </p>
+                      </div>
+                      <button
+                        disabled={invited}
+                        onClick={() => {
+                          inviteCruxmatesToSession(s.id, [user.id]);
+                          setInvitedIds((prev) => [...prev, s.id]);
+                          toast.success(`Invite sent to ${user.display_name.split(' ')[0]}`);
+                        }}
+                        className="shrink-0 rounded-full bg-brand-600 px-3.5 py-1.5 text-xs font-bold text-[#161310] disabled:opacity-50"
+                      >
+                        {invited ? 'Invited ✓' : 'Invite'}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           )}
         </div>
       </SheetContent>
