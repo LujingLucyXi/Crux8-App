@@ -810,17 +810,9 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
                 key={p}
                 type="button"
                 onClick={() => pickPlace(p)}
-                className="flex items-center gap-3 rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50"
+                className="rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50"
               >
-                <span
-                  className={
-                    'flex h-5 w-5 items-center justify-center rounded-full border-2 ' +
-                    (locFilter === p ? 'border-brand-600' : 'border-ink-300')
-                  }
-                >
-                  {locFilter === p && <span className="h-2.5 w-2.5 rounded-full bg-brand-600" />}
-                </span>
-                <span className="text-base font-bold text-ink-900">{p === 'indoor' ? 'Indoor' : 'Outdoor'}</span>
+                <span className="block text-base font-bold text-ink-900">{p === 'indoor' ? 'Indoor' : 'Outdoor'}</span>
               </button>
             ))}
           </div>
