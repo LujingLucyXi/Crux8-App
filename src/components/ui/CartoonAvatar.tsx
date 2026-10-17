@@ -205,48 +205,13 @@ export function CartoonAvatar({
           </g>
         );
       }
-      case 'braids': {
-        // SINGLE braid from the crown, BEHIND the head, showing
-        // partially (Lucy 2026-10-16): the whole braid lives in the
-        // back layer on the right side — the face covers its middle,
-        // so it reads as coming over the top, disappearing behind the
-        // head, and re-emerging below the jaw with its tie and tuft.
-        const braidD = (cx: number, top: number, segs: number) => {
-          const w = 6.4;
-          const segH = 8;
-          let d = `M${cx - w + 1.5} ${top}`;
-          for (let i = 0; i < segs; i++) {
-            const y0 = top + i * segH;
-            d += ` Q${cx + w + 1.6} ${y0 + segH * 0.45} ${cx + 0.4} ${y0 + segH}`;
-          }
-          const yB = top + segs * segH;
-          d += ` Q${cx} ${yB + 3.6} ${cx - w + 0.4} ${yB}`;
-          for (let i = segs - 1; i >= 0; i--) {
-            const y0 = top + i * segH;
-            d += ` Q${cx - w - 1.6} ${y0 + segH * 0.55} ${cx - 0.4} ${y0}`;
-          }
-          return d + ' Z';
-        };
-        const segs = len === 'short' ? 5 : len === 'long' ? 7 : 6;
-        const cx = len === 'long' ? 69.5 : 72.5;
-        const top = 28;
-        const yEnd = top + segs * 8;
-        return (
-          <g>
-            <path d={CAP_D} {...HS} />
-            <path d={braidD(cx, top, segs)} {...HS} />
-            <g stroke={OUTLINE} strokeWidth="1.9" strokeLinecap="round" opacity="0.45" fill="none">
-              <path d={`M${cx - 4.4} ${yEnd - 26} L${cx + 4.6} ${yEnd - 21}`} />
-              <path d={`M${cx + 4.4} ${yEnd - 18} L${cx - 4.6} ${yEnd - 13}`} />
-            </g>
-            <path
-              d={`M${cx - 5.6} ${yEnd - 1} L${cx + 5.6} ${yEnd - 1} L${cx + 5} ${yEnd + 3.4} L${cx - 5} ${yEnd + 3.4} Z`}
-              fill="#FF6B6B" stroke={OUTLINE} strokeWidth="2.1" strokeLinejoin="round"
-            />
-            <path d={`M${cx - 3} ${yEnd + 3.4} Q${cx - 2} ${yEnd + 8} ${cx} ${yEnd + 8.8} Q${cx + 2.8} ${yEnd + 8} ${cx + 2.4} ${yEnd + 3.4} Z`} {...HS} />
-          </g>
-        );
-      }
+      case 'braids':
+        // FRENCH braid (Lucy's reference photo, 2026-10-16): the braid
+        // is a woven band ON the head, arcing over the crown from
+        // temple to temple; the rest of the hair flows loose beneath
+        // it (the length trait drives the loose drape). The woven band
+        // itself is drawn in the front layer (see hairFront).
+        return <path d={drapeD(len, false)} {...HS} />;
       case 'locs': {
         // Distinct ropes BESIDE the face, two capsules per side with
         // segment bumps; bottoms follow the length trait.
@@ -312,7 +277,25 @@ export function CartoonAvatar({
     // bottom edge — the fringe line — gets a stroke. A flat patch
     // floated like a headband (v2); a back-layer hairline hides under
     // the face (v3). The dome is the shape that survives both.
+    // 'braids' also lives here: the French braid band sits ON the cap.
     switch (config.hair) {
+      case 'braids':
+        // Woven band over the crown, temple to temple: an outlined
+        // arc strip (the outline is what separates the braid from the
+        // same-color hair beneath, like shadow in the reference photo)
+        // with alternating slash ticks for the plait pattern.
+        return (
+          <g strokeLinejoin="round">
+            <path d="M28.5 46 Q31 20.5 50 19.5 Q69 20.5 71.5 46 Q63.5 37.5 50 36.5 Q36.5 37.5 28.5 46 Z" {...HS} />
+            <g stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.5" fill="none">
+              <path d="M35 33.5 L40.5 40" />
+              <path d="M42 27.5 L46.5 34.5" />
+              <path d="M50 25.5 L52 33" />
+              <path d="M58 27.5 L53.5 34.5" />
+              <path d="M65 33.5 L59.5 40" />
+            </g>
+          </g>
+        );
       case 'bangs':
         return (
           <g>
