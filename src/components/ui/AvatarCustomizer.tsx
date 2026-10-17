@@ -167,9 +167,9 @@ export function AvatarCustomizer({ value: rawValue, onChange, photoUrl, onPhotoC
         </Row>
 
         {/* Length — its own trait, listed separately (Lucy 2026-10-16).
-            Applies to draped/tied styles; spikes, buzz, buns and bald
-            are length-neutral. */}
-        <Row label="Length">
+            Grayed out for the length-neutral styles (spikes, buzz,
+            buns, bald) where it can't change anything. */}
+        <Row label="Length" dimmed={['mohawk', 'buzz', 'topknot', 'spacebuns', 'bald'].includes(value.hair)}>
           {HAIR_LENGTHS.map((l) => (
             <Pill key={l} active={(value.hairLength ?? 'medium') === l} onClick={() => set('hairLength', l)}>
               {l === 'short' ? 'Short' : l === 'long' ? 'Long' : 'Medium'}
@@ -225,9 +225,9 @@ export function AvatarCustomizer({ value: rawValue, onChange, photoUrl, onPhotoC
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({ label, children, dimmed }: { label: string; children: React.ReactNode; dimmed?: boolean }) {
   return (
-    <div>
+    <div className={cn(dimmed && 'opacity-40 pointer-events-none')}>
       <p className="text-xs font-medium uppercase tracking-wider text-ink-500 mb-2">{label}</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>

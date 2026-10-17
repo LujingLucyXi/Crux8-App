@@ -297,26 +297,51 @@ export function CartoonAvatar({
       case 'straight':
         return <path d="M50 25.5 L50 34" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4" />;
       case 'braids': {
-        // ONE tight side braid, country-girl style (Lucy 2026-10-16):
-        // emerges from the left temple and lies over the cheek's edge —
-        // chevron weave, coral tie band, small tail tuft. The length
-        // trait sets where the tie (and tuft) lands.
-        const v =
-          len === 'short'
-            ? { body: 'M24 40 Q21.5 48 22.5 57 Q26.5 61 31 58 Q32.5 49 33 41 Q28.5 36.5 24 40 Z', weave: ['M23.8 46 L28.2 50 L32.6 46', 'M23.2 52 L28 56 32.2 52'], tie: 'M22.8 55.5 L31.8 55.5 L31.2 59.5 L23.4 59.5 Z', tuft: 'M24.8 59.5 Q25.8 65 28 65.8 Q30.5 64.8 29.8 59.5 Z' }
-            : len === 'long'
-              ? { body: 'M24 40 Q21 58 22.5 76 Q26.5 80.5 31.5 77 Q33.5 58 33 41 Q28.5 36.5 24 40 Z', weave: ['M23.5 47 L28.2 51.5 L33 47', 'M23.2 55 L28.2 59.5 L32.9 55', 'M23.3 63 L28.2 67.5 L32.7 63'], tie: 'M22.9 73.5 L32.4 73.5 L31.8 78 L23.5 78 Z', tuft: 'M24.8 78 Q25.8 84 28.2 84.8 Q31 83.8 30.2 78 Z' }
-              : { body: 'M24 40 Q21 56 23 71 Q27 76 32 72 Q34 56 33 41 Q28.5 36.5 24 40 Z', weave: ['M23.5 47 L28.2 51.5 L33 47', 'M23.3 54.5 L28.2 59 L32.8 54.5', 'M23.5 62 L28.2 66.5 L32.5 62'], tie: 'M23.2 68.5 L32.8 68.5 L32.2 73 L23.8 73 Z', tuft: 'M25 73 Q26 80.5 28.5 81.5 Q31.5 80 30.5 73 Z' };
+        // TWIN braids, v3 (Lucy: the single side braid was "so ugly").
+        // Country-girl pigtail braids over both cheeks, generated as a
+        // zigzag column — the SILHOUETTE bulges segment by segment
+        // (that's what makes it read as woven, not as a plank with
+        // lines on it), plus two diagonal weave lines, a coral tie
+        // and a tuft. Length = segment count.
+        const braidD = (cx: number, top: number, segs: number) => {
+          const w = 6.4;
+          const segH = 8;
+          let d = `M${cx - w + 1.5} ${top}`;
+          for (let i = 0; i < segs; i++) {
+            const y0 = top + i * segH;
+            d += ` Q${cx + w + 1.6} ${y0 + segH * 0.45} ${cx + 0.4} ${y0 + segH}`;
+          }
+          const yB = top + segs * segH;
+          d += ` Q${cx} ${yB + 3.6} ${cx - w + 0.4} ${yB}`;
+          for (let i = segs - 1; i >= 0; i--) {
+            const y0 = top + i * segH;
+            d += ` Q${cx - w - 1.6} ${y0 + segH * 0.55} ${cx - 0.4} ${y0}`;
+          }
+          return d + ' Z';
+        };
+        const segs = len === 'short' ? 2 : len === 'long' ? 4 : 3;
+        const top = 40;
+        const yEnd = top + segs * 8;
+        const one = (cx: number) => (
+          <g key={cx}>
+            <path d={braidD(cx, top, segs)} {...HS} />
+            <g stroke={OUTLINE} strokeWidth="1.9" strokeLinecap="round" opacity="0.45" fill="none">
+              <path d={`M${cx - 4.6} ${top + 6} L${cx + 4.4} ${top + 11}`} />
+              <path d={`M${cx + 4.6} ${top + 14} L${cx - 4.4} ${top + 19}`} />
+              {segs >= 3 && <path d={`M${cx - 4.6} ${top + 22} L${cx + 4.4} ${top + 27}`} />}
+              {segs >= 4 && <path d={`M${cx + 4.6} ${top + 30} L${cx - 4.4} ${top + 35}`} />}
+            </g>
+            <path
+              d={`M${cx - 5.6} ${yEnd - 1} L${cx + 5.6} ${yEnd - 1} L${cx + 5} ${yEnd + 3.4} L${cx - 5} ${yEnd + 3.4} Z`}
+              fill="#FF6B6B" stroke={OUTLINE} strokeWidth="2.1" strokeLinejoin="round"
+            />
+            <path d={`M${cx - 3.4} ${yEnd + 3.4} Q${cx - 2.4} ${yEnd + 8.6} ${cx} ${yEnd + 9.4} Q${cx + 3} ${yEnd + 8.4} ${cx + 2.6} ${yEnd + 3.4} Z`} {...HS} />
+          </g>
+        );
         return (
           <g>
-            <path d={v.body} {...HS} />
-            <g stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.45" fill="none">
-              {v.weave.map((d) => (
-                <path key={d} d={d} />
-              ))}
-            </g>
-            <path d={v.tie} fill="#FF6B6B" stroke={OUTLINE} strokeWidth="2.2" strokeLinejoin="round" />
-            <path d={v.tuft} {...HS} />
+            {one(26.5)}
+            {one(73.5)}
           </g>
         );
       }
