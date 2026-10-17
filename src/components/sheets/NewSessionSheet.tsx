@@ -64,9 +64,24 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
   const inviteCruxy = useAppStore((s) => s.inviteCruxy);
   // Cruxmates to invite the moment the call/session is created.
   const [inviteIds, setInviteIds] = useState<string[]>([]);
+  // Invitable = cruxmates + everyone I follow (the same people the
+  // profile card offers Invite to climb for). Cruxmates-only hid
+  // one-way follows — Lucy: 'I can't see my friend in the invite
+  // list' when the friend was a follow, not yet a mutual.
+  const mateRequests = useAppStore((s) => s.mateRequests);
+  const fetchMateRequests = useAppStore((s) => s.fetchMateRequests);
+  const invitableIds = me
+    ? Array.from(
+        new Set([
+          ...cruxmates,
+          ...mateRequests
+            .filter((r) => r.from_id === me.id && r.status !== 'denied')
+            .map((r) => r.to_id),
+        ]),
+      ).filter((id) => id !== me.id)
+    : [];
   const invitable = me
-    ? cruxmates
-        .filter((id) => id !== me.id)
+    ? invitableIds
         .map((id) => resolveUser(id, me, users, directory))
         .filter((u): u is NonNullable<typeof u> => !!u)
     : [];
@@ -76,7 +91,13 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
   // every cruxmate's profile is fetched when this form opens, or real
   // (non-seed) mates silently vanish from the list.
   useEffect(() => {
-    if (open) void ensureDirectoryProfiles(cruxmates);
+    if (open) {
+      // Refresh the follow graph first, then resolve names for the
+      // full invitable set — a stale local graph is how real friends
+      // went missing from this list.
+      void fetchMateRequests();
+      void ensureDirectoryProfiles(invitableIds);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open ]);
 
@@ -535,9 +556,6 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
               selectMode
               onInvite={(id) => toggleInvite(id)}
             />
-            <p className="mt-1.5 text-[11px] text-ink-400">
-              Cruxy joins the moment you post. Others get an invite they can accept or deny.
-            </p>
           </div>
         )}
       </div>
