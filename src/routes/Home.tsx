@@ -333,7 +333,7 @@ export function Home() {
           (quiz_result_type lands via the play.crux8.app bridge). ── */}
       {!me.isGuest && !me.quiz_result_type && (
         <a
-          href="https://play.crux8.app"
+          href={`https://play.crux8.app?name=${encodeURIComponent(me.display_name)}`}
           className="relative mt-4 block overflow-hidden rounded-3xl bg-[#101010] px-5 py-4 shadow-[0_16px_36px_-16px_rgba(12,15,10,0.7)]"
         >
           <span

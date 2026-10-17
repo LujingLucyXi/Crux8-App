@@ -346,7 +346,7 @@ export function Profile() {
       ) : (
         <section className="mt-6">
           <button
-            onClick={() => window.open('https://play.crux8.app', '_blank')}
+            onClick={() => window.open(`https://play.crux8.app?name=${encodeURIComponent(me.display_name)}`, '_blank')}
             className="w-full text-left rounded-2xl border border-dashed border-ink-200 p-5 hover:border-ink-400 transition-colors"
           >
             <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-1">

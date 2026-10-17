@@ -807,7 +807,7 @@ export function Onboarding() {
               variant="punch"
               size="lg"
               className="mt-6 w-full"
-              onClick={() => window.open('https://play.crux8.app', '_blank')}
+              onClick={() => window.open(`https://play.crux8.app?name=${encodeURIComponent((displayName.trim() || me?.display_name || '').trim())}`, '_blank')}
             >
               Reveal my DNA 🧬
             </Button>
