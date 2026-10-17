@@ -44,8 +44,8 @@ export function NewCrewSheet({ open, onOpenChange }: Props) {
   };
 
   const submit = () => {
-    if (name.trim().length < 3) {
-      setError('Give your crew a name (at least 3 characters).');
+    if (name.trim().length < 2) {
+      setError('Give your crew a name (at least 2 characters).');
       return;
     }
     const id = createGroup({
