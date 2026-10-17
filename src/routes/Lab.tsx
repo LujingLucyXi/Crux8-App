@@ -105,9 +105,22 @@ export function Lab() {
         <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
           <div className="flex flex-col gap-3">
             {([
-              { label: 'Straight', cfg: { skin: 'porcelain', hair: 'straight', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Spikes', cfg: { skin: 'porcelain', hair: 'mohawk', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Buzz', cfg: { skin: 'porcelain', hair: 'buzz', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
               { label: 'Bob', cfg: { skin: 'porcelain', hair: 'bob', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Bangs', cfg: { skin: 'porcelain', hair: 'bangs', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Curtain', cfg: { skin: 'porcelain', hair: 'curtain', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Bun', cfg: { skin: 'porcelain', hair: 'topknot', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Space buns', cfg: { skin: 'porcelain', hair: 'spacebuns', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Ponytail', cfg: { skin: 'porcelain', hair: 'ponytail', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
               { label: '2 pony', cfg: { skin: 'porcelain', hair: 'pigtails', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Braids', cfg: { skin: 'porcelain', hair: 'braids', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Locs', cfg: { skin: 'porcelain', hair: 'locs', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Long', cfg: { skin: 'porcelain', hair: 'long', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Straight', cfg: { skin: 'porcelain', hair: 'straight', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Wavy', cfg: { skin: 'porcelain', hair: 'wavy', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Half-shave', cfg: { skin: 'porcelain', hair: 'halfshave', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
+              { label: 'Bald', cfg: { skin: 'porcelain', hair: 'bald', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
             ] as { label: string; cfg: Omit<AvatarConfig, 'accessory'> }[]).map(({ label, cfg }) => (
               <div key={label} className="flex items-center gap-4">
                 <span className="w-14 shrink-0 text-xs font-bold text-ink-700">{label}</span>
