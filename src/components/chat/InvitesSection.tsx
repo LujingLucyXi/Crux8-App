@@ -18,7 +18,15 @@ import type { Invite, MateRequest, Session } from '@/seed/types';
  * calls); verification-gated sessions detour through their detail sheet
  * so the attestation still happens.
  */
-export function InvitesSection() {
+export function InvitesSection({
+  invitesFirst = false,
+  hideHeading = false,
+}: {
+  /** Notifications page: climb invitations lead (Lucy 2026-10-17 —
+   * they belong in Notifications, prominent, not buried in Chats). */
+  invitesFirst?: boolean;
+  hideHeading?: boolean;
+} = {}) {
   const me = useAppStore((s) => s.me);
   const invites = useAppStore((s) => s.invites);
   const sessions = useAppStore((s) => s.sessions);
@@ -122,105 +130,120 @@ export function InvitesSection() {
     toast.success(inv.kind === 'call' ? 'Request sent — the host will confirm 🤝' : "You're in! See you there 🧗");
   };
 
+  const mateCards = mateRows.map(({ req, sender, arch }) => (
+    <div
+      key={req.id}
+      className="rounded-2xl border border-brand-600/50 bg-paper-100 p-3.5"
+    >
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setProfileUserId(sender.id)}
+          aria-label={`View ${sender.display_name}'s profile`}
+          className="shrink-0"
+        >
+          <Avatar
+            photoUrl={sender.photo_url ?? undefined}
+            config={sender.avatar}
+            seed={sender.display_name}
+            alt={sender.display_name}
+            size={40}
+            fallback={sender.display_name}
+          />
+        </button>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-ink-900 truncate">
+            {sender.display_name}
+          </p>
+          <p className="text-xs text-ink-500 truncate">followed you</p>
+          {arch && (
+            <p className="mt-0.5 text-[11px] text-gold-500 truncate">
+              <ArchetypeEmblem
+                archetypeId={arch.id}
+                className="mr-1 inline-block h-4 w-4 align-[-2px]"
+                fallbackClassName="text-xs"
+              />
+              {arch.name_en}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="mt-2.5 flex gap-2">
+        <button
+          onClick={() => {
+            acceptMateRequest(req.id);
+            toast.success(`You're cruxmates with ${sender.display_name.split(' ')[0]} 🤝`);
+          }}
+          className="flex-1 rounded-xl bg-brand-600 text-[#161310] text-xs font-bold py-2.5 active:scale-[0.98] transition"
+        >
+          Follow back
+        </button>
+        <button
+          onClick={() => {
+            dismissFollower(sender.id);
+            toast('Not now');
+          }}
+          className="flex-1 rounded-xl border border-ink-100 text-ink-700 text-xs font-semibold py-2.5 active:scale-[0.98] transition"
+        >
+          Not now
+        </button>
+      </div>
+    </div>
+  ));
+
+  const inviteCards = rows.map(({ inv, sender, gymName, title, alreadyIn, actionable, startsAt }) => (
+    <div key={inv.id} className="rounded-2xl border border-brand-600/50 bg-paper-100 p-3.5">
+      <p className="text-sm font-semibold text-ink-900 truncate">
+        {sender?.display_name ?? 'A cruxmate'} invited you
+      </p>
+      <p className="text-xs text-ink-500 mt-0.5 truncate">
+        {title} · {gymName} · {formatSessionWhen(startsAt)}
+      </p>
+      {alreadyIn ? (
+        <p className="mt-2 text-xs font-semibold text-teal-600">✓ You&apos;re in</p>
+      ) : actionable ? (
+        <div className="mt-2.5 flex gap-2">
+          <button
+            onClick={() => onAccept(inv)}
+            className="flex-1 rounded-xl bg-brand-600 text-[#161310] text-xs font-bold py-2.5 active:scale-[0.98] transition"
+          >
+            Accept
+          </button>
+          <button
+            onClick={() => {
+              denyInvite(inv);
+              toast('Invite declined');
+            }}
+            className="flex-1 rounded-xl border border-ink-100 text-ink-700 text-xs font-semibold py-2.5 active:scale-[0.98] transition"
+          >
+            Deny
+          </button>
+        </div>
+      ) : (
+        <p className="mt-2 text-xs text-ink-400">This climb already started or ended — invite closed.</p>
+      )}
+    </div>
+  ));
+
   return (
     <section className="mb-5">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
-        Invites{totalCount > 0 ? ` · ${totalCount}` : ''}
-      </h2>
+      {!hideHeading && (
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
+          Invites{totalCount > 0 ? ` · ${totalCount}` : ''}
+        </h2>
+      )}
       <div className="flex flex-col gap-2">
-        {mateRows.map(({ req, sender, arch }) => (
-          <div
-            key={req.id}
-            className="rounded-2xl border border-brand-600/50 bg-paper-100 p-3.5"
-          >
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setProfileUserId(sender.id)}
-                aria-label={`View ${sender.display_name}'s profile`}
-                className="shrink-0"
-              >
-                <Avatar
-                  photoUrl={sender.photo_url ?? undefined}
-                  config={sender.avatar}
-                  seed={sender.display_name}
-                  alt={sender.display_name}
-                  size={40}
-                  fallback={sender.display_name}
-                />
-              </button>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-ink-900 truncate">
-                  {sender.display_name}
-                </p>
-                <p className="text-xs text-ink-500 truncate">followed you</p>
-                {arch && (
-                  <p className="mt-0.5 text-[11px] text-gold-500 truncate">
-                    <ArchetypeEmblem
-                      archetypeId={arch.id}
-                      className="mr-1 inline-block h-4 w-4 align-[-2px]"
-                      fallbackClassName="text-xs"
-                    />
-                    {arch.name_en}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="mt-2.5 flex gap-2">
-              <button
-                onClick={() => {
-                  acceptMateRequest(req.id);
-                  toast.success(`You're cruxmates with ${sender.display_name.split(' ')[0]} 🤝`);
-                }}
-                className="flex-1 rounded-xl bg-brand-600 text-[#161310] text-xs font-bold py-2.5 active:scale-[0.98] transition"
-              >
-                Follow back
-              </button>
-              <button
-                onClick={() => {
-                  dismissFollower(sender.id);
-                  toast('Not now');
-                }}
-                className="flex-1 rounded-xl border border-ink-100 text-ink-700 text-xs font-semibold py-2.5 active:scale-[0.98] transition"
-              >
-                Not now
-              </button>
-            </div>
-          </div>
-        ))}
-        {rows.map(({ inv, sender, gymName, title, alreadyIn, actionable, startsAt }) => (
-          <div key={inv.id} className="rounded-2xl border border-brand-600/50 bg-paper-100 p-3.5">
-            <p className="text-sm font-semibold text-ink-900 truncate">
-              {sender?.display_name ?? 'A cruxmate'} invited you
-            </p>
-            <p className="text-xs text-ink-500 mt-0.5 truncate">
-              {title} · {gymName} · {formatSessionWhen(startsAt)}
-            </p>
-            {alreadyIn ? (
-              <p className="mt-2 text-xs font-semibold text-teal-600">✓ You're in</p>
-            ) : actionable ? (
-              <div className="mt-2.5 flex gap-2">
-                <button
-                  onClick={() => onAccept(inv)}
-                  className="flex-1 rounded-xl bg-brand-600 text-[#161310] text-xs font-bold py-2.5 active:scale-[0.98] transition"
-                >
-                  Accept
-                </button>
-                <button
-                  onClick={() => {
-                    denyInvite(inv);
-                    toast('Invite declined');
-                  }}
-                  className="flex-1 rounded-xl border border-ink-100 text-ink-700 text-xs font-semibold py-2.5 active:scale-[0.98] transition"
-                >
-                  Deny
-                </button>
-              </div>
-            ) : (
-              <p className="mt-2 text-xs text-ink-400">This climb already started or ended — invite closed.</p>
-            )}
-          </div>
-        ))}
+        {invitesFirst ? (
+          <>
+            {inviteCards}
+            {mateCards}
+          </>
+        ) : (
+          <>
+            {mateCards}
+            {inviteCards}
+          </>
+        )}
       </div>
       <SessionDetailSheet
         session={detailSession}

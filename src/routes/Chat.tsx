@@ -5,7 +5,6 @@ import { NewCrewSheet } from '@/components/sheets/NewCrewSheet';
 import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { UserProfileSheet } from '@/components/sheets/UserProfileSheet';
 import { useAppStore, dmKey, scKey } from '@/store/useAppStore';
-import { InvitesSection } from '@/components/chat/InvitesSection';
 import { formatChatTimestamp } from '@/lib/date';
 import { resolveUser } from '@/lib/resolveUser';
 import { cn } from '@/lib/utils';
@@ -161,9 +160,6 @@ export function Chat() {
         </button>
       </div>
       <NewCrewSheet open={crewOpen} onOpenChange={setCrewOpen} />
-
-      {/* Invite inbox — accept / deny, or ignore until the climb ends */}
-      <InvitesSection />
 
       {/* Message requests — a follow from someone starts here; tapping
           opens the thread with Accept / Decline */}

@@ -1,4 +1,4 @@
-import { Menu, ChatBubbleEmpty, UserPlus } from 'iconoir-react';
+import { Menu, ChatBubbleEmpty, UserPlus, Bell } from 'iconoir-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore, countUnreadThreads, countActionableInvites } from '@/store/useAppStore';
@@ -60,7 +60,11 @@ export function Header() {
         ).length
       : 0,
   );
-  const unreadCount = unreadThreads + pendingInvites + pendingMateRequests;
+  const unreadCount = unreadThreads;
+  // Notifications get their own bell + badge (Lucy 2026-10-17: climb
+  // invitations in Notifications are 'more visible' than inside
+  // Chats). The chat badge now means unread conversations only.
+  const notifCount = pendingInvites + pendingMateRequests;
 
   return (
     <>
@@ -82,6 +86,18 @@ export function Header() {
             <span className="font-bold tracking-[0.18em] text-ink-900 text-sm">CRUX8</span>
           </button>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => nav('/notifications')}
+              aria-label={notifCount > 0 ? `Notifications, ${notifCount} new` : 'Notifications'}
+              className="relative p-1.5 rounded-lg text-ink-700 hover:bg-paper-50"
+            >
+              <Bell width={22} height={22} />
+              {notifCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-coral-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {notifCount > 9 ? '9+' : notifCount}
+                </span>
+              )}
+            </button>
             <button
               onClick={() => nav('/chat')}
               aria-label={unreadCount > 0 ? `Chats, ${unreadCount} unread` : 'Chats'}

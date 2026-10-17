@@ -18,6 +18,7 @@ import { Community } from '@/routes/Community';
 import { GroupDetail } from '@/routes/GroupDetail';
 import { GroupManage } from '@/routes/GroupManage';
 import { Chat } from '@/routes/Chat';
+import { Notifications } from '@/routes/Notifications';
 import { ChatDetail } from '@/routes/ChatDetail';
 import { SessionChatDetail } from '@/routes/SessionChatDetail';
 import { Profile } from '@/routes/Profile';
@@ -77,6 +78,7 @@ export const router = createBrowserRouter([
               { path: '/community/:groupId', element: <GroupDetail /> },
               { path: '/community/:groupId/manage', element: <GroupManage /> },
               { path: '/chat', element: <Chat /> },
+              { path: '/notifications', element: <Notifications /> },
               { path: '/chat/session/:sessionChatId', element: <SessionChatDetail /> },
               { path: '/chat/:userId', element: <ChatDetail /> },
               { path: '/profile', element: <Profile /> },
