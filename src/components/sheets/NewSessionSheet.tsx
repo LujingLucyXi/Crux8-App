@@ -132,7 +132,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
   // THREE steps (Lucy 2026-10-17): 1) Activity — type + indoor/
   // outdoor filter; 2) Logistics — location, people, level, invites;
   // 3) Optional — name + description, skippable.
-  const [createStep, setCreateStep] = useState<'place' | 'activity' | 'logistics' | 'optional'>('place');
+  const [createStep, setCreateStep] = useState<'place' | 'activity' | 'when' | 'location' | 'people' | 'optional'>('place');
   const [locFilter, setLocFilter] = useState<'indoor' | 'outdoor'>('indoor');
   const [inviteOpen, setInviteOpen] = useState(false);
   useEffect(() => {
@@ -489,7 +489,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
   useEffect(() => {
     if (open && startAsEvent) {
       setMode('event');
-      setCreateStep('logistics');
+      setCreateStep('location');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, startAsEvent]);
@@ -508,7 +508,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
     } else {
       setMode('event');
     }
-    setCreateStep('logistics');
+    setCreateStep('when');
   };
   // Step 1 of the create flow (Lucy 2026-10-17): Indoor vs Outdoor
   // gets its OWN step, then Activity shows the matching choices
@@ -848,7 +848,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
                 ‹ Back
               </button>
               <span className="text-sm font-bold text-ink-900">{locFilter === 'indoor' ? 'Indoor' : 'Outdoor'}</span>
-              <span className="text-xs text-ink-500">Step 2 of 4</span>
+              <span className="text-xs text-ink-500">Step 2 of 6</span>
             </div>
             <div className="flex flex-col gap-3">
               {(
@@ -885,8 +885,19 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
             <button
               type="button"
               onClick={() => {
-                if (startAsEvent && createStep === 'logistics') onOpenChange(false);
-                else setCreateStep(createStep === 'optional' ? 'logistics' : 'activity');
+                if (startAsEvent && createStep === 'location') {
+                  onOpenChange(false);
+                  return;
+                }
+                setCreateStep(
+                  createStep === 'optional'
+                    ? 'people'
+                    : createStep === 'people'
+                      ? 'location'
+                      : createStep === 'location'
+                        ? 'when'
+                        : 'activity',
+                );
               }}
               className="text-sm font-semibold text-brand-600"
             >
@@ -894,14 +905,46 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
             </button>
             <span className="text-sm font-bold text-ink-900">{createTypeLabel}</span>
             <span className="text-xs text-ink-500">
-              {createStep === 'logistics' ? 'Step 3 of 4' : 'Step 4 of 4 · Optional'}
+              {mode === 'event'
+                ? createStep === 'location'
+                  ? 'Step 1 of 3'
+                  : createStep === 'people'
+                    ? 'Step 2 of 3'
+                    : 'Step 3 of 3 · Optional'
+                : createStep === 'when'
+                  ? 'Step 3 of 6'
+                  : createStep === 'location'
+                    ? 'Step 4 of 6'
+                    : createStep === 'people'
+                      ? 'Step 5 of 6'
+                      : 'Step 6 of 6 · Optional'}
             </span>
           </div>
         {/* ───────── BELAY (climb call) ───────── */}
-        {mode !== 'event' && discipline === 'belay' && createStep === 'logistics' && (
+        {mode !== 'event' && discipline === 'belay' && createStep === 'when' && (
           <div className="flex flex-col gap-5">
             {whenField()}
+            <div>
+              <Label>Duration (hours)</Label>
+              <Input
+                type="number"
+                min={0.5}
+                step={0.5}
+                value={callDurationHours}
+                onChange={(e) => setCallDurationHours(Number(e.target.value) || 2)}
+              />
+            </div>
+            <Button onClick={() => setCreateStep('location')}>Continue →</Button>
+          </div>
+        )}
+        {mode !== 'event' && discipline === 'belay' && createStep === 'location' && (
+          <div className="flex flex-col gap-5">
             {locationField(callGymId, setCallGymId, callGyms, () => { setSuggestFor('call'); setSuggestGymOpen(true); })}
+            <Button onClick={() => setCreateStep('people')}>Continue →</Button>
+          </div>
+        )}
+        {mode !== 'event' && discipline === 'belay' && createStep === 'people' && (
+          <div className="flex flex-col gap-5">
             <div>
               <Label>People</Label>
               <div className="flex items-center gap-3">
@@ -970,16 +1013,6 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
               <Label>Call name (optional)</Label>
               <Input value={callTitle} onChange={(e) => setCallTitle(e.target.value.slice(0, 48))} placeholder="e.g. Sunset lead sesh" />
             </div>
-            <div>
-              <Label>Duration (hours)</Label>
-              <Input
-                type="number"
-                min={0.5}
-                step={0.5}
-                value={callDurationHours}
-                onChange={(e) => setCallDurationHours(Number(e.target.value) || 2)}
-              />
-            </div>
             {descriptionField(callNote, setCallNote)}
             {!me?.weight_kg && (
               <div className="rounded-xl bg-gold-100 border border-gold-500/30 p-3 text-xs text-ink-700">
@@ -996,10 +1029,26 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
         )}
 
         {/* ───────── BOULDER / HIKE (session) ───────── */}
-        {mode !== 'event' && discipline !== 'belay' && createStep === 'logistics' && (
+        {mode !== 'event' && discipline !== 'belay' && createStep === 'when' && (
           <div className="flex flex-col gap-5">
             {whenField()}
+            <div>
+              <Label>Duration</Label>
+              <select value={durationHours} onChange={(e) => setDurationHours(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
+                {[1, 2, 3, 4, 6, 8].map((h) => (<option key={h} value={h}>{h}h</option>))}
+              </select>
+            </div>
+            <Button onClick={() => setCreateStep('location')}>Continue →</Button>
+          </div>
+        )}
+        {mode !== 'event' && discipline !== 'belay' && createStep === 'location' && (
+          <div className="flex flex-col gap-5">
             {locationField(gymId, setGymId, sessionGyms, () => { setSuggestFor('session'); setSuggestGymOpen(true); })}
+            <Button onClick={() => setCreateStep('people')}>Continue →</Button>
+          </div>
+        )}
+        {mode !== 'event' && discipline !== 'belay' && createStep === 'people' && (
+          <div className="flex flex-col gap-5">
             <div>
               <Label>People</Label>
               <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
@@ -1089,12 +1138,6 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
               />
             </div>
             <div>
-              <Label>Duration</Label>
-              <select value={durationHours} onChange={(e) => setDurationHours(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
-                {[1, 2, 3, 4, 6, 8].map((h) => (<option key={h} value={h}>{h}h</option>))}
-              </select>
-            </div>
-            <div>
               <Label>Vibe</Label>
               <RadioGroup.Root value={vibe} onValueChange={(v) => setVibe(v as Vibe)} className="flex gap-2 flex-wrap">
                 {VIBES.map((v) => (
@@ -1113,7 +1156,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
         )}
 
         {/* ───────── EVENT ───────── */}
-        {mode === 'event' && createStep === 'logistics' && (
+        {mode === 'event' && createStep === 'location' && (
           <div className="flex flex-col gap-5">
             <div>
               <Label>Venue</Label>
@@ -1125,6 +1168,11 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
                 {EVENT_TYPES.map((t2) => (<option key={t2} value={t2}>{t2.replace('_', ' ')}</option>))}
               </select>
             </div>
+            <Button onClick={() => setCreateStep('people')}>Continue →</Button>
+          </div>
+        )}
+        {mode === 'event' && createStep === 'people' && (
+          <div className="flex flex-col gap-5">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Cost (USD)</Label>
