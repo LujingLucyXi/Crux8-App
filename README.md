@@ -1,8 +1,10 @@
-# CruxMate
+# Crux8
 
-Session-based climber partner matching. **v0.5** — local prototype with Zustand + localStorage. Real auth + Supabase land in v0.6.
+Find climbing partners, post sessions, and build your crew.
 
-Design docs live in the sibling Obsidian vault at `CruxMate/App Building Docs/`.
+**Live:** [crux8.app](https://crux8.app) · **Personality quiz:** [play.crux8.app](https://play.crux8.app) (separate repo)
+
+Crux8 is a climbing community app built around real sessions with real people: post a climb, invite your cruxmates, collect cards from the people you climb with, and grow a crew. Web-first, no install required.
 
 ## Run locally
 
@@ -13,75 +15,57 @@ npm run dev
 
 Open [http://localhost:5173/](http://localhost:5173/).
 
+```bash
+npm run build     # typecheck (tsc -b) + production build
+npm run lint      # oxlint
+npm run sync:ios  # build + Capacitor iOS sync
+```
+
 ## Tech stack
 
 - **Vite + React 19 + TypeScript**
-- **Tailwind CSS v3** — brand tokens locked in `tailwind.config.js` (`ink` / `teal` / `gold` / `coral` / `sky` / `paper`)
-- **Poppins** via Google Fonts
-- **React Router v6** — 5 routes + auth guard
-- **Zustand** with `persist` middleware (localStorage key `cruxmate-v1`)
-- **Radix UI primitives** — Sheet, Dialog, Checkbox, RadioGroup, Slot
-- **Iconoir** — line-style icons (`Trekking`, `Cube`, `SquareWave`, `TriangleFlag`, `ShieldCheck`, `Sparks`, etc.)
-- **Sonner** — top-slide toasts
-- **date-fns** — session timestamp formatting
+- **React Router v7**
+- **Tailwind CSS v3** — brand tokens in `tailwind.config.js` (`ink` / `teal` / `gold` / `coral` / `sky` / `paper`)
+- **Supabase** — Auth + Postgres with Row Level Security (`@supabase/supabase-js`)
+- **Zustand** with `persist` middleware for on-device state
+- **Capacitor 8** for the iOS shell
+- **Radix UI** primitives, **Iconoir** + **Lucide** icons, **Sonner** toasts, **Framer Motion**, **date-fns**
 
-## Feature map
+## What the app does
 
-| Screen | Route | What works |
-|---|---|---|
-| Landing | `/` | Hero, 4 pillars, sign up (mock) |
-| Onboarding | `/onboarding` | 4-step wizard, avatar picker, cert verification prompt |
-| Find | `/find` | Segmented INDOOR/OUTDOOR/EVENTS, contextual filters, AI Auto Match banner |
-| Community | `/community` | 12 seeded groups, search, category filters |
-| Group Detail | `/community/:groupId` | Cover, admins, upcoming sessions/events, `+ Post` for admins |
-| Chat | `/chat` | DMs with CruxMates, unread indicators |
-| Chat Detail | `/chat/:userId` | Bubble UI, message composer, verified chips |
-| Profile | `/profile` | Verified chips, badges, upcoming/past sessions, CruxMates, About/Story |
+- **Sessions & climb calls** — post a session (indoor / outdoor, boulder / top rope / lead / hike) or a 1:1 climb call; RSVP, capacity, host controls. Sessions can be free-join or approval-required.
+- **Cruxmates** — Instagram-style follow graph; mutual follows are cruxmates. Inviting someone to a session, call, or crew makes you cruxmates automatically, and joining through a personal `/add/:code` invite link auto-befriends you with the inviter.
+- **Invites & notifications** — session and call invitations land in a dedicated Notifications page as cards with Accept / Decline.
+- **Crews** — community groups with admins, join policies (open or request-to-join with a survey), member management, and group chat.
+- **Chat** — 1:1 DMs (with message requests for non-cruxmates) and per-session group chats.
+- **The Vault** — a collectible card for every cruxmate and every session you complete, at `/collection`.
+- **Avatars** — a drawn-avatar customizer with optional photo upload; belay verification (self-attested, then peer-confirmed).
 
-### Cross-cutting
+## Data model notes
 
-- **Cert verification** (per category): opens from onboarding, profile, or RSVP gate. Auto-approves 5s after submit.
-- **RSVP gate**: rope sessions block without matching verification.
-- **Attestation dialog**: trad sessions require attestation before RSVP.
-- **Gear checklist**: auto-opens after every RSVP with category-appropriate defaults.
-- **AI Auto Match**: deterministic scorer (grade overlap × 40 + style × 25 + proximity × 15 + timing × 10 + vibe × 5 − already-joined × 20).
-- **Badges**: auto-unlock on state change; 7 total.
-- **Mountain Project links**: 40 curated Cascades routes with `search?q=` fallback URLs.
+Two storage worlds, deliberately:
 
-## Structure
+- **Server (Supabase)** — profiles, the directory, sessions, RSVPs, climb calls, the follow graph (`cruxmate_requests`), invites, message requests. The follow graph syncs across devices: log in anywhere and your cruxmates are re-derived from the server rows.
+- **On-device (localStorage)** — chat message bodies and the card Vault. These do not follow you to a second device yet.
+
+Auth is password-first, with Google sign-in and email codes (custom SMTP via Resend).
+
+## Database changes
+
+Schema changes ship as idempotent SQL migrations in [`supabase/migrations/`](supabase/migrations/), applied manually in the Supabase SQL Editor. Every migration is guarded (`if not exists`, `create or replace`, policy-existence checks), so re-running one is safe. Client code degrades gracefully when a migration hasn't run yet; it never hard-depends on a table existing.
+
+## Project structure
 
 ```
 src/
-├── App.tsx              # Root: RouterProvider + Toaster + seedIfEmpty
-├── main.tsx             # createRoot
-├── router.tsx           # Routes + auth guard
-├── index.css            # Poppins + Tailwind base
-├── components/
-│   ├── layout/          # Header, BottomNav, AppShell, Logo
-│   ├── ui/              # Button, Card, Sheet, Dialog, Input, Avatar, Checkbox
-│   ├── cards/           # SessionCard, EventCard, GroupCard
-│   ├── filters/         # FilterRow (contextual per-tab)
-│   └── sheets/          # SessionDetail, EventDetail, NewSession, GearChecklist,
-│                        # CertVerification, UserProfile, AiMatch
-├── routes/              # Landing, Onboarding, Find, Community, GroupDetail,
-│                        # Chat, ChatDetail, Profile
-├── lib/                 # utils (cn, uid), date, match (scorer), gear (checklists)
-├── store/               # useAppStore.ts — Zustand with persist
-└── seed/                # gyms, routes, users, sessions, events, groups (source of truth)
+├── App.tsx / router.tsx   # providers, routes, auth guard
+├── routes/                 # Home, Find, Sessions, Community, GroupDetail,
+│                           # GroupManage, Chat, Notifications, Profile,
+│                           # Collection, Onboarding, deep links
+├── components/             # layout, ui, cards, sheets, chat, crews, lab
+├── store/                  # useAppStore.ts — Zustand store + sync layer
+├── lib/                    # supabase client, db.ts (server calls),
+│                           # avatar, resolveUser, dates, utils
+└── seed/                   # demo gyms, users, groups (first-run content)
+supabase/migrations/        # SQL migrations, applied by hand
 ```
-
-## Reset the demo
-
-Open DevTools console and run:
-```js
-localStorage.removeItem('cruxmate-v1'); location.reload();
-```
-Or use the hamburger menu → `Reset all data (dev)`.
-
-## Roadmap
-
-- **v0.6** — Supabase Auth (email magic link + Google) + `profiles` + `verifications` tables + Storage for avatars/cert photos
-- **v0.7** — Move sessions/events/groups/chat into Supabase Postgres (RLS: public read, owner write)
-- **v0.8** — Real-time chat via Supabase Realtime
-- **v0.9** — Real admin cert verification queue
-- **v1.0** — OpenBeta route data + Mapbox on Explore + real LLM matching
