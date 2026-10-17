@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
  * Go-Crux boulder mascot) inside a gold collectible ring. Reads the shared
  * AvatarConfig, so it's a drop-in behind <Avatar>. Deterministic, no network.
  */
-const OUTLINE = '#2A2140';
+const OUTLINE = '#262019'; // warm near-black ink (was plum #2A2140 — invisible against colored hair, but with jet-black hair everywhere it read as a purple fringe; Lucy 2026-10-16)
 const SW = 3.5;
 
 export type HairBucket = 'spikes' | 'bob' | 'bun' | 'buzz' | 'long' | 'bald';
@@ -355,7 +355,7 @@ export function CartoonAvatar({
         // volt lens. The strap is thin enough to sit over any style.
         return (
           <g strokeLinejoin="round">
-            <path d="M28 41 Q50 35 72 41 L72 46 Q50 40 28 46 Z" fill="#2A2140" />
+            <path d="M28 41 Q50 35 72 41 L72 46 Q50 40 28 46 Z" fill="#262019" />
             <circle cx="50" cy="35.5" r="6" fill="#B4FF3A" opacity="0.25" />
             <rect x="43.5" y="30.5" width="13" height="10" rx="3" fill="#161310" stroke={OUTLINE} strokeWidth="2.4" />
             <circle cx="50" cy="35.5" r="3" fill="#B4FF3A" />
