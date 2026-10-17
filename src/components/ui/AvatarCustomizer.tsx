@@ -29,7 +29,6 @@ const HAIR_OPTIONS: { value: HairStyle; label: string; bucket: HairBucket }[] = 
   { value: 'pigtails', label: 'Double pony', bucket: 'long' },
   { value: 'braids', label: 'Braids', bucket: 'long' },
   { value: 'locs', label: 'Locs', bucket: 'long' },
-  { value: 'long', label: 'Long', bucket: 'long' },
   { value: 'straight', label: 'Straight', bucket: 'long' },
   { value: 'wavy', label: 'Wavy', bucket: 'long' },
   { value: 'halfshave', label: 'Half-shave', bucket: 'bob' },

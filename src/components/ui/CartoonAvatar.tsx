@@ -113,11 +113,11 @@ export function CartoonAvatar({
     l === 'short'
       ? 'M26 52 Q24 28 50 26 Q76 28 74 52 Q70 45 64 45 L64 44 Q58 36 50 36 Q42 36 36 44 L36 45 Q30 45 26 52 Z'
       : l === 'long'
-        ? 'M26 74 Q24 28 50 26 Q76 28 74 74 Q70 66 66 67 L66 44 Q58 36 50 36 Q42 36 34 44 L34 67 Q30 66 26 74 Z'
+        ? 'M26 78 Q24 28 50 26 Q76 28 74 78 Q70 70 66 71 L66 44 Q58 36 50 36 Q42 36 34 44 L34 71 Q30 70 26 78 Z'
         : 'M26 58 Q24 28 50 26 Q76 28 74 58 Q70 50 64 50 L64 44 Q58 36 50 36 Q42 36 36 44 L36 50 Q30 50 26 58 Z';
   const drapeD = (l: string, straight: boolean) => {
-    const B = l === 'short' ? (straight ? 62 : 63) : l === 'long' ? (straight ? 79 : 80) : straight ? 72 : 73;
-    const IB = l === 'short' ? 57 : l === 'long' ? (straight ? 73 : 72) : straight ? 67 : 68;
+    const B = l === 'short' ? (straight ? 62 : 63) : l === 'long' ? (straight ? 83.5 : 84) : straight ? 72 : 73;
+    const IB = l === 'short' ? 57 : l === 'long' ? (straight ? 77 : 76) : straight ? 67 : 68;
     return straight
       ? `M27 ${B} L25 42 Q25 25 50 24 Q75 25 75 42 L73 ${B} Q68 ${IB} 66 ${IB} L66 44 Q58 36 50 36 Q42 36 34 44 L34 ${IB} Q32 ${IB} 27 ${B} Z`
       : `M26 ${B} Q22 32 50 25 Q78 32 74 ${B} Q70 ${IB - 3} 66 ${IB} L66 44 Q58 36 50 36 Q42 36 34 44 L34 ${IB} Q30 ${IB - 3} 26 ${B} Z`;
@@ -172,12 +172,12 @@ export function CartoonAvatar({
           len === 'short'
             ? 'M26 62 Q20 54 26 47 Q23 27 50 25 Q77 27 74 47 Q80 54 74 62 Q70 55 66 57 L66 44 Q58 36 50 36 Q42 36 34 44 L34 57 Q30 55 26 62 Z'
             : len === 'long'
-              ? 'M26 80 Q20 68 26 59 Q20 50 26 42 Q23 27 50 25 Q77 27 74 42 Q80 50 74 59 Q80 68 74 80 Q70 69 66 72 L66 44 Q58 36 50 36 Q42 36 34 44 L34 72 Q30 69 26 80 Z'
+              ? 'M26 84 Q20 71 26 62 Q20 53 26 44 Q23 27 50 25 Q77 27 74 44 Q80 53 74 62 Q80 71 74 84 Q70 73 66 76 L66 44 Q58 36 50 36 Q42 36 34 44 L34 76 Q30 73 26 84 Z'
               : 'M26 73 Q20 64 26 56 Q20 48 26 41 Q23 27 50 25 Q77 27 74 41 Q80 48 74 56 Q80 64 74 73 Q70 64 66 66 L66 44 Q58 36 50 36 Q42 36 34 44 L34 66 Q30 64 26 73 Z';
         return <path d={d} {...HS} />;
       }
       case 'pigtails': {
-        const TB = len === 'short' ? 58 : len === 'long' ? 77 : 68;
+        const TB = len === 'short' ? 58 : len === 'long' ? 79 : 68;
         return (
           <g>
             <g {...HS}>
@@ -195,7 +195,7 @@ export function CartoonAvatar({
           len === 'short'
             ? 'M70 40 Q84 45 82 60 Q81 67 75 65 Q70 54 69 48 Z'
             : len === 'long'
-              ? 'M70 40 Q84 47 81 72 Q80 78 74 76 Q69 60 69 48 Z'
+              ? 'M70 40 Q84 47 80 74 Q79 80.5 73 77.5 Q69 60 69 48 Z'
               : 'M70 40 Q86 46 84 66 Q83 77 75 75 Q70 60 69 48 Z';
         return (
           <g>
@@ -218,8 +218,8 @@ export function CartoonAvatar({
       case 'locs': {
         // Distinct ropes BESIDE the face, two capsules per side with
         // segment bumps; bottoms follow the length trait.
-        const O = len === 'short' ? 58 : len === 'long' ? 79 : 74;
-        const I = len === 'short' ? 62 : len === 'long' ? 81 : 77;
+        const O = len === 'short' ? 58 : len === 'long' ? 80 : 74;
+        const I = len === 'short' ? 62 : len === 'long' ? 82 : 77;
         const t1 = Math.round(40 + (O - 40) * 0.45);
         const t2 = Math.round(40 + (O - 40) * 0.75);
         const u1 = Math.round(38 + (I - 38) * 0.45);
@@ -243,7 +243,7 @@ export function CartoonAvatar({
         );
       }
       case 'halfshave': {
-        const PB = len === 'short' ? 60 : len === 'long' ? 79 : 71;
+        const PB = len === 'short' ? 60 : len === 'long' ? 82 : 71;
         return (
           <g>
             <path d={BUZZ_D} {...HS} />
@@ -283,37 +283,33 @@ export function CartoonAvatar({
     // 'braids' also lives here: the French braid band sits ON the cap.
     switch (config.hair) {
       case 'braids': {
-        // One clean braid over the left shoulder: a smooth, gently
-        // scalloped column — the weave reads from the silhouette
-        // alone (no scratchy inner lines), a slim GOLD tie, tiny
-        // tuft. Plus a center part line on the sleek cap. If this
-        // version misses too, the style gets dropped (Lucy's call).
-        const segs = len === 'short' ? 3 : len === 'long' ? 5 : 4;
-        const segH = 5.8;
+        // One clean braid over the left shoulder, v7 (Lucy: "more even
+        // throughout, smooth visual, not lumpy and bumpy in width"):
+        // an EVEN-width column with smooth, barely-tapered sides —
+        // the weave is suggested by soft scale-arc seams, not by the
+        // silhouette. Slim gold tie, small smooth tuft, center part.
         const cx = 28;
         const top = 51;
-        const w = 5.9;
-        let d = `M${cx - w + 1.2} ${top}`;
-        for (let i = 0; i < segs; i++) {
-          const y0 = top + i * segH;
-          d += ` Q${cx + w + 1.1} ${y0 + segH * 0.45} ${cx + 0.3} ${y0 + segH}`;
-        }
-        const yB = top + segs * segH;
-        d += ` Q${cx} ${yB + 3} ${cx - w + 0.3} ${yB}`;
-        for (let i = segs - 1; i >= 0; i--) {
-          const y0 = top + i * segH;
-          d += ` Q${cx - w - 1.1} ${y0 + segH * 0.55} ${cx - 0.3} ${y0}`;
-        }
-        d += ' Z';
+        const yB = len === 'short' ? 66 : len === 'long' ? 80 : 73;
+        const d = `M${cx - 5.6} ${top} Q${cx} ${top - 3.4} ${cx + 5.6} ${top} L${cx + 5.3} ${yB} Q${cx} ${yB + 2.8} ${cx - 5.3} ${yB} Z`;
+        const seam = (f: number) => {
+          const y = top + (yB - top) * f;
+          return `M${cx - 5.2} ${y} Q${cx} ${y + 3.6} ${cx + 5.2} ${y}`;
+        };
         return (
           <g>
             <path d="M50 25.5 L50 33.5" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4" />
             <path d={d} {...HS} />
+            <g stroke={OUTLINE} strokeWidth="1.9" strokeLinecap="round" opacity="0.38" fill="none">
+              <path d={seam(0.3)} />
+              <path d={seam(0.58)} />
+              <path d={seam(0.84)} />
+            </g>
             <path
               d={`M${cx - 5.2} ${yB - 0.5} L${cx + 5.2} ${yB - 0.5} L${cx + 4.7} ${yB + 3} L${cx - 4.7} ${yB + 3} Z`}
               fill="#C9A24B" stroke={OUTLINE} strokeWidth="2" strokeLinejoin="round"
             />
-            <path d={`M${cx - 2.6} ${yB + 3} Q${cx - 1.8} ${yB + 7.6} ${cx} ${yB + 8.3} Q${cx + 2.4} ${yB + 7.4} ${cx + 2} ${yB + 3} Z`} {...HS} />
+            <path d={`M${cx - 2.6} ${yB + 3} Q${cx - 1.8} ${yB + 7.4} ${cx} ${yB + 8.1} Q${cx + 2.4} ${yB + 7.2} ${cx + 2} ${yB + 3} Z`} {...HS} />
           </g>
         );
       }

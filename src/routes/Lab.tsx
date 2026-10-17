@@ -116,7 +116,6 @@ export function Lab() {
               { label: '2 pony', cfg: { skin: 'porcelain', hair: 'pigtails', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
               { label: 'Braids', cfg: { skin: 'porcelain', hair: 'braids', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
               { label: 'Locs', cfg: { skin: 'porcelain', hair: 'locs', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
-              { label: 'Long', cfg: { skin: 'porcelain', hair: 'long', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
               { label: 'Straight', cfg: { skin: 'porcelain', hair: 'straight', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
               { label: 'Wavy', cfg: { skin: 'porcelain', hair: 'wavy', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },
               { label: 'Half-shave', cfg: { skin: 'porcelain', hair: 'halfshave', hairColor: 'jet', eyes: 'stoked', backdrop: 'teal' } },

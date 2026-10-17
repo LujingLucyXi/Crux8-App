@@ -92,7 +92,7 @@ export const BACKDROP_HEX: Record<Backdrop, string> = {
 export const SKIN_TONES: SkinTone[] = ['porcelain', 'sand', 'honey', 'clay', 'umber', 'espresso'];
 export const HAIR_STYLES: HairStyle[] = [
   'mohawk', 'liberty', 'halfshave', 'undercut', 'shaved', 'buzz',
-  'long', 'straight', 'wavy', 'bob', 'bangs', 'curtain',
+  'straight', 'wavy', 'bob', 'bangs', 'curtain',
   'pigtails', 'spacebuns', 'ponytail', 'braids', 'topknot', 'locs', 'bald',
 ];
 export const HAIR_COLORS: HairColor[] = [
