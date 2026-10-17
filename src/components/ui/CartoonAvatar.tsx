@@ -205,12 +205,48 @@ export function CartoonAvatar({
           </g>
         );
       }
-      case 'braids':
-        // Hair pulled back in a clean cap; the braid itself is drawn
-        // in the FRONT layer (over the cheek's edge, emerging from the
-        // temple) — in the back layer its top hid behind the face and
-        // it read as a plank stuck to the side of the head.
-        return <path d={CAP_D} {...HS} />;
+      case 'braids': {
+        // SINGLE braid from the crown, BEHIND the head, showing
+        // partially (Lucy 2026-10-16): the whole braid lives in the
+        // back layer on the right side — the face covers its middle,
+        // so it reads as coming over the top, disappearing behind the
+        // head, and re-emerging below the jaw with its tie and tuft.
+        const braidD = (cx: number, top: number, segs: number) => {
+          const w = 6.4;
+          const segH = 8;
+          let d = `M${cx - w + 1.5} ${top}`;
+          for (let i = 0; i < segs; i++) {
+            const y0 = top + i * segH;
+            d += ` Q${cx + w + 1.6} ${y0 + segH * 0.45} ${cx + 0.4} ${y0 + segH}`;
+          }
+          const yB = top + segs * segH;
+          d += ` Q${cx} ${yB + 3.6} ${cx - w + 0.4} ${yB}`;
+          for (let i = segs - 1; i >= 0; i--) {
+            const y0 = top + i * segH;
+            d += ` Q${cx - w - 1.6} ${y0 + segH * 0.55} ${cx - 0.4} ${y0}`;
+          }
+          return d + ' Z';
+        };
+        const segs = len === 'short' ? 5 : len === 'long' ? 7 : 6;
+        const cx = len === 'long' ? 69.5 : 72.5;
+        const top = 28;
+        const yEnd = top + segs * 8;
+        return (
+          <g>
+            <path d={CAP_D} {...HS} />
+            <path d={braidD(cx, top, segs)} {...HS} />
+            <g stroke={OUTLINE} strokeWidth="1.9" strokeLinecap="round" opacity="0.45" fill="none">
+              <path d={`M${cx - 4.4} ${yEnd - 26} L${cx + 4.6} ${yEnd - 21}`} />
+              <path d={`M${cx + 4.4} ${yEnd - 18} L${cx - 4.6} ${yEnd - 13}`} />
+            </g>
+            <path
+              d={`M${cx - 5.6} ${yEnd - 1} L${cx + 5.6} ${yEnd - 1} L${cx + 5} ${yEnd + 3.4} L${cx - 5} ${yEnd + 3.4} Z`}
+              fill="#FF6B6B" stroke={OUTLINE} strokeWidth="2.1" strokeLinejoin="round"
+            />
+            <path d={`M${cx - 3} ${yEnd + 3.4} Q${cx - 2} ${yEnd + 8} ${cx} ${yEnd + 8.8} Q${cx + 2.8} ${yEnd + 8} ${cx + 2.4} ${yEnd + 3.4} Z`} {...HS} />
+          </g>
+        );
+      }
       case 'locs': {
         // Distinct ropes BESIDE the face, two capsules per side with
         // segment bumps; bottoms follow the length trait.
@@ -296,55 +332,6 @@ export function CartoonAvatar({
         );
       case 'straight':
         return <path d="M50 25.5 L50 34" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4" />;
-      case 'braids': {
-        // TWIN braids, v3 (Lucy: the single side braid was "so ugly").
-        // Country-girl pigtail braids over both cheeks, generated as a
-        // zigzag column — the SILHOUETTE bulges segment by segment
-        // (that's what makes it read as woven, not as a plank with
-        // lines on it), plus two diagonal weave lines, a coral tie
-        // and a tuft. Length = segment count.
-        const braidD = (cx: number, top: number, segs: number) => {
-          const w = 6.4;
-          const segH = 8;
-          let d = `M${cx - w + 1.5} ${top}`;
-          for (let i = 0; i < segs; i++) {
-            const y0 = top + i * segH;
-            d += ` Q${cx + w + 1.6} ${y0 + segH * 0.45} ${cx + 0.4} ${y0 + segH}`;
-          }
-          const yB = top + segs * segH;
-          d += ` Q${cx} ${yB + 3.6} ${cx - w + 0.4} ${yB}`;
-          for (let i = segs - 1; i >= 0; i--) {
-            const y0 = top + i * segH;
-            d += ` Q${cx - w - 1.6} ${y0 + segH * 0.55} ${cx - 0.4} ${y0}`;
-          }
-          return d + ' Z';
-        };
-        const segs = len === 'short' ? 2 : len === 'long' ? 4 : 3;
-        const top = 40;
-        const yEnd = top + segs * 8;
-        const one = (cx: number) => (
-          <g key={cx}>
-            <path d={braidD(cx, top, segs)} {...HS} />
-            <g stroke={OUTLINE} strokeWidth="1.9" strokeLinecap="round" opacity="0.45" fill="none">
-              <path d={`M${cx - 4.6} ${top + 6} L${cx + 4.4} ${top + 11}`} />
-              <path d={`M${cx + 4.6} ${top + 14} L${cx - 4.4} ${top + 19}`} />
-              {segs >= 3 && <path d={`M${cx - 4.6} ${top + 22} L${cx + 4.4} ${top + 27}`} />}
-              {segs >= 4 && <path d={`M${cx + 4.6} ${top + 30} L${cx - 4.4} ${top + 35}`} />}
-            </g>
-            <path
-              d={`M${cx - 5.6} ${yEnd - 1} L${cx + 5.6} ${yEnd - 1} L${cx + 5} ${yEnd + 3.4} L${cx - 5} ${yEnd + 3.4} Z`}
-              fill="#FF6B6B" stroke={OUTLINE} strokeWidth="2.1" strokeLinejoin="round"
-            />
-            <path d={`M${cx - 3.4} ${yEnd + 3.4} Q${cx - 2.4} ${yEnd + 8.6} ${cx} ${yEnd + 9.4} Q${cx + 3} ${yEnd + 8.4} ${cx + 2.6} ${yEnd + 3.4} Z`} {...HS} />
-          </g>
-        );
-        return (
-          <g>
-            {one(26.5)}
-            {one(73.5)}
-          </g>
-        );
-      }
       default:
         return null;
     }
