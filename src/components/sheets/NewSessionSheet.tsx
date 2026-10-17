@@ -81,9 +81,25 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   // gym, the level, the style — the template IS the invite composer).
   const preselectInvite = useAppStore((s) => s.newSessionPreselectInvite);
   const setPreselectInvite = useAppStore((s) => s.setNewSessionPreselectInvite);
+  // Direct-invite mode (tester feedback relayed by Lucy 2026-10-16:
+  // the full template has 'too many buttons' for a simple invite).
+  // When the sheet opens from a friend's "Invite to climb", it renders
+  // a LEAN form instead: when, gym, style, level, one send button —
+  // riding the same state + submit handlers as the full form, with
+  // sensible defaults (indoor, take-turns, 2h, standard capacity).
+  const [directInviteId, setDirectInviteId] = useState<string | null>(null);
+  const [leanStyle, setLeanStyle] = useState<'boulder' | 'top_rope' | 'lead'>('boulder');
+  // Type FIRST, then the box (Lucy 2026-10-16, same breath as the
+  // 'too many buttons' feedback): step 1 picks the climb type, step 2
+  // shows only that type's simplified box.
+  const [leanStep, setLeanStep] = useState<'type' | 'form'>('type');
+  const [leanGrade, setLeanGrade] = useState('All levels');
   useEffect(() => {
     if (open && preselectInvite) {
       setInviteIds([preselectInvite]);
+      setDirectInviteId(preselectInvite);
+      setLeanStep('type');
+      setLeanGrade('All levels');
       setPreselectInvite(null);
     }
   }, [open, preselectInvite, setPreselectInvite]);
@@ -181,6 +197,10 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const adminGroups = groups.filter((g) => g.admin_ids.includes(me?.id ?? ''));
 
   const reset = () => {
+    setDirectInviteId(null);
+    setLeanStyle('boulder');
+    setLeanStep('type');
+    setLeanGrade('All levels');
     setMode('indoor');
     setDiscipline('belay');
     setOutdoorLoc('');
@@ -400,6 +420,167 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
       <p className="text-[10px] text-ink-300 mt-1 text-right">{value.length} / 600</p>
     </div>
   );
+
+  // ── Lean direct-invite form ─────────────────────────────────────
+  // Shown INSTEAD of the full template when this sheet was opened
+  // from a friend's profile ("Invite to climb"). Four choices + one
+  // button; everything else takes the full form's defaults.
+  if (directInviteId) {
+    const directUser = resolveUser(directInviteId, me, users, directory);
+    const firstName = directUser?.display_name.split(' ')[0] ?? 'your friend';
+    const leanGyms =
+      leanStyle === 'boulder' ? sessionGyms : gymsForCategory(gyms, leanStyle);
+    const BOULDER_RANGES = ['All levels', 'V0–V2', 'V2–V4', 'V4–V6', 'V6–V8', 'V8+'];
+    const pickLeanStyle = (st: 'boulder' | 'top_rope' | 'lead') => {
+      setLeanStyle(st);
+      setMode('indoor');
+      if (st === 'boulder') {
+        setDiscipline('boulder');
+        setLeanGrade('All levels');
+        setSubtitle('');
+      } else {
+        setDiscipline('belay');
+        setCallCategory(st);
+        setLeanGrade('5.10a–5.10d');
+        setCallGrade('5.10a–5.10d');
+      }
+      setLeanStep('form');
+    };
+    const applyLeanGrade = (g: string) => {
+      setLeanGrade(g);
+      setCallGrade(g);
+      setSubtitle(g === 'All levels' ? '' : g);
+    };
+    const chip = (active: boolean) =>
+      `flex-1 rounded-full px-3 py-2.5 text-sm font-semibold border ${
+        active
+          ? 'bg-brand-600 text-[#161310] border-brand-600'
+          : 'bg-paper-100 text-ink-600 border-ink-100'
+      }`;
+    return (
+      <Sheet
+        open={open}
+        onOpenChange={(o) => {
+          onOpenChange(o);
+          if (!o) reset();
+        }}
+      >
+        <SheetContent title={`Invite ${firstName} to climb`}>
+          {leanStep === 'type' ? (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-ink-500">What are we climbing?</p>
+              {(
+                [
+                  { st: 'boulder', label: 'Boulder', hint: 'No ropes — just shoes and chalk' },
+                  { st: 'top_rope', label: 'Top rope', hint: 'Take turns belaying' },
+                  { st: 'lead', label: 'Lead', hint: 'Clip as you climb' },
+                ] as const
+              ).map(({ st, label, hint }) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => pickLeanStyle(st)}
+                  className="rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50"
+                >
+                  <span className="block text-base font-bold text-ink-900">{label}</span>
+                  <span className="block text-sm text-ink-500">{hint}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-ink-500">
+              {directUser?.display_name ?? 'They'}&apos;ll get this invite and can accept or
+              decline. Accepting puts you both in the session and its group chat.
+            </p>
+            <div className="flex items-center justify-between rounded-2xl border border-ink-100 bg-paper-100 px-4 py-3">
+              <span className="text-sm font-bold text-ink-900">
+                {leanStyle === 'boulder' ? 'Boulder' : leanStyle === 'top_rope' ? 'Top rope' : 'Lead'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setLeanStep('type')}
+                className="text-sm font-semibold text-brand-600"
+              >
+                Change
+              </button>
+            </div>
+            <div>
+              <Label>When</Label>
+              <div className="flex gap-2">
+                <button type="button" className={chip(callWhen === 'now')} onClick={() => setCallWhen('now')}>
+                  Now
+                </button>
+                <button type="button" className={chip(callWhen === 'tonight')} onClick={() => setCallWhen('tonight')}>
+                  Tonight
+                </button>
+                <button type="button" className={chip(callWhen === 'custom')} onClick={() => setCallWhen('custom')}>
+                  Pick a time
+                </button>
+              </div>
+              {callWhen !== 'now' && (
+                <div className="mt-2 flex gap-2">
+                  {callWhen === 'custom' && (
+                    <input
+                      type="date"
+                      value={callDate}
+                      onChange={(e) => setCallDate(e.target.value)}
+                      className="min-w-0 flex-1 rounded-xl border border-ink-100 bg-paper-100 px-3 py-2 text-sm text-ink-900"
+                    />
+                  )}
+                  <input
+                    type="time"
+                    value={callTime}
+                    onChange={(e) => setCallTime(e.target.value)}
+                    className="w-32 rounded-xl border border-ink-100 bg-paper-100 px-3 py-2 text-sm text-ink-900"
+                  />
+                </div>
+              )}
+            </div>
+            <div>
+              <Label>Gym</Label>
+              <select
+                value={leanStyle === 'boulder' ? gymId : callGymId}
+                onChange={(e) => {
+                  setGymId(e.target.value);
+                  setCallGymId(e.target.value);
+                }}
+                className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
+              >
+                {leanGyms.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>Level</Label>
+              <select
+                value={leanGrade}
+                onChange={(e) => applyLeanGrade(e.target.value)}
+                className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
+              >
+                {(leanStyle === 'boulder' ? BOULDER_RANGES : GRADE_RANGES).map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Button
+              onClick={() =>
+                void (leanStyle === 'boulder' ? handleSubmitSession() : handleSubmitCall())
+              }
+            >
+              Send invite to {firstName}
+            </Button>
+          </div>
+          )}
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <>
