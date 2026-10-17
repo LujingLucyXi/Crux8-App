@@ -1,10 +1,11 @@
-import { Menu, ChatBubbleEmpty, Group, Bell } from 'iconoir-react';
+import { Menu, ChatBubbleEmpty, Group, Bell, Plus } from 'iconoir-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore, countUnreadThreads, countActionableInvites } from '@/store/useAppStore';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { InfoSheet } from '@/components/sheets/InfoSheet';
 import { FeedbackSheet } from '@/components/sheets/FeedbackSheet';
+import { NewCrewSheet } from '@/components/sheets/NewCrewSheet';
 import { PeopleFinder } from '@/components/PeopleFinder';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -15,6 +16,7 @@ export function Header() {
   const [infoKind, setInfoKind] = useState<'about' | 'trust' | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [crewOpen, setCrewOpen] = useState(false);
   const nav = useNavigate();
   const { pathname } = useLocation();
   // The add-friends sheet navigates to /add/:code on code submit — a route
@@ -24,6 +26,9 @@ export function Header() {
   }, [pathname]);
   const me = useAppStore((s) => s.me);
   const signOut = useAppStore((s) => s.signOut);
+  const groups = useAppStore((s) => s.groups);
+  const myGroupMemberships = useAppStore((s) => s.myGroupMemberships);
+  const myCrews = groups.filter((g) => myGroupMemberships.includes(g.id));
   // Real per-thread unread: a thread counts only when its latest message is
   // incoming and arrived after I last opened it. Clears as I read each thread.
   const unreadThreads = useAppStore((s) =>
@@ -173,9 +178,60 @@ export function Header() {
         <SheetContent title="Friends">
           <div className="mt-2">
             <PeopleFinder />
+            {/* My crews live in the Friends tab too (Lucy 2026-10-17:
+                everything friend-related in one place — the Start a
+                crew button previously existed only on the Crews page
+                and the Chats empty state, and she couldn't find it). */}
+            <div className="mt-1 border-t border-ink-100 pt-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
+                My crews{myCrews.length > 0 ? ` · ${myCrews.length}` : ''}
+              </h3>
+              {myCrews.length === 0 ? (
+                <p className="text-sm text-ink-500 mb-3">
+                  You're not in any crews yet.
+                </p>
+              ) : (
+                <div className="space-y-2 mb-3">
+                  {myCrews.map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => nav(`/community/${g.id}`)}
+                      className="flex w-full items-center gap-3 rounded-2xl border border-ink-100 bg-paper-100 px-4 py-3 text-left"
+                    >
+                      <Avatar
+                        photoUrl={
+                          g.avatar_url ??
+                          `https://picsum.photos/seed/cruxmate-logo-${g.id.replace('grp_', '')}/200/200`
+                        }
+                        size={36}
+                        alt={g.name}
+                        fallback={g.name}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-ink-900 truncate">{g.name}</p>
+                        <p className="text-xs text-ink-500">
+                          {g.member_count} member{g.member_count === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <Button
+                className="w-full"
+                onClick={() => {
+                  setAddOpen(false);
+                  setCrewOpen(true);
+                }}
+              >
+                <Plus width={15} height={15} className="mr-1" /> Start a crew
+              </Button>
+            </div>
           </div>
         </SheetContent>
       </Sheet>
+      <NewCrewSheet open={crewOpen} onOpenChange={setCrewOpen} />
       {infoKind && (
         <InfoSheet open onOpenChange={(v) => !v && setInfoKind(null)} kind={infoKind} />
       )}
