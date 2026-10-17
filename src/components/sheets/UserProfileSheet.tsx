@@ -46,8 +46,22 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
   const sessions = useAppStore((s) => s.sessions);
   const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
   const inviteCruxmatesToSession = useAppStore((s) => s.inviteCruxmatesToSession);
+  const postSession = useAppStore((s) => s.postSession);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invitedIds, setInvitedIds] = useState<string[]>([]);
+  // Direct climb invite (Lucy 2026-10-16, refined: 'invite to climb,
+  // pick a time — no need to create a session first'): the composer
+  // below creates the session behind the scenes and sends the invite
+  // in the same tap. The friend accepts or declines in their invites;
+  // accepting joins the session, which brings its group chat along.
+  const [inviteDate, setInviteDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+  const [inviteTime, setInviteTime] = useState('18:00');
+  const [inviteStyle, setInviteStyle] = useState<'boulder' | 'top_rope' | 'lead'>('boulder');
+  const [inviteGymId, setInviteGymId] = useState('');
+  const [sendingInvite, setSendingInvite] = useState(false);
 
   // Founding number (public view; null until the migration runs or
   // for accounts past the first 88). Fetched per person on open.
@@ -87,6 +101,40 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
         .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
         .slice(0, 5)
     : [];
+  const inviteStart = new Date(`${inviteDate}T${inviteTime || '18:00'}`);
+  const inviteInPast = Number.isNaN(inviteStart.getTime()) || inviteStart.getTime() <= Date.now();
+  const sendDirectInvite = async () => {
+    if (!me) return;
+    setSendingInvite(true);
+    try {
+      const startsIso = inviteStart.toISOString();
+      const session = await postSession({
+        category: inviteStyle,
+        title:
+          inviteStyle === 'boulder'
+            ? 'Boulder Session'
+            : inviteStyle === 'top_rope'
+              ? 'Top Rope Session'
+              : 'Lead Session',
+        subtitle: 'All levels welcome',
+        starts_at: startsIso,
+        ends_at: new Date(inviteStart.getTime() + 2 * 3600_000).toISOString(),
+        gym_id: inviteGymId || me.home_gym_id,
+        capacity: 4,
+        vibe: 'social',
+        location_type: 'indoor',
+        is_verified_only: false,
+        requires_attestation: false,
+      });
+      inviteCruxmatesToSession(session.id, [user.id]);
+      toast.success(`Invite sent to ${user.display_name.split(' ')[0]}`);
+      onOpenChange(false);
+    } catch {
+      toast.error("Couldn't send the invite — try again.");
+    } finally {
+      setSendingInvite(false);
+    }
+  };
   const archetype = getArchetype(user.quiz_result_type);
   const house = getHouse(user.quiz_house_id) ?? (archetype ? getHouse(archetype.house_id) : null);
   // NPC seed users carry verifications inline; real users' come from their
@@ -263,13 +311,62 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
             </Button>
           )}
           {inviteOpen && (isCruxmate || reqDir === 'outgoing') && (
-            <div className="flex flex-col gap-2">
-              {invitableSessions.length === 0 ? (
-                <p className="rounded-xl bg-paper-50 border border-ink-100 p-3 text-center text-xs text-ink-500">
-                  No climbs to invite them to yet — sessions you&apos;re part of will show up here.
+            <div className="flex flex-col gap-2.5 rounded-2xl border border-ink-100 bg-paper-50 p-3.5">
+              <p className="text-xs font-semibold text-ink-700">
+                Pick a time — {user.display_name.split(' ')[0]} can accept or decline. If they
+                accept, you&apos;ll both land in the session&apos;s group chat.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={inviteDate}
+                  onChange={(e) => setInviteDate(e.target.value)}
+                  className="min-w-0 flex-1 rounded-xl border border-ink-100 bg-paper-100 px-3 py-2 text-sm text-ink-900"
+                />
+                <input
+                  type="time"
+                  value={inviteTime}
+                  onChange={(e) => setInviteTime(e.target.value)}
+                  className="w-28 rounded-xl border border-ink-100 bg-paper-100 px-3 py-2 text-sm text-ink-900"
+                />
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={inviteStyle}
+                  onChange={(e) => setInviteStyle(e.target.value as typeof inviteStyle)}
+                  className="min-w-0 flex-1 rounded-xl border border-ink-100 bg-paper-100 px-3 py-2 text-sm text-ink-900"
+                >
+                  <option value="boulder">Bouldering</option>
+                  <option value="top_rope">Top rope</option>
+                  <option value="lead">Lead</option>
+                </select>
+                <select
+                  value={inviteGymId || me?.home_gym_id || ''}
+                  onChange={(e) => setInviteGymId(e.target.value)}
+                  className="min-w-0 flex-1 rounded-xl border border-ink-100 bg-paper-100 px-3 py-2 text-sm text-ink-900"
+                >
+                  {gyms.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.short_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button
+                disabled={sendingInvite || inviteInPast}
+                onClick={() => void sendDirectInvite()}
+              >
+                {sendingInvite ? 'Sending…' : `Send invite to ${user.display_name.split(' ')[0]}`}
+              </Button>
+              {inviteInPast && (
+                <p className="text-center text-xs text-ink-500">That time has passed — pick a later one.</p>
+              )}
+              {invitableSessions.length > 0 && (
+                <p className="pt-1 text-center text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+                  Or invite to a session you&apos;re in
                 </p>
-              ) : (
-                invitableSessions.map((s) => {
+              )}
+              {invitableSessions.map((s) => {
                   const sGym = gyms.find((g) => g.id === s.gym_id);
                   const invited = invitedIds.includes(s.id);
                   return (
@@ -296,8 +393,7 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
                       </button>
                     </div>
                   );
-                })
-              )}
+                })}
             </div>
           )}
         </div>
