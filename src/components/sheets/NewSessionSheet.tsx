@@ -499,7 +499,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
       setMode(locFilter);
       setDiscipline('boulder');
     } else if (t === 'top_rope' || t === 'lead') {
-      setMode('indoor');
+      setMode(locFilter);
       setDiscipline('belay');
       setCallCategory(t);
     } else if (t === 'hike') {
@@ -798,7 +798,12 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
       <SheetContent title={createStep === 'activity' ? 'Activity' : sheetTitle}>
         {createStep === 'activity' ? (
           <div>
-            <div className="flex gap-2 mb-4">
+            {/* Indoor / Outdoor is a plain radio selection with a
+                round fill (Lucy 2026-10-17) — NOT a toggle/filter:
+                outdoor has all the same activities (top rope and
+                lead included), so the activity list never changes.
+                Hike implies outdoor when tapped. */}
+            <div className="mb-5 flex gap-7">
               {([
                 { v: 'indoor', l: 'Indoor' },
                 { v: 'outdoor', l: 'Outdoor' },
@@ -807,37 +812,37 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
                   key={f.v}
                   type="button"
                   onClick={() => setLocFilter(f.v)}
-                  className={cn(
-                    'flex-1 rounded-xl border py-2 text-xs font-semibold',
-                    locFilter === f.v ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-500 border-ink-100',
-                  )}
+                  className="flex items-center gap-2"
+                  aria-pressed={locFilter === f.v}
                 >
-                  {f.l}
+                  <span
+                    className={cn(
+                      'flex h-5 w-5 items-center justify-center rounded-full border-2',
+                      locFilter === f.v ? 'border-brand-600' : 'border-ink-300',
+                    )}
+                  >
+                    {locFilter === f.v && <span className="h-2.5 w-2.5 rounded-full bg-brand-600" />}
+                  </span>
+                  <span className={cn('text-sm', locFilter === f.v ? 'font-bold text-ink-900' : 'text-ink-500')}>
+                    {f.l}
+                  </span>
                 </button>
               ))}
             </div>
-            {/* All cards stay mounted; the filter just hides the ones
-                that don't fit — no remount, no height animation
-                friction when switching Indoor/Outdoor (Lucy
-                2026-10-17). Event is NOT here: it lives in the crew
-                flow until more crews are onboarded. */}
             <div className="flex flex-col gap-3">
               {(
                 [
-                  { t: 'boulder', label: 'Boulder', show: true },
-                  { t: 'top_rope', label: 'Top rope', show: locFilter === 'indoor' },
-                  { t: 'lead', label: 'Lead', show: locFilter === 'indoor' },
-                  { t: 'hike', label: 'Hike', show: locFilter === 'outdoor' },
+                  { t: 'boulder', label: 'Boulder' },
+                  { t: 'top_rope', label: 'Top rope' },
+                  { t: 'lead', label: 'Lead' },
+                  { t: 'hike', label: 'Hike' },
                 ] as const
-              ).map(({ t, label, show }) => (
+              ).map(({ t, label }) => (
                 <button
                   key={t}
                   type="button"
                   onClick={() => pickCreateType(t)}
-                  className={cn(
-                    'rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50',
-                    !show && 'hidden',
-                  )}
+                  className="rounded-2xl border border-ink-100 bg-paper-100 px-5 py-4 text-left active:bg-brand-50"
                 >
                   <span className="block text-base font-bold text-ink-900">{label}</span>
                 </button>
