@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -36,6 +36,8 @@ export function GroupManage() {
   const cruxmates = useAppStore((s) => s.cruxmates);
   const mateRequests = useAppStore((s) => s.mateRequests);
   const addMember = useAppStore((s) => s.addGroupMember);
+  const inviteToGroup = useAppStore((s) => s.inviteToGroup);
+  const sentGroupInvites = useAppStore((s) => s.sentGroupInvites);
   const me = useAppStore((s) => s.me);
   const approve = useAppStore((s) => s.approveJoinRequest);
   const decline = useAppStore((s) => s.declineJoinRequest);
@@ -280,7 +282,11 @@ export function GroupManage() {
         )}
       </Section>
 
-      {/* ── Add members from the friend list (Lucy 2026-10-17) ── */}
+      {/* ── Add members / invite to join (Lucy 2026-10-17) ──
+          Only cruxmates can be ADDED directly. Everyone else I'm
+          connected to (a follow in either direction) can be INVITED —
+          they join by accepting in their Notifications, so nobody is
+          randomly added to a crew. */}
       {(() => {
         const inGroup = new Set([
           ...group.admin_ids,
@@ -289,37 +295,82 @@ export function GroupManage() {
           me.id,
           'me',
         ]);
-        const friendIds = new Set<string>(cruxmates);
+        const addCandidates = cruxmates.filter((id) => !inGroup.has(id));
+        const connected = new Set<string>();
         for (const r of mateRequests) {
-          if (r.from_id === me.id && r.status !== 'denied') friendIds.add(r.to_id);
+          if (r.status === 'denied') continue;
+          if (r.from_id === me.id) connected.add(r.to_id);
+          if (r.to_id === me.id) connected.add(r.from_id);
         }
-        const candidates = [...friendIds].filter((id) => !inGroup.has(id));
-        if (candidates.length === 0) return null;
-        return (
-          <Section title="Add members">
-            <div className="flex flex-col gap-2">
-              {candidates.map((id) => {
-                const p = person(id);
-                return (
-                  <div key={id} className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Avatar photoUrl={p.photo_url} config={p.avatar} seed={p.id} alt={p.display_name} size={30} fallback={p.display_name} />
-                      <span className="text-sm text-ink-900 truncate">{p.display_name}</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        addMember(group.id, id);
-                        toast.success(`${p.display_name} added to the crew`);
-                      }}
-                      className="rounded-full bg-brand-600 px-3.5 py-1.5 text-xs font-bold text-[#161310]"
-                    >
-                      Add
-                    </button>
-                  </div>
-                );
-              })}
+        const inviteCandidates = [...connected].filter(
+          (id) => !inGroup.has(id) && !cruxmates.includes(id),
+        );
+        const sent = sentGroupInvites[group.id] ?? [];
+        if (addCandidates.length === 0 && inviteCandidates.length === 0) return null;
+        const row = (id: string, action: ReactNode) => {
+          const p = person(id);
+          return (
+            <div key={id} className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Avatar photoUrl={p.photo_url} config={p.avatar} seed={p.id} alt={p.display_name} size={30} fallback={p.display_name} />
+                <span className="text-sm text-ink-900 truncate">{p.display_name}</span>
+              </div>
+              {action}
             </div>
-          </Section>
+          );
+        };
+        return (
+          <>
+            {addCandidates.length > 0 && (
+              <Section title="Add members">
+                <div className="flex flex-col gap-2">
+                  {addCandidates.map((id) =>
+                    row(
+                      id,
+                      <button
+                        onClick={() => {
+                          addMember(group.id, id);
+                          toast.success(`${person(id).display_name} added to the crew`);
+                        }}
+                        className="rounded-full bg-brand-600 px-3.5 py-1.5 text-xs font-bold text-[#161310]"
+                      >
+                        Add
+                      </button>,
+                    ),
+                  )}
+                </div>
+              </Section>
+            )}
+            {inviteCandidates.length > 0 && (
+              <Section title="Invite to join">
+                <p className="text-xs text-ink-500 mb-2">
+                  Not cruxmates yet — they join only if they accept the invitation.
+                </p>
+                <div className="flex flex-col gap-2">
+                  {inviteCandidates.map((id) =>
+                    row(
+                      id,
+                      sent.includes(id) ? (
+                        <span className="rounded-full border border-ink-100 px-3.5 py-1.5 text-xs font-semibold text-ink-500">
+                          Invited
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            inviteToGroup(group.id, id);
+                            toast.success(`Invitation sent to ${person(id).display_name}`);
+                          }}
+                          className="rounded-full border border-brand-600 px-3.5 py-1.5 text-xs font-bold text-ink-900"
+                        >
+                          Invite
+                        </button>
+                      ),
+                    ),
+                  )}
+                </div>
+              </Section>
+            )}
+          </>
         );
       })()}
 

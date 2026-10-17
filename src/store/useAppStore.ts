@@ -99,6 +99,7 @@ import {
   type DirectoryProfile,
   upsertGroupRemote,
   fetchMyGroupsRemote,
+  fetchGroupByIdRemote,
   insertChatMessageRemote,
   fetchThreadMessagesRemote,
   fetchMyDmMessagesRemote,
@@ -413,6 +414,9 @@ interface Store {
   removeGroupAdmin: (groupId: string, userId: string) => void;
   removeGroupMember: (groupId: string, userId: string) => void;
   addGroupMember: (groupId: string, userId: string) => void;
+  inviteToGroup: (groupId: string, userId: string) => void;
+  ensureGroupDoc: (groupId: string) => Promise<void>;
+  sentGroupInvites: Record<string, string[]>;
   updateGroup: (groupId: string, patch: Partial<Group>) => void;
   openGroupChat: (groupId: string) => void;
   /** Find or create the house hangout crew for (house × user's city); joins it. Returns group id. */
@@ -608,6 +612,9 @@ export function isInviteActionable(
   },
 ): boolean {
   if (invite.status !== 'pending' || !s.me) return false;
+  // Crew invites stay actionable while pending — accepting is the
+  // join, and joinGroup itself guards duplicate membership.
+  if (invite.kind === 'group') return true;
   if (invite.kind === 'call') {
     const call = s.climbCalls.find((c) => c.id === invite.target_id);
     if (!call || call.status !== 'live') return false;
@@ -785,6 +792,7 @@ export const useAppStore = create<Store>()(
       gymSuggestions: [],
       leftSessions: [],
       invites: [],
+      sentGroupInvites: {},
       mateRequests: [],
       messageRequests: [],
       dismissedFollowers: [],
@@ -1064,6 +1072,7 @@ export const useAppStore = create<Store>()(
           gymSuggestions: [],
           leftSessions: [],
           invites: [],
+          sentGroupInvites: {},
           mateRequests: [],
       messageRequests: [],
           dismissedFollowers: [],
@@ -1568,6 +1577,7 @@ export const useAppStore = create<Store>()(
           gymSuggestions: [],
           leftSessions: [],
           invites: [],
+          sentGroupInvites: {},
           mateRequests: [],
       messageRequests: [],
           dismissedFollowers: [],
@@ -2249,9 +2259,15 @@ export const useAppStore = create<Store>()(
 
       // Crew owners/admins add people straight from their friend
       // list (Lucy 2026-10-17: 'crew creator could not add members —
-      // they should be able to add members from friend list'). Crews
-      // are device-local today, so this updates the local roster.
+      // they should be able to add members from friend list').
+      // RULE (Lucy 2026-10-17, later the same day): only cruxmates
+      // can be ADDED to a crew. A crew add must never befriend or
+      // collect a card — non-friends are INVITED (inviteToGroup) and
+      // join by accepting, so nobody is randomly added to a crew.
+      // Seed/NPC ids aren't uuids and stay addable (built-in
+      // content; Cruxy is a cruxmate anyway).
       addGroupMember: (groupId, userId) => {
+        if (isUuid(userId) && !get().cruxmates.includes(userId)) return;
         set({
           groups: get().groups.map((g) =>
             g.id === groupId &&
@@ -2265,9 +2281,43 @@ export const useAppStore = create<Store>()(
               : g
           ),
         });
-        // Adding someone to my crew is an invite (Lucy 2026-10-17):
-        // the pair are cruxmates from this tap, no follow step.
-        get().befriendOnInvite(userId);
+      },
+
+      // Invite a non-friend to join a crew: an invites row (kind
+      // 'group') lands in their Notifications with Accept / Deny;
+      // accepting joins the crew. No membership, no friendship, and
+      // no card changes hands until they accept.
+      inviteToGroup: (groupId, userId) => {
+        const me = get().me;
+        if (!me || !isUuid(me.id) || !isUuid(userId)) return;
+        if (get().cruxmates.includes(userId)) return;
+        void createInviteRemote('group', groupId, me.id, userId).catch(() => {});
+        const sent = get().sentGroupInvites[groupId] ?? [];
+        if (!sent.includes(userId)) {
+          set({
+            sentGroupInvites: {
+              ...get().sentGroupInvites,
+              [groupId]: [...sent, userId],
+            },
+          });
+        }
+      },
+
+      // Pull one crew document I don't have locally (an invite names
+      // a crew I'm not a member of yet) so its name/roster can
+      // render and Accept can join it.
+      ensureGroupDoc: async (groupId) => {
+        if (get().groups.some((g) => g.id === groupId)) return;
+        try {
+          const g = await fetchGroupByIdRemote(groupId);
+          if (!g || get().groups.some((x) => x.id === groupId)) return;
+          const me = get().me;
+          groupHydrating = true;
+          set({ groups: [me ? groupFromRemote(g, me.id) : g, ...get().groups] });
+          groupHydrating = false;
+        } catch {
+          groupHydrating = false;
+        }
       },
 
       removeGroupMember: (groupId, userId) => {
@@ -2625,7 +2675,17 @@ export const useAppStore = create<Store>()(
         // Join semantics match the share cards: a session invite accepts
         // via RSVP, a call invite via request-to-pair (host confirms by
         // the pairing going confirmed). The invite flips to accepted.
-        if (invite.kind === 'session') get().rsvp(invite.target_id, { viaShare: true });
+        // A crew invite accepts by joining the crew — membership only,
+        // no friendship or card changes hands (Lucy 2026-10-17).
+        if (invite.kind === 'group') {
+          if (get().groups.some((g) => g.id === invite.target_id)) {
+            get().joinGroup(invite.target_id);
+          } else {
+            void get()
+              .ensureGroupDoc(invite.target_id)
+              .then(() => get().joinGroup(invite.target_id));
+          }
+        } else if (invite.kind === 'session') get().rsvp(invite.target_id, { viaShare: true });
         else get().requestPair(invite.target_id);
         set({
           invites: get().invites.map((i) =>

@@ -378,7 +378,7 @@ export const formatCapacity = (capacity: number): string =>
  *  can accept or deny at any time until the target ends, or ignore it. */
 export interface Invite {
   id: string;
-  kind: 'call' | 'session';
+  kind: 'call' | 'session' | 'group';
   target_id: string;
   from_id: string;
   to_id: string;

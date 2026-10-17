@@ -679,7 +679,7 @@ export async function fetchProfileByInviteCode(
 // answers are status updates by the invitee.
 
 export async function createInviteRemote(
-  kind: 'call' | 'session',
+  kind: 'call' | 'session' | 'group',
   targetId: string,
   fromId: string,
   toId: string,
@@ -857,6 +857,18 @@ export async function fetchMyGroupsRemote(myId: string): Promise<Group[]> {
     .filter('data', 'cs', JSON.stringify({ admin_ids: [myId] }));
   if (!byAdmin.error) absorb(byAdmin.data);
   return [...byId.values()];
+}
+
+/** One crew document by id — how an invite recipient's client learns
+ *  the crew's name/roster before they're a member. */
+export async function fetchGroupByIdRemote(id: string): Promise<Group | null> {
+  const { data, error } = await supabase
+    .from('groups')
+    .select('data')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(`fetchGroupByIdRemote: ${error.message}`);
+  return (data as { data: Group } | null)?.data ?? null;
 }
 
 export interface RemoteChatMessage {

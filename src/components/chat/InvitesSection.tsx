@@ -37,6 +37,9 @@ export function InvitesSection({
   const directory = useAppStore((s) => s.directory);
   const acceptInvite = useAppStore((s) => s.acceptInvite);
   const denyInvite = useAppStore((s) => s.denyInvite);
+  const groups = useAppStore((s) => s.groups);
+  const myGroupMemberships = useAppStore((s) => s.myGroupMemberships);
+  const ensureGroupDoc = useAppStore((s) => s.ensureGroupDoc);
   const fetchInvites = useAppStore((s) => s.fetchInvites);
   const mateRequests = useAppStore((s) => s.mateRequests);
   const fetchMateRequests = useAppStore((s) => s.fetchMateRequests);
@@ -50,6 +53,21 @@ export function InvitesSection({
     void fetchInvites();
     void fetchMateRequests();
   }, [fetchInvites, fetchMateRequests]);
+
+  // Crew invites name a crew the recipient may not have locally yet —
+  // fetch its document so the card can show the crew's name and
+  // Accept can join it.
+  useEffect(() => {
+    for (const inv of invites) {
+      if (
+        inv.kind === 'group' &&
+        inv.status === 'pending' &&
+        !groups.some((g) => g.id === inv.target_id)
+      ) {
+        void ensureGroupDoc(inv.target_id);
+      }
+    }
+  }, [invites, groups, ensureGroupDoc]);
 
   if (!me) return null;
   const state = { me, sessions, climbCalls, sessionLifecycle };
@@ -72,6 +90,19 @@ export function InvitesSection({
 
   const rows = pending
     .map((inv) => {
+      if (inv.kind === 'group') {
+        const g = groups.find((x) => x.id === inv.target_id);
+        const sender = resolveUser(inv.from_id, me, users, directory);
+        return {
+          inv,
+          sender,
+          gymName: 'Crew invitation',
+          title: g?.name ?? 'A crew',
+          alreadyIn: myGroupMemberships.includes(inv.target_id),
+          actionable: isInviteActionable(inv, state),
+          startsAt: inv.created_at,
+        };
+      }
       const target =
         inv.kind === 'call'
           ? climbCalls.find((c) => c.id === inv.target_id)
@@ -127,7 +158,13 @@ export function InvitesSection({
       }
     }
     acceptInvite(inv);
-    toast.success(inv.kind === 'call' ? 'Request sent — the host will confirm 🤝' : "You're in! See you there 🧗");
+    toast.success(
+      inv.kind === 'group'
+        ? "You're in the crew 🎉"
+        : inv.kind === 'call'
+          ? 'Request sent — the host will confirm 🤝'
+          : "You're in! See you there 🧗",
+    );
   };
 
   const mateCards = mateRows.map(({ req, sender, arch }) => (
