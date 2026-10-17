@@ -97,11 +97,15 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   // shows only that type's simplified box.
   const [leanStep, setLeanStep] = useState<'type' | 'form'>('type');
   const [leanGrade, setLeanGrade] = useState('All levels');
+  const [leanHeadcount, setLeanHeadcount] = useState(2);
   useEffect(() => {
     if (open && preselectInvite) {
       setInviteIds([preselectInvite]);
       setDirectInviteId(preselectInvite);
       setLeanBelayOk(false);
+      setLeanHeadcount(2);
+      setCapacity(2);
+      setCallCapacity(2);
       setLeanStep('type');
       setLeanGrade('All levels');
       setPreselectInvite(null);
@@ -204,6 +208,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     setDirectInviteId(null);
     setLeanStyle('boulder');
     setLeanBelayOk(false);
+    setLeanHeadcount(2);
     setLeanStep('type');
     setLeanGrade('All levels');
     setMode('indoor');
@@ -572,6 +577,41 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <Label>People</Label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  aria-label="Fewer people"
+                  onClick={() => {
+                    const v = Math.max(2, leanHeadcount - 1);
+                    setLeanHeadcount(v);
+                    setCapacity(v);
+                    setCallCapacity(v);
+                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-100 bg-paper-100 text-lg font-bold text-ink-700"
+                >
+                  −
+                </button>
+                <span className="min-w-20 text-center text-sm font-semibold text-ink-900">
+                  {leanHeadcount} people
+                </span>
+                <button
+                  type="button"
+                  aria-label="More people"
+                  onClick={() => {
+                    const v = Math.min(8, leanHeadcount + 1);
+                    setLeanHeadcount(v);
+                    setCapacity(v);
+                    setCallCapacity(v);
+                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-100 bg-paper-100 text-lg font-bold text-ink-700"
+                >
+                  +
+                </button>
+                <span className="text-xs text-ink-500">including you</span>
+              </div>
             </div>
             {leanStyle !== 'boulder' && verifications[leanStyle].status === 'unverified' && (
               <label className="flex items-start gap-3 rounded-2xl border border-ink-100 bg-paper-100 px-4 py-3">

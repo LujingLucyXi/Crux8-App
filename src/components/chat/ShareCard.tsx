@@ -64,6 +64,9 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
   const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
   const requestPair = useAppStore((s) => s.requestPair);
   const rsvp = useAppStore((s) => s.rsvp);
+  const invites = useAppStore((s) => s.invites);
+  const acceptInvite = useAppStore((s) => s.acceptInvite);
+  const denyInvite = useAppStore((s) => s.denyInvite);
   const [detailOpen, setDetailOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const artRef = useRef<HTMLDivElement | null>(null);
@@ -77,6 +80,79 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
     </div>
   );
 
+  // Invitation format (Lucy 2026-10-16, from her invite-flow test:
+  // an invite that lands in a DM must LOOK like an invitation —
+  // inviter, the climb, Accept / Decline — not a generic share card).
+  // Matches my server invite for this target; the Invites section in
+  // Chats renders the same invite with the same actions.
+  const myInvite = invites.find(
+    (i) => i.target_id === (session?.id ?? call?.id) && i.kind === (session ? 'session' : 'call'),
+  );
+  const invitationCard = (title: string, place: string, startsAt: string) => {
+    if (!myInvite) return null;
+    const inviter = resolveUser(myInvite.from_id, me, users, directory);
+    const inviterName = inviter?.display_name ?? 'A cruxmate';
+    if (myInvite.status === 'denied') {
+      return shell(
+        '🧗 Invitation',
+        <>
+          <p className="mt-1 text-sm font-semibold text-ink-900">{title}</p>
+          <p className="mt-0.5 text-xs text-ink-500">
+            {place} · {formatSessionWhen(startsAt)}
+          </p>
+          <p className="mt-2 text-xs font-medium text-ink-400">You declined this invite</p>
+        </>,
+      );
+    }
+    if (myInvite.status === 'accepted') {
+      return shell(
+        '🧗 Invitation',
+        <>
+          <p className="mt-1 text-sm font-semibold text-ink-900">{title}</p>
+          <p className="mt-0.5 text-xs text-ink-500">
+            {place} · {formatSessionWhen(startsAt)}
+          </p>
+          <p className="mt-2 text-xs font-semibold text-brand-600">✓ You accepted — you&apos;re in</p>
+          <button
+            onClick={() => setDetailOpen(true)}
+            className="mt-2.5 w-full rounded-xl border border-ink-100 py-2 text-sm font-semibold text-ink-700"
+          >
+            View →
+          </button>
+        </>,
+      );
+    }
+    return shell(
+      '🧗 Invitation',
+      <>
+        <p className="mt-1 text-sm text-ink-700">
+          <span className="font-semibold text-ink-900">{inviterName}</span> invited you to climb
+        </p>
+        <p className="mt-1 font-semibold text-ink-900 text-sm leading-snug">{title}</p>
+        <p className="text-xs text-ink-500 mt-0.5">
+          {place} · {formatSessionWhen(startsAt)}
+        </p>
+        <div className="mt-2.5 flex gap-2">
+          <button
+            onClick={() => {
+              acceptInvite(myInvite);
+              toast.success("You're in! 🎉");
+            }}
+            className="flex-1 rounded-xl bg-brand-600 py-2 text-sm font-bold text-[#161310]"
+          >
+            Accept
+          </button>
+          <button
+            onClick={() => denyInvite(myInvite)}
+            className="flex-1 rounded-xl border border-ink-100 py-2 text-sm font-semibold text-ink-700"
+          >
+            Decline
+          </button>
+        </div>
+      </>,
+    );
+  };
+
   if (call) {
     const gym = call.gym_id ? gyms.find((g) => g.id === call.gym_id) : undefined;
     const place = gym?.short_name ?? call.area ?? 'Outdoor';
@@ -85,6 +161,14 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
     const closed = call.status !== 'live';
     const full = call.participant_ids.length >= call.capacity;
     const title = call.title ?? `${CALL_CAT_LABEL[call.category] ?? 'Climb'} · ${call.grade}`;
+    if (myInvite) {
+      return (
+        <>
+          {invitationCard(title, place, call.starts_at)}
+          <ClimbCallDetailSheet call={detailOpen ? call : null} open={detailOpen} onOpenChange={setDetailOpen} />
+        </>
+      );
+    }
     return (
       <>
         {shell(
@@ -225,6 +309,16 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
             open={summaryOpen}
             onOpenChange={setSummaryOpen}
           />
+        </>
+      );
+    }
+
+    // Invitation format wins over the generic share card (see above).
+    if (myInvite) {
+      return (
+        <>
+          {invitationCard(session.title, place, session.starts_at)}
+          <SessionDetailSheet session={detailOpen ? session : null} open={detailOpen} onOpenChange={setDetailOpen} />
         </>
       );
     }
