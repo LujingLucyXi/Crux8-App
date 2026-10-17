@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
  * AvatarConfig, so it's a drop-in behind <Avatar>. Deterministic, no network.
  */
 const OUTLINE = '#262019'; // warm near-black ink (was plum #2A2140 — invisible against colored hair, but with jet-black hair everywhere it read as a purple fringe; Lucy 2026-10-16)
-const SW = 3.5;
+const SW = 2.6;
 
 export type HairBucket = 'spikes' | 'bob' | 'bun' | 'buzz' | 'long' | 'bald';
 export function hairBucket(hair: string): HairBucket {
@@ -50,13 +50,13 @@ export function CartoonAvatar({
     switch (config.eyes) {
       case 'tired':
         return (
-          <g stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" fill="none">
+          <g stroke={OUTLINE} strokeWidth="2.6" strokeLinecap="round" fill="none">
             <path d="M38 53 q4 3 8 0" /><path d="M54 53 q4 3 8 0" />
           </g>
         );
       case 'stoked':
         return (
-          <g stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" fill="none">
+          <g stroke={OUTLINE} strokeWidth="2.6" strokeLinecap="round" fill="none">
             <path d="M38 54 l4 -4 l4 4" /><path d="M54 54 l4 -4 l4 4" />
           </g>
         );
@@ -64,7 +64,7 @@ export function CartoonAvatar({
         return (
           <g>
             {dot(42)}
-            <path d="M54 53 q4 3 8 0" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" fill="none" />
+            <path d="M54 53 q4 3 8 0" stroke={OUTLINE} strokeWidth="2.6" strokeLinecap="round" fill="none" />
           </g>
         );
       case 'shades':
@@ -76,7 +76,7 @@ export function CartoonAvatar({
         );
       case 'deadpan':
         return (
-          <g stroke={OUTLINE} strokeWidth="3" strokeLinecap="round">
+          <g stroke={OUTLINE} strokeWidth="2.6" strokeLinecap="round">
             <path d="M38 52 h8" /><path d="M54 52 h8" />
           </g>
         );
@@ -206,12 +206,15 @@ export function CartoonAvatar({
         );
       }
       case 'braids':
-        // FRENCH braid (Lucy's reference photo, 2026-10-16): the braid
-        // is a woven band ON the head, arcing over the crown from
-        // temple to temple; the rest of the hair flows loose beneath
-        // it (the length trait drives the loose drape). The woven band
-        // itself is drawn in the front layer (see hairFront).
-        return <path d={drapeD(len, false)} {...HS} />;
+        // CLIMBER braid (v6): hair pulled back sleek in a cap; the
+        // braid itself hangs over one shoulder (front layer). A small
+        // gather wedge behind the jaw connects cap to braid.
+        return (
+          <g {...HS}>
+            <path d={CAP_D} />
+            <path d="M29 43 Q22 47 22.5 57 L34.5 57 Q34 48 29 43 Z" />
+          </g>
+        );
       case 'locs': {
         // Distinct ropes BESIDE the face, two capsules per side with
         // segment bumps; bottoms follow the length trait.
@@ -279,28 +282,46 @@ export function CartoonAvatar({
     // the face (v3). The dome is the shape that survives both.
     // 'braids' also lives here: the French braid band sits ON the cap.
     switch (config.hair) {
-      case 'braids':
-        // Woven band over the crown, temple to temple: an outlined
-        // arc strip (the outline is what separates the braid from the
-        // same-color hair beneath, like shadow in the reference photo)
-        // with alternating slash ticks for the plait pattern.
+      case 'braids': {
+        // One clean braid over the left shoulder: a smooth, gently
+        // scalloped column — the weave reads from the silhouette
+        // alone (no scratchy inner lines), a slim GOLD tie, tiny
+        // tuft. Plus a center part line on the sleek cap. If this
+        // version misses too, the style gets dropped (Lucy's call).
+        const segs = len === 'short' ? 3 : len === 'long' ? 5 : 4;
+        const segH = 5.8;
+        const cx = 28;
+        const top = 51;
+        const w = 5.9;
+        let d = `M${cx - w + 1.2} ${top}`;
+        for (let i = 0; i < segs; i++) {
+          const y0 = top + i * segH;
+          d += ` Q${cx + w + 1.1} ${y0 + segH * 0.45} ${cx + 0.3} ${y0 + segH}`;
+        }
+        const yB = top + segs * segH;
+        d += ` Q${cx} ${yB + 3} ${cx - w + 0.3} ${yB}`;
+        for (let i = segs - 1; i >= 0; i--) {
+          const y0 = top + i * segH;
+          d += ` Q${cx - w - 1.1} ${y0 + segH * 0.55} ${cx - 0.3} ${y0}`;
+        }
+        d += ' Z';
         return (
-          <g strokeLinejoin="round">
-            <path d="M28.5 46 Q31 20.5 50 19.5 Q69 20.5 71.5 46 Q63.5 37.5 50 36.5 Q36.5 37.5 28.5 46 Z" {...HS} />
-            <g stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.5" fill="none">
-              <path d="M35 33.5 L40.5 40" />
-              <path d="M42 27.5 L46.5 34.5" />
-              <path d="M50 25.5 L52 33" />
-              <path d="M58 27.5 L53.5 34.5" />
-              <path d="M65 33.5 L59.5 40" />
-            </g>
+          <g>
+            <path d="M50 25.5 L50 33.5" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4" />
+            <path d={d} {...HS} />
+            <path
+              d={`M${cx - 5.2} ${yB - 0.5} L${cx + 5.2} ${yB - 0.5} L${cx + 4.7} ${yB + 3} L${cx - 4.7} ${yB + 3} Z`}
+              fill="#C9A24B" stroke={OUTLINE} strokeWidth="2" strokeLinejoin="round"
+            />
+            <path d={`M${cx - 2.6} ${yB + 3} Q${cx - 1.8} ${yB + 7.6} ${cx} ${yB + 8.3} Q${cx + 2.4} ${yB + 7.4} ${cx + 2} ${yB + 3} Z`} {...HS} />
           </g>
         );
+      }
       case 'bangs':
         return (
           <g>
             <path d="M36 43.5 L64 43.5 L64 40 Q64 26.5 50 26.5 Q36 26.5 36 40 Z" fill={hairCol} />
-            <path d="M36 43.5 L64 43.5" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
+            <path d="M36 43.5 L64 43.5" stroke={OUTLINE} strokeWidth="2.6" strokeLinecap="round" />
             <g stroke={OUTLINE} strokeWidth="1.8" strokeLinecap="round" opacity="0.35">
               <path d="M42 40 L42 42.8" /><path d="M50 40 L50 42.8" /><path d="M58 40 L58 42.8" />
             </g>
@@ -310,7 +331,7 @@ export function CartoonAvatar({
         return (
           <g>
             <path d="M36 44 Q43 37.5 47.5 39.5 Q50 40.8 50 44 Q50 40.8 52.5 39.5 Q57 37.5 64 44 L64 40 Q64 26.5 50 26.5 Q36 26.5 36 40 Z" fill={hairCol} />
-            <path d="M36 44 Q43 37.5 47.5 39.5 Q50 40.8 50 44 Q50 40.8 52.5 39.5 Q57 37.5 64 44" fill="none" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
+            <path d="M36 44 Q43 37.5 47.5 39.5 Q50 40.8 50 44 Q50 40.8 52.5 39.5 Q57 37.5 64 44" fill="none" stroke={OUTLINE} strokeWidth="2.6" strokeLinecap="round" />
           </g>
         );
       case 'straight':
@@ -424,8 +445,8 @@ export function CartoonAvatar({
       {accessory}
 
       {config.eyes === 'stoked'
-        ? <path d="M42 64 Q50 72 58 64" fill="none" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />
-        : <path d="M43 64 Q50 69 57 64" fill="none" stroke={OUTLINE} strokeWidth="3" strokeLinecap="round" />}
+        ? <path d="M42 64 Q50 72 58 64" fill="none" stroke={OUTLINE} strokeWidth="2.6" strokeLinecap="round" />
+        : <path d="M43 64 Q50 69 57 64" fill="none" stroke={OUTLINE} strokeWidth="2.6" strokeLinecap="round" />}
     </svg>
   );
 }
