@@ -47,7 +47,30 @@ export interface ChargeEntry {
   kind: ChargeKind;
   points: number;
   at: string; // ISO timestamp
+  /** Streak multiplier in effect when this was earned (>1 only). */
+  mult?: number;
 }
+
+/**
+ * Login streak — consecutive days charge the bolt EXPONENTIALLY
+ * faster (Lucy 2026-10-16): the multiplier grows ×1.4 per streak day
+ * and caps at ×4, and it multiplies EVERYTHING earned that day, not
+ * just the login bonus. Day 1 ×1 · 2 ×1.4 · 3 ×2 · 4 ×2.7 · 5 ×3.8 ·
+ * 6+ ×4.
+ */
+export function streakMultiplier(streak: number): number {
+  if (streak <= 1) return 1;
+  return Math.min(4, Math.round(Math.pow(1.4, streak - 1) * 10) / 10);
+}
+
+export const STREAK_TABLE: { day: string; mult: number }[] = [
+  { day: 'Day 1', mult: 1 },
+  { day: 'Day 2', mult: 1.4 },
+  { day: 'Day 3', mult: 2 },
+  { day: 'Day 4', mult: 2.7 },
+  { day: 'Day 5', mult: 3.8 },
+  { day: 'Day 6+', mult: 4 },
+];
 
 /** Local calendar day (YYYY-MM-DD) — charge runs on the user's clock. */
 export function localDay(d = new Date()): string {

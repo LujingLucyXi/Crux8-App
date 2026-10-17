@@ -156,19 +156,6 @@ export function Onboarding() {
   }, [step, dob, location, displayName, hikeDistance, hikePace, climbSkipped, hikeSkipped, avatar, photoUrl, signature, bio, tags, activities, homeGymId, topGrade, preferredStyles, weightLbs, heightFt, heightIn]);
 
 
-  // Confirm the fresh-signup prompt actually landed (Lucy 2026-10-16):
-  // Home routes here optimistically; the once-per-device flag is only
-  // written once this screen truly mounts with a signed-in user, so a
-  // bounced attempt re-prompts instead of being silently eaten.
-  useEffect(() => {
-    if (!me) return;
-    try {
-      localStorage.setItem(`crux8-onboarding-prompted-v3-${me.id}`, '1');
-    } catch {
-      /* ok */
-    }
-  }, [me?.id]);
-
   // The flow NEVER navigates away on its own (Lucy 2026-10-16,
   // fourth report of being "bumped out of orientation"): earlier
   // guards bounced to '/' when the session turned out dead mid-flow

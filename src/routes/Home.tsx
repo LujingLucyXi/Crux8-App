@@ -20,6 +20,8 @@ import { EmailVerifySheet } from '@/components/sheets/EmailVerifySheet';
 import { hasFreshPendingIntent } from '@/lib/pendingIntent';
 import { BoltMark } from '@/components/OGBadge';
 import { ChargeChip, ChargeSheet } from '@/components/Charge';
+import { Dialog, DialogContent } from '@/components/ui/Dialog';
+import { Button } from '@/components/ui/Button';
 import { levelFromXp } from '@/lib/rewards';
 import { computeChallenges, daysLeftInWeek } from '@/lib/challenges';
 import { computeBadgeProgress, nextUpBadges } from '@/lib/badges';
@@ -209,13 +211,7 @@ export function Home() {
   const nextBadges = nextUpBadges(badgeProgress, 5);
   const earnedCount = badgeProgress.filter((b) => b.earned).length;
 
-  const [nudgeDismissed, setNudgeDismissed] = useState(() => {
-    try {
-      return !!localStorage.getItem('crux8-profile-nudge-dismissed');
-    } catch {
-      return false;
-    }
-  });
+  const [orientationAskOpen, setOrientationAskOpen] = useState(false);
   const [emailVerifyOpen, setEmailVerifyOpen] = useState(false);
   const [emailVerifyDismissed, setEmailVerifyDismissed] = useState(false);
   useEffect(() => {
@@ -239,43 +235,32 @@ export function Home() {
 
   const myGroups = groups.filter((g) => myGroupMemberships.includes(g.id));
 
-  // Fresh-signup onboarding prompt (Lucy, 2026-10-16): an account
-  // that has never finished orientation gets it STARTED once — with
-  // the existing "Skip for now" intact — instead of only ever seeing
-  // the banner. Guards: accounts only (guests keep their post-session
-  // prompt), not while a freshly-scanned deep link is still waiting
-  // (that target comes first; a STALE leftover intent doesn't block),
-  // and only once per account per device — after that, the "Almost
-  // set up" banner below is the reminder (incomplete parts resurface,
-  // they never ambush). No account-age window: Lucy's own test showed
-  // why — an account created during the stuck-signup saga an hour
-  // earlier is still brand-new to the app when Google rescues it.
+  // Orientation ask (Lucy's rule, 2026-10-16 night): ANY account
+  // that hasn't finished orientation gets ASKED — a popup, before
+  // getting in — every time they arrive, until it's done. Skip is
+  // always offered; skipping only quiets the ask for this visit
+  // (sessionStorage), never forever. This replaces the once-per-device
+  // auto-take (whose mount-written flag silently ate the prompt for
+  // anyone bounced mid-flow) and the passive banner.
   const meId = me?.id;
   const meOnboarded = me?.onboarded;
   const meIsGuest = me?.isGuest;
   useEffect(() => {
     if (!meId || meOnboarded !== false || meIsGuest) return;
     if (hasFreshPendingIntent()) return;
-    // The once-per-device flag is CONFIRMED by Onboarding itself when
-    // the screen truly mounts (key v2) — Home only checks it here.
-    // Writing it before navigating ate Lucy's prompt on 2026-10-16
-    // when the flow bounced after ~1s: flag set, prompt gone forever.
     try {
-      if (localStorage.getItem(`crux8-onboarding-prompted-v3-${meId}`)) return;
+      if (sessionStorage.getItem(`crux8-orientation-asked-${meId}`)) return;
+      sessionStorage.setItem(`crux8-orientation-asked-${meId}`, '1');
     } catch {
       return;
     }
-    nav('/onboarding', { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setOrientationAskOpen(true);
   }, [meId, meOnboarded, meIsGuest]);
 
   if (!me) return null;
 
-  // Orientation is a nudge, not a gate (Lucy, 2026-10-14): new accounts
-  // land in the app immediately; this banner is the in-app reminder.
   // Guests get a dedicated account reminder after a finished session
   // (Lucy, 2026-10-16) — guest entry belongs to session invites only.
-  const showProfileNudge = me.onboarded === false && !me.isGuest && !nudgeDismissed;
   const showGuestReminder = !!me.isGuest
     && !!latestCompleted
     && guestReminderDismissedFor !== latestCompleted.id;
@@ -301,15 +286,6 @@ export function Home() {
     setGuestReminderDismissedFor(latestCompleted.id);
     setGuestClaimOpen(false);
   };
-  const dismissProfileNudge = () => {
-    try {
-      localStorage.setItem('crux8-profile-nudge-dismissed', '1');
-    } catch {
-      /* ok */
-    }
-    setNudgeDismissed(true);
-  };
-
   const openAgenda = (it: AgendaItem) => {
     if (it.kind === 'session') setDetailSession(it.data);
     else if (it.kind === 'call') setDetailCall(it.data);
@@ -391,28 +367,28 @@ export function Home() {
         </a>
       )}
 
-      {/* ── Profile nudge (soft orientation) ── */}
-      {showProfileNudge && (
-        <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-100/40 p-4 flex items-center gap-3">
-          <p className="min-w-0 flex-1 text-sm text-ink-900">
-            <span className="font-bold">Almost set up.</span> Finish your profile (2 min) —
-            you can skip anything and come back later.
-          </p>
-          <button
-            onClick={() => nav('/onboarding')}
-            className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
-          >
-            Finish →
-          </button>
-          <button
-            onClick={dismissProfileNudge}
-            aria-label="Dismiss"
-            className="shrink-0 text-ink-400 hover:text-ink-700 text-lg leading-none"
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      {/* ── Orientation ask popup (Lucy's rule: always ask, skippable) ── */}
+      <Dialog open={orientationAskOpen} onOpenChange={setOrientationAskOpen}>
+        <DialogContent
+          title="Finish your orientation?"
+          description="Two quick minutes — your gyms, grades, and climbing style — so Crux8 can match you with the right crew. Skipping is fine; we'll ask again next visit."
+        >
+          <div className="flex flex-col gap-2">
+            <Button
+              size="lg"
+              onClick={() => {
+                setOrientationAskOpen(false);
+                nav('/onboarding');
+              }}
+            >
+              Finish orientation
+            </Button>
+            <Button size="lg" variant="ghost" onClick={() => setOrientationAskOpen(false)}>
+              Skip for now
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Email verify nudge (Discord-style: optional, dismissible) ── */}
       {showEmailVerifyNudge && (

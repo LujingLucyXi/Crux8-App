@@ -58,7 +58,9 @@ import {
   CHARGE_CAP,
   CHARGE_POINTS,
   decayLoss,
+  inactiveDays,
   localDay,
+  streakMultiplier,
   type ChargeEntry,
   type ChargeKind,
 } from '@/lib/charge';
@@ -241,6 +243,9 @@ interface Store {
   chargeLastActiveDay: string | null;
   chargeSettledDay: string | null;
   chargeLastLoss: { amount: number; day: string } | null;
+  /** Consecutive-day login streak + its best run (lib/charge.ts). */
+  chargeStreak: number;
+  chargeBestStreak: number;
   sends: SendLog[];
   lastCheckinDay: string | null;        // yyyy-mm-dd of last XP-earning check-in
 
@@ -729,6 +734,8 @@ export const useAppStore = create<Store>()(
       chargeLastActiveDay: null,
       chargeSettledDay: null,
       chargeLastLoss: null,
+      chargeStreak: 0,
+      chargeBestStreak: 0,
       sends: [],
       lastCheckinDay: null,
       filters: initialFilters,
@@ -999,6 +1006,8 @@ export const useAppStore = create<Store>()(
           chargeLastActiveDay: null,
           chargeSettledDay: null,
           chargeLastLoss: null,
+          chargeStreak: 0,
+          chargeBestStreak: 0,
           sends: [],
           lastCheckinDay: null,
           filters: initialFilters,
@@ -1464,6 +1473,8 @@ export const useAppStore = create<Store>()(
           chargeLastActiveDay: null,
           chargeSettledDay: null,
           chargeLastLoss: null,
+          chargeStreak: 0,
+          chargeBestStreak: 0,
           sends: [],
           lastCheckinDay: null,
           filters: initialFilters,
@@ -1818,12 +1829,16 @@ export const useAppStore = create<Store>()(
       addCharge: (kind) => {
         const me = get().me;
         if (!me || me.isGuest) return;
-        const pts = CHARGE_POINTS[kind].points;
+        // The login streak multiplies EVERYTHING earned (Lucy
+        // 2026-10-16: continuous login charges the bolt exponentially
+        // faster) — the history records the points actually paid.
+        const mult = streakMultiplier(get().chargeStreak);
+        const pts = Math.max(1, Math.round(CHARGE_POINTS[kind].points * mult));
         const today = localDay();
         set({
           charge: Math.min(CHARGE_CAP, get().charge + pts),
           chargeHistory: [
-            { kind, points: pts, at: new Date().toISOString() },
+            { kind, points: pts, at: new Date().toISOString(), ...(mult > 1 ? { mult } : {}) },
             ...get().chargeHistory,
           ].slice(0, 30),
           chargeLastActiveDay: today,
@@ -1838,9 +1853,22 @@ export const useAppStore = create<Store>()(
         const today = localDay();
         if (get().chargeSettledDay === today) return;
         const loss = decayLoss(get().chargeLastActiveDay, today);
+        // Streak (Lucy 2026-10-16): showing up on consecutive days
+        // grows it; ONE missed day freezes it (the grace day); two or
+        // more missed days restart the run at 1.
+        const lastActive = get().chargeLastActiveDay;
+        const gap = inactiveDays(lastActive, today);
+        let streak = get().chargeStreak;
+        if (!lastActive || streak <= 0) streak = 1;
+        else if (gap === 0) streak += 1;
+        else if (gap === 1) {
+          /* frozen — the run survives, today doesn't grow it */
+        } else streak = 1;
         set({
           charge: Math.max(0, get().charge - loss),
           chargeSettledDay: today,
+          chargeStreak: streak,
+          chargeBestStreak: Math.max(get().chargeBestStreak, streak),
           ...(loss > 0 ? { chargeLastLoss: { amount: loss, day: today } } : {}),
         });
         get().addCharge('daily_login');
@@ -3061,7 +3089,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 24,
+      version: 25,
       /**
        * v16 → v17: sessions + climb calls move to real Supabase tables.
        *   Drop persisted mock sessions/calls (and their chats/pairings/
@@ -3080,6 +3108,11 @@ export const useAppStore = create<Store>()(
       migrate: (persisted: unknown, version: number) => {
         const s = persisted as Record<string, unknown> | null;
         if (!s) return s as never;
+        if (version < 25) {
+          // v24 → v25: login streaks arrive (the bolt's multiplier).
+          if (typeof s.chargeStreak !== 'number') s.chargeStreak = 0;
+          if (typeof s.chargeBestStreak !== 'number') s.chargeBestStreak = 0;
+        }
         if (version < 24) {
           // v23 → v24: Charge (the bolt meter) arrives. Starts at 0 —
           // the first settle pays out the daily-login bonus.
