@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
@@ -28,11 +28,12 @@ interface AddTarget {
 /**
  * Personal invite deep link: /add/:code (e.g. /add/CLIMB-8K42).
  *
- * INVITING ≠ FOLLOWING (Lucy 2026-10-15): this link's job is to bring
- * someone INTO Crux8 — a join landing, attributed to the inviter.
- * Following is a separate, in-app choice: after joining, the page
- * offers the inviter's card with an optional Follow, nothing automatic
- * and nothing framed as the link's purpose.
+ * INVITE + JOIN = CRUXMATES (Lucy 2026-10-17, supersedes the
+ * 2026-10-15 'inviting ≠ following' split, which she found too
+ * complicated): when a join through this link completes, the joiner
+ * and the inviter automatically become cruxmates — no Follow tap.
+ * (An already-signed-in member opening the link still gets the
+ * manual Follow button; they didn't join through it.)
  * - Logged out → create/sign into a real account first (no guest
  *   shortcut on a general invite — guests belong to session invites),
  *   then back here with an optional orientation prompt.
@@ -50,6 +51,7 @@ export function AddDeepLink() {
   const users = useAppStore((s) => s.users);
   const cruxmates = useAppStore((s) => s.cruxmates);
   const requestCruxmate = useAppStore((s) => s.requestCruxmate);
+  const autoBefriendInviter = useAppStore((s) => s.autoBefriendInviter);
   const cancelMateRequest = useAppStore((s) => s.cancelMateRequest);
   const mateRequestFor = useAppStore((s) => s.mateRequestFor);
   const mateRequests = useAppStore((s) => s.mateRequests);
@@ -142,6 +144,19 @@ export function AddDeepLink() {
     if (me && valid && consumePendingIntentFor('add', code)) setJustJoined(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me?.id, code, valid]);
+
+  // The auto-friend fires once, when the join completes on a real
+  // (remote) inviter. Seed/local targets resolve instantly through
+  // the normal follow path instead.
+  const autoFriendedRef = useRef(false);
+  useEffect(() => {
+    if (!justJoined || !target || target.via !== 'remote' || autoFriendedRef.current) return;
+    if (cruxmates.includes(target.id)) return;
+    autoFriendedRef.current = true;
+    autoBefriendInviter(target.id);
+    setAdded(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [justJoined, target?.id, target?.via]);
 
   const handleAdd = () => {
     if (!target || target.via === 'me') return;
@@ -283,7 +298,7 @@ export function AddDeepLink() {
         <div className="mt-8 rounded-2xl border border-brand-600 bg-brand-100 p-5 text-center">
           <p className="text-2xl">🎉</p>
           <h2 className="mt-2 text-lg font-bold text-ink-900">
-            You're in! {first} brought you here.
+            You're in! You and {first} are cruxmates now.
           </h2>
         </div>
       ) : (

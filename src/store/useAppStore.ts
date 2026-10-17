@@ -81,6 +81,7 @@ import {
   createClimbCall as dbCreateClimbCall,
   updateClimbCallRemote,
   createInviteRemote,
+  befriendInviterRemote,
   fetchMyInvites,
   setInviteStatusRemote,
   createMateRequestRemote,
@@ -219,6 +220,7 @@ interface Store {
    *  (incl. Cruxy) have no follow graph and resolve instantly.
    *  Returns what happened so callers can pick the right copy. */
   requestCruxmate: (userId: string) => 'sent' | 'requested' | 'accepted' | 'already' | 'instant';
+  autoBefriendInviter: (inviterId: string) => void;
   /** Unfollow: removes my follow row (and the cruxmate state, if any). */
   cancelMateRequest: (userId: string) => void;
   /** Follow back from the inbox, by incoming row id. */
@@ -2610,6 +2612,33 @@ export const useAppStore = create<Store>()(
         if (out) return 'outgoing';
         if (inc) return 'incoming';
         return null;
+      },
+
+      // Invite auto-friend (Lucy 2026-10-17): a join through an
+      // invite link makes the pair cruxmates automatically — no
+      // follow step. Optimistic mutual state locally (both follow
+      // rows + the cruxmate add + the card, mirroring a follow-back),
+      // then the befriend_inviter RPC writes both rows server-side
+      // (RLS forbids me writing the inviter's half) and the follow
+      // graph re-fetches to reconcile.
+      autoBefriendInviter: (inviterId) => {
+        const me = get().me;
+        if (!me || inviterId === me.id || !isUuid(inviterId) || !isUuid(me.id)) return;
+        if (!get().cruxmates.includes(inviterId)) {
+          const now = new Date().toISOString();
+          const rows = [...get().mateRequests];
+          if (!rows.some((r) => r.from_id === me.id && r.to_id === inviterId && r.status !== 'denied')) {
+            rows.push({ id: crypto.randomUUID(), from_id: me.id, to_id: inviterId, status: 'pending', created_at: now });
+          }
+          if (!rows.some((r) => r.from_id === inviterId && r.to_id === me.id && r.status !== 'denied')) {
+            rows.push({ id: crypto.randomUUID(), from_id: inviterId, to_id: me.id, status: 'pending', created_at: now });
+          }
+          set({ mateRequests: rows, cruxmates: [...get().cruxmates, inviterId] });
+          get().collectCard(inviterId, 'cruxmate');
+        }
+        void befriendInviterRemote(inviterId)
+          .then(() => get().fetchMateRequests())
+          .catch(() => {});
       },
 
       requestCruxmate: (userId) => {

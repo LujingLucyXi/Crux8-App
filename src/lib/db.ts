@@ -256,6 +256,19 @@ export async function updateSession(
  * Returns false when the RPC isn't available yet (SQL not run) — callers
  * keep the local stamp as the fallback, so nothing breaks pre-migration.
  */
+/**
+ * Invite auto-friend (Lucy 2026-10-17): when a join through my
+ * invite link completes, the joiner calls this once and the server
+ * creates BOTH follow rows (the pair are cruxmates immediately) +
+ * stamps profiles.invited_by. Returns false when the RPC isn't
+ * available yet (SQL not run) — callers keep the local optimistic
+ * state, so nothing breaks pre-migration.
+ */
+export async function befriendInviterRemote(inviterId: string): Promise<boolean> {
+  const { error } = await supabase.rpc('befriend_inviter', { p_inviter: inviterId });
+  return !error;
+}
+
 export async function setSessionLifecycle(
   id: string,
   patch: { started_at?: string; finished_at?: string },

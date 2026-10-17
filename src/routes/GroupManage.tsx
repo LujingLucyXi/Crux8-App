@@ -90,9 +90,9 @@ export function GroupManage() {
       return { id: me.id, display_name: me.display_name ?? 'You', avatar: me.avatar, photo_url: me.photo_url };
     }
     const npc = users.find((u) => u.id === id);
-    if (npc) return { id, display_name: npc.display_name, avatar: npc.avatar, photo_url: npc.photo_url };
+    if (npc) return { id, display_name: npc.display_name, avatar: npc.avatar ?? undefined };
     const dir = directory[id];
-    if (dir) return { id, display_name: dir.display_name?.trim() ? dir.display_name : 'Climber', avatar: dir.avatar, photo_url: dir.photo_url ?? undefined };
+    if (dir) return { id, display_name: dir.display_name?.trim() ? dir.display_name : 'Climber', avatar: dir.avatar ?? undefined, photo_url: dir.photo_url ?? undefined };
     return { id, display_name: 'Climber' };
   };
 
