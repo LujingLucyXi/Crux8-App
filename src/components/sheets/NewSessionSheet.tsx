@@ -579,6 +579,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
               invitable={invitable}
               invited={inviteIds}
               selectMode
+              bare
               onInvite={(id) => toggleInvite(id)}
             />
           </div>

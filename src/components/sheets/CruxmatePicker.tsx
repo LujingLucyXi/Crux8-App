@@ -20,12 +20,18 @@ interface Props {
   /** Select mode (creation forms): tapping toggles selection instead of
    *  sending immediately; `invited` carries the selected ids. */
   selectMode?: boolean;
+  /** Bare mode: no header row of its own — the parent owns the single
+   *  'Invite cruxmates (optional)' toggle row and renders this list
+   *  directly under it (Lucy 2026-10-17: 'No need redundant row'). */
+  bare?: boolean;
 }
 
-export function CruxmatePicker({ invitable, invited, onInvite, selectMode }: Props) {
-  const [open, setOpen] = useState(false);
+export function CruxmatePicker({ invitable, invited, onInvite, selectMode, bare }: Props) {
+  const [openState, setOpenState] = useState(false);
+  const open = bare ? true : openState;
   const [query, setQuery] = useState('');
-  const showSearch = invitable.length > 8;
+  // Searchable at any list size now (Lucy 2026-10-17).
+  const showSearch = true;
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return invitable;
@@ -46,9 +52,10 @@ export function CruxmatePicker({ invitable, invited, onInvite, selectMode }: Pro
 
   return (
     <div>
+      {!bare && (
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpenState((o) => !o)}
         aria-expanded={open}
         className="w-full flex items-center gap-2 rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-left"
       >
@@ -66,9 +73,10 @@ export function CruxmatePicker({ invitable, invited, onInvite, selectMode }: Pro
           className={cn('text-ink-400 shrink-0 transition-transform', open && 'rotate-180')}
         />
       </button>
+      )}
 
       {open && (
-        <div className="mt-2">
+        <div className={bare ? '' : 'mt-2'}>
           {showSearch && (
             <div className="relative mb-2">
               <Search width={15} height={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
