@@ -39,8 +39,7 @@ function greeting(): string {
   if (h < 5) return 'Still up';
   if (h < 12) return 'Morning';
   if (h < 17) return 'Afternoon';
-  if (h < 21) return 'Evening';
-  return 'Tonight';
+  return 'Good evening';
 }
 
 type AgendaItem =
