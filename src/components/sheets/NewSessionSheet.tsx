@@ -87,6 +87,9 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   // a LEAN form instead: when, gym, style, level, one send button —
   // riding the same state + submit handlers as the full form, with
   // sensible defaults (indoor, take-turns, 2h, standard capacity).
+  const verifications = useAppStore((s) => s.verifications);
+  const submitVerification = useAppStore((s) => s.submitVerification);
+  const [leanBelayOk, setLeanBelayOk] = useState(false);
   const [directInviteId, setDirectInviteId] = useState<string | null>(null);
   const [leanStyle, setLeanStyle] = useState<'boulder' | 'top_rope' | 'lead'>('boulder');
   // Type FIRST, then the box (Lucy 2026-10-16, same breath as the
@@ -98,6 +101,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     if (open && preselectInvite) {
       setInviteIds([preselectInvite]);
       setDirectInviteId(preselectInvite);
+      setLeanBelayOk(false);
       setLeanStep('type');
       setLeanGrade('All levels');
       setPreselectInvite(null);
@@ -199,6 +203,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
   const reset = () => {
     setDirectInviteId(null);
     setLeanStyle('boulder');
+    setLeanBelayOk(false);
     setLeanStep('type');
     setLeanGrade('All levels');
     setMode('indoor');
@@ -433,6 +438,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     const BOULDER_RANGES = ['All levels', 'V0–V2', 'V2–V4', 'V4–V6', 'V6–V8', 'V8+'];
     const pickLeanStyle = (st: 'boulder' | 'top_rope' | 'lead') => {
       setLeanStyle(st);
+      setLeanBelayOk(false);
       setMode('indoor');
       if (st === 'boulder') {
         setDiscipline('boulder');
@@ -568,10 +574,39 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
                 ))}
               </select>
             </div>
+            {leanStyle !== 'boulder' && verifications[leanStyle].status === 'unverified' && (
+              <label className="flex items-start gap-3 rounded-2xl border border-ink-100 bg-paper-100 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={leanBelayOk}
+                  onChange={(e) => setLeanBelayOk(e.target.checked)}
+                  className="mt-0.5 h-5 w-5 shrink-0 accent-[#C9A24B]"
+                />
+                <span className="text-sm text-ink-700">
+                  I&apos;m belay certified for {leanStyle === 'top_rope' ? 'top rope' : 'lead'} at
+                  my gym
+                  <span className="mt-0.5 block text-xs text-ink-500">
+                    Asked here because this invite needs it — no need to dig through your
+                    profile. Partners can confirm it after you climb together.
+                  </span>
+                </span>
+              </label>
+            )}
             <Button
-              onClick={() =>
-                void (leanStyle === 'boulder' ? handleSubmitSession() : handleSubmitCall())
+              disabled={
+                leanStyle !== 'boulder' &&
+                verifications[leanStyle].status === 'unverified' &&
+                !leanBelayOk
               }
+              onClick={() => {
+                // Just-in-time belay attestation (Lucy 2026-10-16):
+                // orientation no longer asks this up front; the first
+                // rope invite asks it here, once.
+                if (leanStyle !== 'boulder' && verifications[leanStyle].status === 'unverified') {
+                  submitVerification(leanStyle);
+                }
+                void (leanStyle === 'boulder' ? handleSubmitSession() : handleSubmitCall());
+              }}
             >
               Send invite to {firstName}
             </Button>

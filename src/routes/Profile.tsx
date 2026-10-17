@@ -10,6 +10,7 @@ import { DEFAULT_AVATAR } from '@/lib/avatar';
 import { OGBadge } from '@/components/OGBadge';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
 import { ProfileEditSheet } from '@/components/sheets/ProfileEditSheet';
+import { profileCompleteness } from '@/lib/profileCompleteness';
 import { ArchetypeEmblem } from '@/components/ArchetypeEmblem';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { useAppStore, type BadgeId } from '@/store/useAppStore';
@@ -218,6 +219,44 @@ export function Profile() {
           </Button>
         </div>
       </div>
+
+      {/* Profile completeness (Lucy 2026-10-16): orientation is
+          deliberately short now — this meter is how the deferred
+          details (grades, belay, bio, photo…) get filled in over
+          time. Hidden at 100%. */}
+      {(() => {
+        const completeness = profileCompleteness(me, {
+          belayAttested: (['top_rope', 'lead', 'trad'] as VerificationCategory[]).some(
+            (c) => verifications[c].status === 'self_attested' || verifications[c].status === 'verified',
+          ),
+        });
+        if (completeness.pct >= 100 || completeness.missing.length === 0) return null;
+        return (
+          <div className="mt-4 rounded-2xl bg-paper-100 border border-ink-100 p-5">
+            <div className="flex items-baseline justify-between">
+              <p className="font-semibold text-ink-900">
+                Your profile is {completeness.pct}% complete
+              </p>
+              <span className="text-xs text-ink-500">
+                {completeness.missing.length} to go
+              </span>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-ink-100">
+              <div
+                className="h-full rounded-full bg-brand-gradient transition-all"
+                style={{ width: `${completeness.pct}%` }}
+              />
+            </div>
+            <p className="mt-3 text-sm text-ink-500">
+              Next up: {completeness.missing[0].label.charAt(0).toLowerCase() + completeness.missing[0].label.slice(1)}.
+              Complete profiles get matched with better partners.
+            </p>
+            <Button variant="outline" className="mt-3 w-full" onClick={() => setProfileEditOpen(true)}>
+              Complete your profile
+            </Button>
+          </div>
+        );
+      })()}
 
       {/* ── Add friends: my invite card + the finder, ONE block (merged
           2026-10-15 — the separate "My invite" and "Add friends" blocks

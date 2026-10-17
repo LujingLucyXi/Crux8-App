@@ -27,19 +27,23 @@ const GRADE_BANDS = [
   { value: '5.12c+', label: 'V9+ / 5.12c+' },
 ];
 
+// Slim orientation (Lucy 2026-10-16, relaying tester feedback:
+// 'orientation was too long' — drop-off was high even though every
+// step was skippable, because the LENGTH itself hesitates people).
+// Orientation now asks only what the app needs to function: who you
+// are, what you look like, what you climb + where. Everything else —
+// signature/bio/tags, grades, body stats, belay skills — is deferred:
+// belay is asked just-in-time before a rope invite/join, the rest
+// lives in Edit Profile, and a profile-completeness meter on the
+// Profile page reminds people to fill it in over time.
 const STEP_META = [
   { n: 1, label: 'Basics' },
-  { n: 2, label: 'Your avatar' },
-  { n: 3, label: 'Your profile' },
-  { n: 4, label: 'Activities' },
-  { n: 5, label: 'Outdoors' },
-  { n: 6, label: 'Body (private)' },
-  { n: 7, label: 'Belay skills' },
-  { n: 8, label: 'Invite crew' },
-  { n: 9, label: 'Your DNA' },
+  { n: 2, label: 'Your look' },
+  { n: 3, label: 'Your climbing' },
+  { n: 4, label: 'Your DNA' },
 ] as const;
 const TOTAL = STEP_META.length;
-type StepN = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+type StepN = 1 | 2 | 3 | 4;
 
 const STYLES: { value: Style; label: string }[] = [
   { value: 'top_rope', label: 'Top Rope' },
@@ -111,7 +115,10 @@ export function Onboarding() {
     }
   })();
 
-  const [step, setStep] = useState<StepN>((draft?.step as StepN) ?? 1);
+  const [step, setStep] = useState<StepN>(() => {
+    const raw = (draft?.step as number) ?? 1;
+    return (Math.min(4, Math.max(1, raw)) as StepN);
+  });
   const [dob, setDob] = useState(draft?.dob ?? me?.dob ?? '');
   const [location, setLocation] = useState(draft?.location ?? me?.location ?? 'greater-seattle');
   const [displayName, setDisplayName] = useState(draft?.displayName ?? me?.display_name ?? '');
@@ -139,10 +146,6 @@ export function Onboarding() {
     draft?.heightIn ?? (me?.height_cm ? String(Math.round(me.height_cm / 2.54 - Math.floor(me.height_cm / 2.54 / 12) * 12)) : ''),
   );
 
-  // If DNA got claimed mid-onboarding (quiz detour), the quiz step is moot.
-  useEffect(() => {
-    if (me?.quiz_result_type && step === 9) setStep(8);
-  }, [me?.quiz_result_type, step]);
 
   // Persist the draft as the user types/advances.
   useEffect(() => {
@@ -259,27 +262,19 @@ export function Onboarding() {
   };
 
   const finish = () => {
-    const weightKg = weightLbs ? lbsToKg(Number(weightLbs)) : undefined;
-    const heightCm = heightFt || heightIn ? ftInToCm(Number(heightFt || 0), Number(heightIn || 0)) : undefined;
+    // Slim payload: only what the 4 steps ask. Grades, body stats,
+    // signature/bio/tags and belay skills are NOT collected here any
+    // more (see STEP_META note) — they stay unset, which is exactly
+    // what the profile-completeness meter reads later.
     completeOnboarding({
       display_name: displayName.trim() || undefined,
       dob: dob || undefined,
       location: location.trim() || undefined,
       avatar,
       photo_url: photoUrl,
-      signature: signature.trim() || undefined,
-      about: bio.trim() || undefined,
-      tags: tags.length ? tags : undefined,
       activities,
-      // Climb + hike sections are independently skippable — only save what wasn't skipped.
-      ...(climbs && !climbSkipped
-        ? { home_gym_id: homeGymId, top_grade: topGrade, preferred_styles: preferredStyles }
-        : {}),
-      ...(hikes && !hikeSkipped
-        ? { hike_distance: hikeDistance || undefined, hike_pace: hikePace || undefined }
-        : {}),
-      weight_kg: weightKg,
-      height_cm: heightCm,
+      ...(homeGymId ? { home_gym_id: homeGymId } : {}),
+      ...(climbs ? { preferred_styles: preferredStyles } : {}),
     });
     try { localStorage.removeItem('crux8-onboarding-draft'); } catch { /* ok */ }
     try { localStorage.removeItem('crux8-onboarding-deferred'); } catch { /* ok */ }
@@ -404,92 +399,8 @@ export function Onboarding() {
           </>
         )}
 
-        {/* ── Step 3 · Profile (signature + bio + tags) ── */}
+        {/* ── Step 3 · Activities + styles + home gym ── */}
         {step === 3 && (
-          <>
-            <h2 className="text-2xl font-semibold text-ink-900">Say hi.</h2>
-            <p className="mt-2 text-sm text-ink-500">A signature + a few tags help people know you at a glance.</p>
-            <div className="mt-6 space-y-5">
-              <div>
-                <div className="flex items-center justify-between">
-                  <Label>Signature</Label>
-                  <span className="text-[11px] text-ink-400">{signature.length}/40</span>
-                </div>
-                <Input
-                  value={signature}
-                  maxLength={40}
-                  onChange={(e) => setSignature(e.target.value)}
-                  placeholder="e.g. Slab curious, always down to belay"
-                />
-              </div>
-              <div>
-                <div className="flex items-center justify-between">
-                  <Label>Short bio (optional)</Label>
-                  <span className="text-[11px] text-ink-400">{bio.length}/160</span>
-                </div>
-                <Textarea
-                  value={bio}
-                  maxLength={160}
-                  rows={3}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="What you're psyched on, how long you've climbed, what you're looking for…"
-                />
-              </div>
-              <div>
-                <div className="flex items-center justify-between">
-                  <Label>Flair tags</Label>
-                  <span className="text-[11px] text-ink-400">{tags.length}/{MAX_TAGS}</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {TAGS.map((t) => {
-                    const on = tags.includes(t);
-                    const full = !on && tags.length >= MAX_TAGS;
-                    return (
-                      <button
-                        key={t}
-                        onClick={() => toggleTag(t)}
-                        disabled={full}
-                        className={cn(
-                          'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                          on ? 'enamel text-white border-transparent' : 'bg-paper-100 text-ink-700 border-ink-100',
-                          full && 'opacity-40',
-                        )}
-                      >
-                        {t}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Live preview: how it reads next to your name */}
-              <div className="rounded-2xl bg-paper-100 border border-ink-100 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-400 mb-2">Preview</p>
-                <div className="flex items-center gap-3">
-                  <Avatar photoUrl={photoUrl} config={avatar} alt={me.display_name} size={44} fallback={me.display_name} />
-                  <div className="min-w-0">
-                    <div className="flex items-center flex-wrap gap-1.5">
-                      <span className="font-semibold text-ink-900">{displayName}</span>
-                      {tags.slice(0, 2).map((t) => (
-                        <span key={t} className="rounded-full bg-brand-100 text-brand-600 text-[10px] font-semibold px-2 py-0.5">
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="text-xs text-ink-500 truncate">{signature || 'Your signature shows here'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-8 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => go(2)}>Back</Button>
-              <Button className="flex-1" onClick={() => go(4)}>Next</Button>
-            </div>
-          </>
-        )}
-
-        {/* ── Step 4 · Activities ── */}
-        {step === 4 && (
           <>
             <h2 className="text-2xl font-semibold text-ink-900">What are you into?</h2>
             <p className="mt-2 text-sm text-ink-500">Pick everything that applies — we'll tune your feed to match.</p>
@@ -522,253 +433,53 @@ export function Onboarding() {
                 );
               })}
             </div>
+            {climbs && (
+              <>
+                <div className="mt-7">
+                  <Label>Climbing styles</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {STYLES.map((st) => {
+                      const on = preferredStyles.includes(st.value);
+                      return (
+                        <button
+                          key={st.value}
+                          onClick={() => toggleStyle(st.value)}
+                          className={cn(
+                            'rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors',
+                            on
+                              ? 'bg-brand-600 text-[#161310] border-brand-600'
+                              : 'bg-paper-100 text-ink-600 border-ink-100',
+                          )}
+                        >
+                          {st.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="mt-5">
+                  <Label>Home gym</Label>
+                  <select
+                    value={homeGymId}
+                    onChange={(e) => setHomeGymId(e.target.value)}
+                    className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
+                  >
+                    {gyms.map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
             <div className="mt-8 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => go(3)}>Back</Button>
-              <Button className="flex-1" disabled={activities.length === 0} onClick={() => go(climbs || hikes ? 5 : 8)}>
+              <Button variant="outline" className="flex-1" onClick={() => go(2)}>Back</Button>
+              <Button className="flex-1" disabled={activities.length === 0} onClick={() => go(4)}>
                 Next
               </Button>
             </div>
-            {!climbs && (
-              <p className="mt-3 text-center text-[11px] text-ink-400">
-                No climbing selected — we'll skip the belay + grade steps.
-              </p>
-            )}
-          </>
-        )}
-
-        {/* ── Step 5 · Outdoors — climb and/or hike sections, each skippable ── */}
-        {step === 5 && (
-          <>
-            <h2 className="text-2xl font-semibold text-ink-900">Your outdoors profile.</h2>
-            <p className="mt-2 text-sm text-ink-500">A few details power better matches — skip any section that doesn't fit.</p>
-
-            {/* Climb section */}
-            {climbs && (
-              <div className="mt-8">
-                {climbSkipped ? (
-                  <div className="flex items-center justify-between rounded-2xl border border-ink-100 bg-paper-100 p-4">
-                    <span className="text-sm text-ink-500">🧗 Climbing — skipped</span>
-                    <button onClick={() => setClimbSkipped(false)} className="text-xs font-semibold text-brand-600">
-                      Add it back
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-base font-semibold text-ink-900">🧗 Climbing</h3>
-                      <button onClick={() => setClimbSkipped(true)} className="text-xs font-medium text-ink-400 underline">
-                        Skip
-                      </button>
-                    </div>
-                    <div className="mt-4 space-y-5">
-                      <div>
-                        <Label>Home gym</Label>
-                        <select
-                          value={homeGymId}
-                          onChange={(e) => setHomeGymId(e.target.value)}
-                          className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
-                        >
-                          {gyms.map((g) => (
-                            <option key={g.id} value={g.id}>{g.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label>Top grade band</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {GRADE_BANDS.map((band) => (
-                            <button
-                              key={band.value}
-                              onClick={() => setTopGrade(band.value)}
-                              className={cn(
-                                'rounded-xl border py-2.5 text-sm text-center',
-                                topGrade === band.value ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
-                              )}
-                            >
-                              {band.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <Label>Preferred styles</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {STYLES.map((s) => (
-                            <button
-                              key={s.value}
-                              onClick={() => toggleStyle(s.value)}
-                              className={cn(
-                                'rounded-full border px-3 py-1.5 text-xs font-medium',
-                                preferredStyles.includes(s.value) ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
-                              )}
-                            >
-                              {s.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Hike section */}
-            {hikes && (
-              <div className="mt-8">
-                {hikeSkipped ? (
-                  <div className="flex items-center justify-between rounded-2xl border border-ink-100 bg-paper-100 p-4">
-                    <span className="text-sm text-ink-500">🥾 Hiking — skipped</span>
-                    <button onClick={() => setHikeSkipped(false)} className="text-xs font-semibold text-brand-600">
-                      Add it back
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-base font-semibold text-ink-900">🥾 Hiking</h3>
-                      <button onClick={() => setHikeSkipped(true)} className="text-xs font-medium text-ink-400 underline">
-                        Skip
-                      </button>
-                    </div>
-                    <div className="mt-4 space-y-5">
-                      <div>
-                        <Label>Typical distance</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {HIKE_DISTANCES.map((d) => (
-                            <button
-                              key={d.value}
-                              onClick={() => setHikeDistance(d.value)}
-                              className={cn(
-                                'rounded-xl border py-2.5 text-sm text-center',
-                                hikeDistance === d.value ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
-                              )}
-                            >
-                              {d.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <Label>Pace</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {HIKE_PACES.map((p) => (
-                            <button
-                              key={p.value}
-                              onClick={() => setHikePace(p.value)}
-                              className={cn(
-                                'rounded-full border px-3 py-1.5 text-xs font-medium',
-                                hikePace === p.value ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100',
-                              )}
-                            >
-                              {p.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            <div className="mt-8 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => go(4)}>Back</Button>
-              <Button className="flex-1" onClick={() => go(climbs ? 6 : 8)}>Next</Button>
-            </div>
-          </>
-        )}
-
-        {/* ── Step 6 · Body (private) ── */}
-        {step === 6 && (
-          <>
-            <h2 className="text-2xl font-semibold text-ink-900">Height & weight.</h2>
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-teal-100 text-teal-600 text-[10px] font-semibold px-2 py-0.5 mt-2 mb-3">
-              <EyeClosed width={11} height={11} />
-              HIDDEN FROM OTHERS
-            </div>
-            <p className="text-sm text-ink-500">
-              Used only to compute the <b>weight-safe</b> chip on belay pairings. Never shown to other users. Skip if you'd rather not.
+            <p className="mt-3 text-center text-[11px] text-ink-400">
+              That&apos;s all we need — grades, belay skills and the rest can wait for your profile.
             </p>
-            <div className="mt-6 space-y-5">
-              <div>
-                <Label>Weight (lbs)</Label>
-                <Input type="number" inputMode="numeric" min={60} max={400} value={weightLbs} onChange={(e) => setWeightLbs(e.target.value)} placeholder="e.g. 145" />
-              </div>
-              <div>
-                <Label>Height</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input type="number" inputMode="numeric" min={3} max={8} value={heightFt} onChange={(e) => setHeightFt(e.target.value)} placeholder="ft" />
-                  <Input type="number" inputMode="numeric" min={0} max={11} value={heightIn} onChange={(e) => setHeightIn(e.target.value)} placeholder="in" />
-                </div>
-              </div>
-            </div>
-            <div className="mt-8 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => go(5)}>Back</Button>
-              <Button
-                variant="ghost"
-                className="flex-1"
-                onClick={() => {
-                  setWeightLbs('');
-                  setHeightFt('');
-                  setHeightIn('');
-                  go(7);
-                }}
-              >
-                Skip
-              </Button>
-              <Button className="flex-1" onClick={() => go(7)}>Next</Button>
-            </div>
-          </>
-        )}
-
-        {/* ── Step 7 · Belay skills ── */}
-        {step === 7 && (
-          <>
-            <h2 className="text-2xl font-semibold text-ink-900">Belay skills.</h2>
-            <p className="mt-2 text-sm text-ink-500">
-              Tell us what you can belay — no cert upload needed.
-            </p>
-            <div className="mt-6 rounded-2xl bg-paper-100 border border-ink-100 p-5">
-              <p className="text-sm text-ink-700">
-                Self-reported skills become peer-confirmed after a few sessions with partners. Always do an in-person buddy check first.
-              </p>
-            </div>
-            <div className="mt-6 flex flex-col gap-2">
-              <Button variant="outline" onClick={() => setCertOpen(true)}>Self-report belay skills</Button>
-            </div>
-            <div className="mt-8 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => go(6)}>Back</Button>
-              <Button className="flex-1" onClick={() => go(8)}>Next</Button>
-            </div>
-          </>
-        )}
-
-        {/* ── Step 8 · Invite crew ── */}
-        {step === 8 && (
-          <>
-            <h2 className="text-2xl font-semibold text-ink-900">Climb with your crew.</h2>
-            <p className="mt-2 text-sm text-ink-500">
-              Crux8 is better with friends. Invite a belay partner or two to get started.
-            </p>
-            <div className="mt-6 rounded-2xl p-5 text-white shadow-brand" style={{ background: 'linear-gradient(135deg,#7A5F24,#B08D3E)' }}>
-              <p className="text-3xl">🤝</p>
-              <p className="mt-2 font-semibold">Share your invite link</p>
-              <p className="text-sm text-white/80">
-                They land straight in the app — no account hunting. Bring a partner and you both start with a crew.
-              </p>
-              <Button variant="punch" className="mt-4 w-full" onClick={shareInvite}>
-                Share invite link
-              </Button>
-            </div>
-            <div className="mt-8 flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => go(climbs ? 7 : hikes ? 5 : 4)}>Back</Button>
-              {me?.quiz_result_type ? (
-                <Button className="flex-1" onClick={finish}>Finish</Button>
-              ) : (
-                <Button className="flex-1" onClick={() => go(9)}>Next</Button>
-              )}
-            </div>
           </>
         )}
 
@@ -777,7 +488,7 @@ export function Onboarding() {
             TEMPTING — a reward moment with the actual golden cards on
             show, not a form field with a filled "Skip" button competing
             beside it. Skipping is demoted to a quiet text link.) ── */}
-        {step === 9 && (
+        {step === 4 && (
           <>
             <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-teal-600">
               Last step 🎉
@@ -803,20 +514,31 @@ export function Onboarding() {
               <p>🗄 <span className="font-semibold text-ink-900">The Vault</span> — collect all 15 as you meet climbers</p>
             </div>
 
-            <Button
-              variant="punch"
-              size="lg"
-              className="mt-6 w-full"
-              onClick={() => window.open(`https://play.crux8.app?name=${encodeURIComponent((displayName.trim() || me?.display_name || '').trim())}`, '_blank')}
-            >
-              Reveal my DNA 🧬
-            </Button>
-            <p className="mt-2 text-center text-[11px] text-ink-400">
-              Finish the quiz, then tap "Continue to the Crux8 app" to claim your card here.
-            </p>
+            {me?.quiz_result_type ? (
+              <Button size="lg" className="mt-6 w-full" onClick={finish}>
+                Finish — welcome in 🎉
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="punch"
+                  size="lg"
+                  className="mt-6 w-full"
+                  onClick={() => window.open(`https://play.crux8.app?name=${encodeURIComponent((displayName.trim() || me?.display_name || '').trim())}`, '_blank')}
+                >
+                  Reveal my DNA 🧬
+                </Button>
+                <p className="mt-2 text-center text-[11px] text-ink-400">
+                  Finish the quiz, then tap "Continue to the Crux8 app" to claim your card here.
+                </p>
+              </>
+            )}
 
+            <Button variant="outline" className="mt-3 w-full" onClick={shareInvite}>
+              🤝 Share your invite link instead
+            </Button>
             <div className="mt-8 flex items-center gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => go(8)}>Back</Button>
+              <Button variant="outline" className="flex-1" onClick={() => go(3)}>Back</Button>
               <button
                 className="flex-1 text-sm font-medium text-ink-500 underline underline-offset-2"
                 onClick={finish}
