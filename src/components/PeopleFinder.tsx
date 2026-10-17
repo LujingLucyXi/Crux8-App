@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'iconoir-react';
 import { toast } from 'sonner';
@@ -11,24 +11,25 @@ import { UserProfileSheet } from '@/components/sheets/UserProfileSheet';
 import { normalizeInviteCode, isValidInviteCode, inviteLink } from '@/lib/inviteCode';
 
 /**
- * Add-cruxmates front door (2026-10-14 field report: the add action was
- * only reachable from a session roster's profile sheet — a host standing
- * next to a new friend in the gym had nowhere to add them). Searches the
- * people the app already knows by name. 2026-10-15: the list covers only
- * REAL directory users — seed (NPC) climbers are excluded so nobody can
- * search for, add, or collect cards for mock people. The session roster
- * remains the primary add path.
+ * The Friends tab (2026-10-14 field report: the add action was only
+ * reachable from a session roster's profile sheet — a host standing
+ * next to a new friend in the gym had nowhere to add them).
+ * 2026-10-17 (Lucy): everything friend-related lives in this one
+ * surface, split into two clearly distinct sections — "Cruxmates",
+ * the friend list (people who already are cruxmates, Message
+ * button), and "Add cruxmate" (invite link, search, add-by-code, and
+ * the directory of people you can still add). The mixed single list
+ * made existing friends indistinguishable from strangers.
+ * The lists cover only REAL directory users — seed (NPC) climbers
+ * are excluded so nobody can search for, add, or collect cards for
+ * mock people. The session roster remains the primary add path.
  */
 export function PeopleFinder({
   hideInviteButton = false,
-  hideHeading = false,
 }: {
   /** Profile already carries the invite CTA in its invite card above —
    *  showing this one too put two identical gold buttons on one screen. */
   hideInviteButton?: boolean;
-  /** Hosts with their own title (Profile section, the Add-friends
-   *  sheet) don't need the internal "Find people" header repeated. */
-  hideHeading?: boolean;
 } = {}) {
   const nav = useNavigate();
   const me = useAppStore((s) => s.me);
@@ -38,7 +39,6 @@ export function PeopleFinder({
   const requestCruxmate = useAppStore((s) => s.requestCruxmate);
   const cancelMateRequest = useAppStore((s) => s.cancelMateRequest);
   const mateRequestFor = useAppStore((s) => s.mateRequestFor);
-  const mateRequests = useAppStore((s) => s.mateRequests);
   const ensureInviteCode = useAppStore((s) => s.ensureInviteCode);
   const [q, setQ] = useState('');
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
@@ -91,35 +91,65 @@ export function PeopleFinder({
     nav(`/add/${code}`);
   };
 
-  const people = useMemo<ResolvedUser[]>(() => {
+  const term = q.trim().toLowerCase();
+  const matches = (p: ResolvedUser) => p.display_name.toLowerCase().includes(term);
+
+  // The friend list: my cruxmates, resolved like everyone else.
+  const mates = useMemo<ResolvedUser[]>(() => {
+    const list: ResolvedUser[] = [];
+    for (const id of cruxmates) {
+      const r = resolveUser(id, me, users, directory);
+      if (r) list.push(r);
+    }
+    return list
+      .filter((p) => !term || matches(p))
+      .sort((a, b) => a.display_name.localeCompare(b.display_name));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cruxmates, directory, me, users, term]);
+
+  // The add list: the people directory, minus anyone already a
+  // cruxmate (they live in the section above, never in both).
+  const addable = useMemo<ResolvedUser[]>(() => {
     // Directory-only: seed NPC climbers (users) are excluded so real users
     // can never search for or add mock people.
     const ids = new Set<string>(Object.keys(directory));
     const list: ResolvedUser[] = [];
     for (const id of ids) {
-      if (id === me?.id) continue;
+      if (id === me?.id || cruxmates.includes(id)) continue;
       const r = resolveUser(id, me, users, directory);
       if (r) list.push(r);
     }
-    const term = q.trim().toLowerCase();
-    const filtered = term
-      ? list.filter((p) => p.display_name.toLowerCase().includes(term))
-      : list.slice(0, 12);
+    const filtered = term ? list.filter(matches) : list.slice(0, 12);
     return filtered.sort((a, b) => a.display_name.localeCompare(b.display_name));
-  }, [directory, me, q]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [directory, me, cruxmates, term]);
+
+  const sectionTitle = 'text-xs font-semibold uppercase tracking-wider text-ink-500';
+
+  const rowShell = (p: ResolvedUser, subtitle: ReactNode, action: ReactNode) => (
+    <div
+      key={p.id}
+      className="flex items-center gap-3 rounded-2xl border border-ink-100 bg-paper-100 px-4 py-3"
+    >
+      <button
+        type="button"
+        onClick={() => setProfileUserId(p.id)}
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        aria-label={`View ${p.display_name}'s profile`}
+      >
+        <Avatar photoUrl={p.photo_url ?? undefined} seed={p.display_name} size={36} alt={p.display_name} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-ink-900 truncate">{p.display_name}</p>
+          {subtitle}
+        </div>
+      </button>
+      {action}
+    </div>
+  );
 
   return (
     <div className="mb-5">
-      {!hideHeading && (
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-3">
-          Find people
-        </h2>
-      )}
-      {!hideInviteButton && (
-        <Button className="w-full mb-3" onClick={inviteFriend}>
-          Invite a friend to join Crux8
-        </Button>
-      )}
+      {/* One search governs both sections. */}
       <div className="relative">
         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400">
           <Search width={18} height={18} />
@@ -131,8 +161,43 @@ export function PeopleFinder({
           className="pl-10"
         />
       </div>
+
+      {/* ── Cruxmates: the friend list ── */}
+      <h3 className={`${sectionTitle} mt-5 mb-2`}>
+        Cruxmates{mates.length > 0 ? ` · ${mates.length}` : ''}
+      </h3>
+      {mates.length === 0 ? (
+        <p className="text-sm text-ink-500">
+          {term
+            ? 'No cruxmates match that search.'
+            : 'No cruxmates yet — climbers you add show up here.'}
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {mates.map((p) =>
+            rowShell(
+              p,
+              <p className="text-xs font-semibold text-teal-600">✓ Cruxmate</p>,
+              <button
+                onClick={() => nav(`/chat/${p.id}`)}
+                className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
+              >
+                Message
+              </button>,
+            ),
+          )}
+        </div>
+      )}
+
+      {/* ── Add cruxmate: invite, code, and people you can still add ── */}
+      <h3 className={`${sectionTitle} mt-6 mb-2`}>Add cruxmate</h3>
+      {!hideInviteButton && (
+        <Button className="w-full mb-3" onClick={inviteFriend}>
+          Invite a friend to join Crux8
+        </Button>
+      )}
       {/* Invite code entry (2026-10-15): type a code from someone's card → their add page */}
-      <div className="mt-3 rounded-2xl border border-dashed border-ink-100 bg-paper-100 p-3">
+      <div className="rounded-2xl border border-dashed border-ink-100 bg-paper-100 p-3">
         <p className="text-xs font-semibold text-ink-700">Add a cruxmate via their code</p>
         <div className="mt-2 flex gap-2">
           <Input
@@ -154,79 +219,52 @@ export function PeopleFinder({
         </div>
         {codeHint && <p className="mt-1.5 text-xs text-coral-600">{codeHint}</p>}
       </div>
-      {people.length === 0 ? (
+      {addable.length === 0 ? (
         <p className="mt-3 text-sm text-ink-500">
-          {q.trim()
+          {term
             ? 'No matches yet — they show up here once you have shared a session.'
             : 'Your directory fills up as you meet climbers in sessions. Or scan a session QR at the gym — everyone who joins lands on the session roster.'}
         </p>
       ) : (
         <div className="mt-3 space-y-2">
-          {people.map((p) => {
-            const isFriend = cruxmates.includes(p.id);
-            const reqDir = isFriend ? null : mateRequestFor(p.id);
-            return (
-              <div
-                key={p.id}
-                className="flex items-center gap-3 rounded-2xl border border-ink-100 bg-paper-100 px-4 py-3"
-              >
+          {addable.map((p) => {
+            const reqDir = mateRequestFor(p.id);
+            return rowShell(
+              p,
+              p.top_grade ? <p className="text-xs text-ink-500">{p.top_grade}</p> : null,
+              reqDir === 'incoming' ? (
                 <button
-                  type="button"
-                  onClick={() => setProfileUserId(p.id)}
-                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                  aria-label={`View ${p.display_name}'s profile`}
+                  onClick={() => {
+                    if (requestCruxmate(p.id) === 'accepted') {
+                      toast.success(`You're cruxmates with ${p.display_name.split(' ')[0]} 🤝`);
+                    }
+                  }}
+                  className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
                 >
-                  <Avatar photoUrl={p.photo_url ?? undefined} seed={p.display_name} size={36} alt={p.display_name} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-ink-900 truncate">{p.display_name}</p>
-                    {isFriend ? (
-                      <p className="text-xs font-semibold text-teal-600">✓ Cruxmate</p>
-                    ) : (
-                      p.top_grade && <p className="text-xs text-ink-500">{p.top_grade}</p>
-                    )}
-                  </div>
+                  Follow back
                 </button>
-                {isFriend ? (
-                  <button
-                    onClick={() => nav(`/chat/${p.id}`)}
-                    className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
-                  >
-                    Message
-                  </button>
-                ) : reqDir === 'incoming' ? (
-                  <button
-                    onClick={() => {
-                      if (requestCruxmate(p.id) === 'accepted') {
-                        toast.success(`You're cruxmates with ${p.display_name.split(' ')[0]} 🤝`);
-                      }
-                    }}
-                    className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
-                  >
-                    Follow back
-                  </button>
-                ) : reqDir === 'outgoing' ? (
-                  <button
-                    onClick={() => {
-                      cancelMateRequest(p.id);
-                      toast('Unfollowed');
-                    }}
-                    className="shrink-0 rounded-full border border-ink-100 px-4 py-2 text-xs font-semibold text-ink-500"
-                  >
-                    Following
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      const res = requestCruxmate(p.id);
-                      if (res === 'sent') toast.success(`Following ${p.display_name.split(' ')[0]}`);
-                      else if (res === 'accepted') toast.success(`You're cruxmates with ${p.display_name.split(' ')[0]} 🤝`);
-                    }}
-                    className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
-                  >
-                    Follow
-                  </button>
-                )}
-              </div>
+              ) : reqDir === 'outgoing' ? (
+                <button
+                  onClick={() => {
+                    cancelMateRequest(p.id);
+                    toast('Unfollowed');
+                  }}
+                  className="shrink-0 rounded-full border border-ink-100 px-4 py-2 text-xs font-semibold text-ink-500"
+                >
+                  Following
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    const res = requestCruxmate(p.id);
+                    if (res === 'sent') toast.success(`Following ${p.display_name.split(' ')[0]}`);
+                    else if (res === 'accepted') toast.success(`You're cruxmates with ${p.display_name.split(' ')[0]} 🤝`);
+                  }}
+                  className="shrink-0 rounded-full bg-brand-600 px-4 py-2 text-xs font-bold text-[#161310]"
+                >
+                  Follow
+                </button>
+              ),
             );
           })}
         </div>

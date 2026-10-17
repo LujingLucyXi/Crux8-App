@@ -258,21 +258,22 @@ export function Profile() {
         );
       })()}
 
-      {/* ── Add friends: my invite card + the finder, ONE block (merged
+      {/* ── Friends: my invite card + the finder, ONE block (merged
           2026-10-15 — the separate "My invite" and "Add friends" blocks
           repeated headers and the same invite CTA twice on one screen).
-          The finder runs embedded here: no own heading, no second
-          invite button (the card above carries it). ── */}
+          The finder runs embedded here: its own Cruxmates / Add
+          cruxmate sections, no second invite button (the card above
+          carries it). ── */}
       <section className="mt-6">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
-          Add friends
+          Friends
         </h2>
         {me.invite_code ? (
           <div className="mb-3">
             <InviteSection code={normalizeInviteCode(me.invite_code)} displayName={me.display_name} />
           </div>
         ) : null}
-        <PeopleFinder hideInviteButton hideHeading />
+        <PeopleFinder hideInviteButton />
       </section>
 
       {/* About / Story */}

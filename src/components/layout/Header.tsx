@@ -1,4 +1,4 @@
-import { Menu, ChatBubbleEmpty, UserPlus, Bell } from 'iconoir-react';
+import { Menu, ChatBubbleEmpty, Group, Bell } from 'iconoir-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore, countUnreadThreads, countActionableInvites } from '@/store/useAppStore';
@@ -112,10 +112,10 @@ export function Header() {
             </button>
             <button
               onClick={() => setAddOpen(true)}
-              aria-label="Add friends"
+              aria-label="Friends"
               className="relative p-1.5 rounded-lg text-ink-700 hover:bg-paper-50"
             >
-              <UserPlus width={22} height={22} />
+              <Group width={22} height={22} />
             </button>
             <button onClick={() => nav('/profile')} aria-label="Profile">
               <Avatar photoUrl={me?.photo_url} config={me?.avatar} alt={me?.display_name} size={30} fallback={me?.display_name} />
@@ -170,9 +170,9 @@ export function Header() {
         </SheetContent>
       </Sheet>
       <Sheet open={addOpen} onOpenChange={setAddOpen}>
-        <SheetContent title="Add friends">
+        <SheetContent title="Friends">
           <div className="mt-2">
-            <PeopleFinder hideHeading />
+            <PeopleFinder />
           </div>
         </SheetContent>
       </Sheet>
