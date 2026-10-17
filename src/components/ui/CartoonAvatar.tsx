@@ -283,27 +283,27 @@ export function CartoonAvatar({
     // 'braids' also lives here: the French braid band sits ON the cap.
     switch (config.hair) {
       case 'braids': {
-        // One clean braid over the left shoulder, v7 (Lucy: "more even
-        // throughout, smooth visual, not lumpy and bumpy in width"):
-        // an EVEN-width column with smooth, barely-tapered sides —
-        // the weave is suggested by soft scale-arc seams, not by the
-        // silhouette. Slim gold tie, small smooth tuft, center part.
+        // One clean braid over the left shoulder, v7.1: EVEN width
+        // and smooth sides (v7's fix stands) — but the woven PATTERN
+        // stays: stacked shallow-V plait rows inside the column.
+        // (v7 stripped the pattern to faint seams; Lucy: "i did not
+        // mean to drop all the pattern at all.")
         const cx = 28;
         const top = 51;
         const yB = len === 'short' ? 66 : len === 'long' ? 80 : 73;
         const d = `M${cx - 5.6} ${top} Q${cx} ${top - 3.4} ${cx + 5.6} ${top} L${cx + 5.3} ${yB} Q${cx} ${yB + 2.8} ${cx - 5.3} ${yB} Z`;
-        const seam = (f: number) => {
-          const y = top + (yB - top) * f;
-          return `M${cx - 5.2} ${y} Q${cx} ${y + 3.6} ${cx + 5.2} ${y}`;
-        };
+        const rows: string[] = [];
+        for (let y = top + 3.5; y < yB - 3.5; y += 5.6) {
+          rows.push(`M${cx - 4.9} ${y.toFixed(1)} L${cx} ${(y + 4.1).toFixed(1)} L${cx + 4.9} ${y.toFixed(1)}`);
+        }
         return (
           <g>
             <path d="M50 25.5 L50 33.5" stroke={OUTLINE} strokeWidth="2" strokeLinecap="round" opacity="0.4" />
             <path d={d} {...HS} />
-            <g stroke={OUTLINE} strokeWidth="1.9" strokeLinecap="round" opacity="0.38" fill="none">
-              <path d={seam(0.3)} />
-              <path d={seam(0.58)} />
-              <path d={seam(0.84)} />
+            <g stroke={OUTLINE} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" fill="none">
+              {rows.map((r) => (
+                <path key={r} d={r} />
+              ))}
             </g>
             <path
               d={`M${cx - 5.2} ${yB - 0.5} L${cx + 5.2} ${yB - 0.5} L${cx + 4.7} ${yB + 3} L${cx - 4.7} ${yB + 3} Z`}
