@@ -76,6 +76,18 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open ]);
 
+  // "Invite to climb" from a friend's profile card opens THIS template
+  // with that friend pre-invited (Lucy 2026-10-16: pick the time, the
+  // gym, the level, the style — the template IS the invite composer).
+  const preselectInvite = useAppStore((s) => s.newSessionPreselectInvite);
+  const setPreselectInvite = useAppStore((s) => s.setNewSessionPreselectInvite);
+  useEffect(() => {
+    if (open && preselectInvite) {
+      setInviteIds([preselectInvite]);
+      setPreselectInvite(null);
+    }
+  }, [open, preselectInvite, setPreselectInvite]);
+
   // Taxonomy mirrors Find: INDOOR / OUTDOOR / EVENT, with BELAY / BOULDER
   // under the two climb modes. Belay => climb call, Boulder => session.
   const [mode, setMode] = useState<'indoor' | 'outdoor' | 'event'>('indoor');

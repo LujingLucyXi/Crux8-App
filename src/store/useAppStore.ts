@@ -256,6 +256,11 @@ interface Store {
   sessionsLoading: boolean;
   /** Global open state for the post-session/call sheet (FAB + empty-state CTAs). */
   newSessionOpen: boolean;
+  /** Friend pre-invited when the New Session template opens from a
+   *  profile card's "Invite to climb" (Lucy 2026-10-16). Consumed and
+   *  cleared by NewSessionSheet on open. */
+  newSessionPreselectInvite: string | null;
+  setNewSessionPreselectInvite: (id: string | null) => void;
   setNewSessionOpen: (open: boolean) => void;
 
   // ---------- actions ----------
@@ -743,6 +748,9 @@ export const useAppStore = create<Store>()(
       sessionsLoading: false,
       newSessionOpen: false,
       setNewSessionOpen: (open: boolean) => set({ newSessionOpen: open }),
+      newSessionPreselectInvite: null,
+      setNewSessionPreselectInvite: (id: string | null) =>
+        set({ newSessionPreselectInvite: id }),
 
       syncSeedGyms: () => {
         const cur = get().gyms;
