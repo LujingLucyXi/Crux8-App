@@ -109,6 +109,14 @@ export interface Session {
   requires_attestation: boolean; // trad-flag
   posted_by_group_id?: string;
   note?: string;
+  /** Who can join (Lucy 2026-10-17): 'open' = free join, anyone
+   *  RSVPs straight in; 'approval' = join requests wait for the
+   *  host (session_rsvps.status 'requested' until approved). */
+  join_mode?: 'open' | 'approval';
+  /** Runtime-only (never a column): pending requester ids on
+   *  sessions I host; my own RSVP state on sessions I don't. */
+  request_ids?: string[];
+  my_rsvp_status?: 'going' | 'requested';
 }
 
 export interface EventItem {

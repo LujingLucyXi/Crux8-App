@@ -62,6 +62,7 @@ interface SessionRow {
   requires_attestation: boolean | null;
   posted_by_group_id: string | null;
   note: string | null;
+  join_mode: string | null;
 }
 
 interface ClimbCallRow {
@@ -130,6 +131,7 @@ function mapSessionRow(row: SessionRow, participantIds: string[]): Session {
     vibe: (row.vibe as Vibe | null) ?? 'social',
     location_type:
       (row.location_type as LocationType | null) ?? (row.gym_id ? 'indoor' : 'outdoor'),
+    join_mode: row.join_mode === 'approval' ? 'approval' : 'open',
     is_verified_only: row.is_verified_only ?? false,
     requires_attestation: row.requires_attestation ?? false,
     posted_by_group_id: row.posted_by_group_id ?? undefined,
@@ -159,8 +161,11 @@ function mapCallRow(row: ClimbCallRow, participantIds: string[]): ClimbCall {
   };
 }
 
-/** Sessions ending in the last 7 days or later, with their 'going' RSVPs. */
-export async function fetchSessions(): Promise<Session[]> {
+/** Sessions ending in the last 7 days or later, with their 'going' RSVPs.
+ * With `meId`, also attaches each session's approval state: my own
+ * RSVP status (so a pending request survives refresh) and, on
+ * sessions I host, the pending requester ids. */
+export async function fetchSessions(meId?: string): Promise<Session[]> {
   const cutoff = new Date(Date.now() - 7 * 86400_000).toISOString();
   const { data, error } = await supabase
     .from('sessions')
@@ -187,16 +192,45 @@ export async function fetchSessions(): Promise<Session[]> {
       bySession.set(r.session_id, arr);
     }
   }
-  return rows.map((r) => mapSessionRow(r, bySession.get(r.id) ?? []));
+  const sessions = rows.map((r) => mapSessionRow(r, bySession.get(r.id) ?? []));
+  if (meId && rows.length > 0) {
+    const ids = rows.map((r) => r.id);
+    const myStatus = new Map<string, 'going' | 'requested'>();
+    const requestsBy = new Map<string, string[]>();
+    const { data: extra } = await supabase
+      .from('session_rsvps')
+      .select('session_id,user_id,status')
+      .in('session_id', ids)
+      .eq('status', 'requested');
+    for (const r of asRows<RsvpRow & { status: string }>(extra ?? [])) {
+      const arr = requestsBy.get(r.session_id) ?? [];
+      arr.push(r.user_id);
+      requestsBy.set(r.session_id, arr);
+    }
+    const { data: mine } = await supabase
+      .from('session_rsvps')
+      .select('session_id,user_id,status')
+      .in('session_id', ids)
+      .eq('user_id', meId);
+    for (const r of asRows<RsvpRow & { status: string }>(mine ?? [])) {
+      if (r.status === 'going' || r.status === 'requested') {
+        myStatus.set(r.session_id, r.status);
+      }
+    }
+    for (const s of sessions) {
+      const st = myStatus.get(s.id);
+      if (st) s.my_rsvp_status = st;
+      if (s.host_id === meId) s.request_ids = requestsBy.get(s.id) ?? [];
+    }
+  }
+  return sessions;
 }
 
 /** Insert a session; the host is auto-RSVP'd as 'going'. */
 export async function createSession(
   input: Omit<Session, 'id' | 'participant_ids'>,
 ): Promise<Session> {
-  const { data, error } = await supabase
-    .from('sessions')
-    .insert({
+  const insertRow = {
       host_id: input.host_id,
       category: input.category,
       title: input.title,
@@ -214,9 +248,13 @@ export async function createSession(
       requires_attestation: input.requires_attestation,
       posted_by_group_id: input.posted_by_group_id ?? null,
       note: input.note ?? null,
-    })
-    .select()
-    .single();
+      join_mode: input.join_mode ?? 'open',
+  };
+  let { data, error } = await supabase.from('sessions').insert(insertRow).select().single();
+  if (error && /join_mode/.test(error.message)) {
+    const { join_mode: _dropped, ...rest } = insertRow;
+    ({ data, error } = await supabase.from('sessions').insert(rest).select().single());
+  }
   if (error) throw new Error(`createSession: ${error.message}`);
   const row = asRow<SessionRow>(data);
   if (!row) throw new Error('createSession: no row returned');
@@ -405,6 +443,30 @@ export async function setSessionRsvp(
       .eq('user_id', userId);
     if (error) throw new Error(`setSessionRsvp: ${error.message}`);
   }
+}
+
+/** Set an RSVP row's status — 'going' (free join / approved),
+ * 'requested' (awaiting host approval on an approval session), or
+ * null to remove the row entirely (decline / withdraw). */
+export async function setSessionRsvpStatus(
+  sessionId: string,
+  userId: string,
+  status: 'going' | 'requested' | null,
+): Promise<void> {
+  if (status === null) {
+    const { error } = await supabase
+      .from('session_rsvps')
+      .delete()
+      .eq('session_id', sessionId)
+      .eq('user_id', userId);
+    if (error) throw new Error(`setSessionRsvpStatus: ${error.message}`);
+    return;
+  }
+  const { error } = await supabase.from('session_rsvps').upsert(
+    { session_id: sessionId, user_id: userId, status },
+    { onConflict: 'session_id,user_id' },
+  );
+  if (error) throw new Error(`setSessionRsvpStatus: ${error.message}`);
 }
 
 /** Live, not-yet-ended climb calls with their pairings. */

@@ -88,6 +88,12 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
   const isPast = phase === 'done';
   const isHost = session.host_id === me.id;
   const isJoined = session.participant_ids.includes(me.id);
+  // Approval-needed sessions: my pending request, and (for the
+  // host) the queue of people waiting on me.
+  const isRequested = !isJoined && session.my_rsvp_status === 'requested';
+  const approveSessionRequest = useAppStore((s) => s.approveSessionRequest);
+  const declineSessionRequest = useAppStore((s) => s.declineSessionRequest);
+  const hostFirst = resolveUser(session.host_id, me, users, directory)?.display_name.split(' ')[0];
   const isFull = session.participant_ids.length >= session.capacity;
   // Editing locks 2 hours before the session starts.
   const editLocked = new Date(session.starts_at).getTime() - Date.now() < 2 * 3600_000;
@@ -206,6 +212,39 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
             </div>
           )}
 
+          {isHost && (session.request_ids?.length ?? 0) > 0 && (
+            <div className="mb-5">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
+                Requests · {session.request_ids!.length}
+              </h3>
+              <div className="flex flex-col gap-2">
+                {session.request_ids!.map((uid) => {
+                  const u = resolveUser(uid, me, users, directory);
+                  return (
+                    <div key={uid} className="flex items-center gap-3 p-2 rounded-xl bg-gold-100/60 border border-gold-500/20">
+                      <Avatar photoUrl={u?.photo_url ?? undefined} config={u?.avatar} alt={u?.display_name ?? 'Climber'} size={32} fallback={u?.display_name ?? '?'} />
+                      <span className="text-sm text-ink-900 flex-1 truncate">{u?.display_name ?? 'Climber'}</span>
+                      <button
+                        type="button"
+                        onClick={() => void approveSessionRequest(session.id, uid)}
+                        className="text-xs font-bold text-teal-600"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void declineSessionRequest(session.id, uid)}
+                        className="text-xs font-semibold text-ink-500"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="mb-5">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
               Who's going · {participants.length} / {formatCapacity(session.capacity)}
@@ -259,6 +298,19 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
                 📓 Log recap · give props
               </Button>
             )
+          ) : isRequested ? (
+            <div>
+              <div className="rounded-xl bg-gold-100 border border-gold-500/30 p-3 text-sm text-ink-700 text-center">
+                ⏳ Request sent — waiting for {hostFirst ?? 'the host'} to approve
+              </div>
+              <button
+                type="button"
+                onClick={() => void unrsvp(session.id)}
+                className="mt-2 w-full text-sm font-medium text-ink-500"
+              >
+                Withdraw request
+              </button>
+            </div>
           ) : phase === 'live' && !isJoined ? (
             <Button className="w-full" disabled={isFull} onClick={handleRsvp}>
               {isFull ? 'Full' : "Join session — it's live now"}
@@ -270,7 +322,13 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
               disabled={!isJoined && isFull}
               onClick={handleRsvp}
             >
-              {isJoined ? 'Leave session' : isFull ? 'Full' : 'RSVP'}
+              {isJoined
+                ? 'Leave session'
+                : isFull
+                  ? 'Full'
+                  : session.join_mode === 'approval'
+                    ? 'Request to join'
+                    : 'RSVP'}
             </Button>
           )}
 

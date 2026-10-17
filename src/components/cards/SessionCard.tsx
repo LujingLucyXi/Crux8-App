@@ -94,8 +94,13 @@ export function SessionCard({ session, users, gymName, onClick, matchScore, grou
           <MapPin width={13} height={13} />
           <span className="truncate">{gymName ?? session.area ?? 'Location TBD'}</span>
         </div>
-        {(session.is_verified_only || session.requires_attestation || groupName || session.hike_type === 'expedition') && (
+        {(session.is_verified_only || session.requires_attestation || groupName || session.hike_type === 'expedition' || session.join_mode === 'approval') && (
           <div className="mt-2 flex flex-wrap gap-1.5">
+            {session.join_mode === 'approval' && (
+              <span className="inline-flex items-center rounded-full bg-paper-50 border border-ink-100 text-ink-500 text-[10px] font-semibold px-2 py-0.5">
+                Approval needed
+              </span>
+            )}
             {session.hike_type === 'expedition' && (
               <span className="inline-flex items-center gap-1 rounded-full bg-gold-100 text-ink-900 text-[10px] font-semibold px-2 py-0.5">
                 <Trekking width={11} height={11} />

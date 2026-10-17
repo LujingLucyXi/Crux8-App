@@ -180,6 +180,8 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
   const [area, setArea] = useState<string>('Index');
   const [durationHours, setDurationHours] = useState(2);
   const [capacity, setCapacity] = useState(4);
+  // Who can join (Lucy 2026-10-17): free join vs host approval.
+  const [joinMode, setJoinMode] = useState<'open' | 'approval'>('open');
   const [vibe, setVibe] = useState<Vibe>('chill');
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [note, setNote] = useState('');
@@ -357,6 +359,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
         requires_attestation: false,
         posted_by_group_id: defaultGroupId,
         note: note.trim() || undefined,
+        join_mode: joinMode,
       });
       // Invites chosen in the form fire the moment the session exists.
       if (inviteIds.includes('cruxy')) inviteCruxy(session.id);
@@ -1049,6 +1052,28 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
         )}
         {mode !== 'event' && discipline !== 'belay' && createStep === 'people' && (
           <div className="flex flex-col gap-5">
+            <div>
+              <Label>Who can join</Label>
+              <div className="flex flex-col gap-2">
+                {([
+                  { v: 'open', l: 'Free join', d: 'Anyone can join instantly' },
+                  { v: 'approval', l: 'Approval needed', d: 'You approve each request' },
+                ] as const).map((o) => (
+                  <button
+                    key={o.v}
+                    type="button"
+                    onClick={() => setJoinMode(o.v)}
+                    className={cn(
+                      'rounded-xl border px-3.5 py-2.5 text-left',
+                      joinMode === o.v ? 'border-brand-600 bg-brand-50' : 'border-ink-100 bg-paper-100',
+                    )}
+                  >
+                    <span className="block text-sm font-semibold text-ink-900">{o.l}</span>
+                    <span className="block text-xs text-ink-500">{o.d}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
             <div>
               <Label>People</Label>
               <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">

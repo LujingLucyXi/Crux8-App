@@ -77,6 +77,7 @@ import {
   fetchBelayConfirmCounts,
   fetchMyFoundingNo,
   setSessionRsvp,
+  setSessionRsvpStatus,
   fetchClimbCalls as dbFetchClimbCalls,
   createClimbCall as dbCreateClimbCall,
   updateClimbCallRemote,
@@ -342,6 +343,8 @@ interface Store {
 
   rsvp: (sessionId: string, opts?: { viaShare?: boolean }) => Promise<void>;
   unrsvp: (sessionId: string) => Promise<void>;
+  approveSessionRequest: (sessionId: string, userId: string) => Promise<void>;
+  declineSessionRequest: (sessionId: string, userId: string) => Promise<void>;
   rsvpEvent: (eventId: string, waitlist?: boolean) => void;
   unrsvpEvent: (eventId: string) => void;
   buyTicket: (eventId: string) => void;
@@ -830,7 +833,7 @@ export const useAppStore = create<Store>()(
           // Cruxy's memberships are a local overlay (no Supabase account) —
           // merge them back in before the 0-person filter.
           const cruxySessions = get().cruxySessions;
-          const fetched = (await dbFetchSessions())
+          const fetched = (await dbFetchSessions(get().me?.id))
             .map((s) =>
               cruxySessions.includes(s.id) && !s.participant_ids.includes('cruxy')
                 ? { ...s, participant_ids: [...s.participant_ids, 'cruxy'] }
@@ -1540,12 +1543,35 @@ export const useAppStore = create<Store>()(
           return;
         }
         const already = get().sessions.find((s) => s.id === sessionId)?.participant_ids.includes(me.id);
+        // Approval-needed sessions (Lucy 2026-10-17): a public join
+        // becomes a REQUEST — no participant add, no chat, no XP
+        // until the host approves. Host invitations and share cards
+        // (viaShare) are the host's own yes, so they go straight in.
+        if (
+          target &&
+          target.join_mode === 'approval' &&
+          target.host_id !== me.id &&
+          !opts?.viaShare &&
+          !already
+        ) {
+          set({
+            sessions: get().sessions.map((s) =>
+              s.id === sessionId ? { ...s, my_rsvp_status: 'requested' as const } : s,
+            ),
+          });
+          try {
+            await setSessionRsvpStatus(sessionId, me.id, 'requested');
+          } catch (e) {
+            console.error('[sessions] request write failed', e);
+          }
+          return;
+        }
         set({
           // Rejoining clears any "left" record for this session.
           leftSessions: get().leftSessions.filter((id) => id !== sessionId),
           sessions: get().sessions.map((s) =>
             s.id === sessionId && !s.participant_ids.includes(me.id)
-              ? { ...s, participant_ids: [...s.participant_ids, me.id] }
+              ? { ...s, participant_ids: [...s.participant_ids, me.id], my_rsvp_status: 'going' as const }
               : s
           ),
         });
@@ -1584,7 +1610,7 @@ export const useAppStore = create<Store>()(
             : [...get().leftSessions, sessionId],
           sessions: get().sessions.map((s) =>
             s.id === sessionId
-              ? { ...s, participant_ids: s.participant_ids.filter((id) => id !== me.id) }
+              ? { ...s, participant_ids: s.participant_ids.filter((id) => id !== me.id), my_rsvp_status: undefined }
               : s
           ),
         });
@@ -1592,6 +1618,42 @@ export const useAppStore = create<Store>()(
           await setSessionRsvp(sessionId, me.id, false);
         } catch (e) {
           console.error('[sessions] unrsvp write failed', e);
+        }
+      },
+
+      approveSessionRequest: async (sessionId, userId) => {
+        set({
+          sessions: get().sessions.map((s) =>
+            s.id === sessionId
+              ? {
+                  ...s,
+                  request_ids: (s.request_ids ?? []).filter((id) => id !== userId),
+                  participant_ids: s.participant_ids.includes(userId)
+                    ? s.participant_ids
+                    : [...s.participant_ids, userId],
+                }
+              : s,
+          ),
+        });
+        try {
+          await setSessionRsvpStatus(sessionId, userId, 'going');
+        } catch (e) {
+          console.error('[sessions] approve write failed', e);
+        }
+      },
+
+      declineSessionRequest: async (sessionId, userId) => {
+        set({
+          sessions: get().sessions.map((s) =>
+            s.id === sessionId
+              ? { ...s, request_ids: (s.request_ids ?? []).filter((id) => id !== userId) }
+              : s,
+          ),
+        });
+        try {
+          await setSessionRsvpStatus(sessionId, userId, null);
+        } catch (e) {
+          console.error('[sessions] decline write failed', e);
         }
       },
 
