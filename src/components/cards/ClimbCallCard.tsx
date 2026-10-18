@@ -154,27 +154,45 @@ export function ClimbCallCard({
       )}
       <div className="mt-3.5 flex gap-2">
         {isMyCall ? (
-          <>
-            <button
-              onClick={(e) => { e.stopPropagation(); setShareOpen(true); }}
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-white text-[#161310] text-xs font-bold px-4 py-2.5 active:scale-[0.97] transition"
-            >
-              <ShareIos width={13} height={13} />
-              Share to fill it
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onViewCard(); }}
-              className="rounded-2xl bg-white/15 ring-1 ring-white/30 text-white text-xs font-bold px-4 py-2.5 hover:bg-white/25 active:scale-[0.97] transition"
-            >
-              Details
-            </button>
-            <span className="inline-flex items-center rounded-xl bg-white/15 ring-1 ring-white/25 text-white text-xs font-semibold px-3 py-2">
-              Your call — live
-            </span>
-          </>
+          call.status === 'live' ? (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShareOpen(true); }}
+                className="inline-flex items-center gap-1.5 rounded-2xl bg-white text-[#161310] text-xs font-bold px-4 py-2.5 active:scale-[0.97] transition"
+              >
+                <ShareIos width={13} height={13} />
+                Share to fill it
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onViewCard(); }}
+                className="rounded-2xl bg-white/15 ring-1 ring-white/30 text-white text-xs font-bold px-4 py-2.5 hover:bg-white/25 active:scale-[0.97] transition"
+              >
+                Details
+              </button>
+              <span className="inline-flex items-center rounded-xl bg-white/15 ring-1 ring-white/25 text-white text-xs font-semibold px-3 py-2">
+                Your call — live
+              </span>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); onViewCard(); }}
+                className="rounded-2xl bg-white/15 ring-1 ring-white/30 text-white text-xs font-bold px-4 py-2.5 hover:bg-white/25 active:scale-[0.97] transition"
+              >
+                Details
+              </button>
+              <span className="inline-flex items-center rounded-xl bg-white/10 ring-1 ring-white/20 text-white/70 text-xs font-semibold px-3 py-2">
+                {call.status === 'matched' ? 'Paired ✓' : 'Call ended'}
+              </span>
+            </>
+          )
         ) : (
           <>
-            {isRequested ? (
+            {call.status !== 'live' ? (
+              <span className="inline-flex items-center rounded-xl bg-white/10 ring-1 ring-white/20 text-white/70 text-xs font-semibold px-3 py-2">
+                {call.status === 'matched' ? 'Paired ✓' : 'Call ended'}
+              </span>
+            ) : isRequested ? (
               <button
                 onClick={(e) => { e.stopPropagation(); cancelPairRequest(call.id); }}
                 className="rounded-2xl bg-white/15 ring-1 ring-white/40 text-white text-xs font-bold px-4 py-2.5 active:scale-[0.97] transition"
