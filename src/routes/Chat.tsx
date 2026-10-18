@@ -51,7 +51,21 @@ export function Chat() {
   const acceptedCounterpartIds = messageRequests
     .filter((r) => r.status === 'accepted' && me && (r.from_id === me.id || r.to_id === me.id))
     .map((r) => (r.from_id === me?.id ? r.to_id : r.from_id));
-  const dmIds = [...new Set([...cruxmates, ...acceptedCounterpartIds])];
+  // Most recent chat floats to the top (Lucy 2026-10-17): DM rows
+  // used to render in friendship-formation order, so the person you
+  // just talked to sat at the bottom under never-messaged contacts.
+  const dmIds = [...new Set([...cruxmates, ...acceptedCounterpartIds])]
+    .map((id, idx) => {
+      const msgs = chats[id] ?? [];
+      return { id, idx, lastAt: msgs.length ? msgs[msgs.length - 1].sent_at : '' };
+    })
+    .sort((a, b) => {
+      if (a.lastAt && b.lastAt) return b.lastAt.localeCompare(a.lastAt);
+      if (a.lastAt) return -1;
+      if (b.lastAt) return 1;
+      return a.idx - b.idx;
+    })
+    .map((x) => x.id);
 
   const hasPendingInvites = invites.some((i) => i.status === 'pending');
   const isEmpty =
@@ -79,6 +93,26 @@ export function Chat() {
 
   const crewChatList = sessionChatList.filter((sc) => sc.source === 'group');
   const pureSessionChatList = sessionChatList.filter((sc) => sc.source !== 'group');
+
+  // Sections themselves float by recency (Lucy 2026-10-17: 'most
+  // recent chat should float on top'): whichever of crew / session /
+  // DM had the latest message renders first. Message requests stay
+  // pinned above — they need an answer, not a ranking.
+  const latestOf = (list: typeof sessionChatList) =>
+    list.length ? list[0].messages[list[0].messages.length - 1].sent_at : '';
+  const crewLatest = latestOf(crewChatList);
+  const sessionLatest = latestOf(pureSessionChatList);
+  const dmLatest = (() => {
+    for (const id of dmIds) {
+      const msgs = chats[id] ?? [];
+      if (msgs.length) return msgs[msgs.length - 1].sent_at;
+    }
+    return '';
+  })();
+  const rank = (at: string, others: string[]) => others.filter((o) => o > at).length;
+  const crewOrder = rank(crewLatest, [sessionLatest, dmLatest]);
+  const sessionOrder = rank(sessionLatest, [crewLatest, dmLatest]);
+  const dmOrder = rank(dmLatest, [crewLatest, sessionLatest]);
 
   const renderThreadRow = (sc: (typeof sessionChatList)[number]) => {
     const last = sc.messages[sc.messages.length - 1];
@@ -206,9 +240,10 @@ export function Chat() {
         </section>
       )}
 
+      <div className="flex flex-col">
       {/* Crew chats (group threads) */}
       {crewChatList.length > 0 && (
-        <section className="mb-5">
+        <section className="mb-5" style={{ order: crewOrder }}>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
             Crew chats · {crewChatList.length}
           </h2>
@@ -218,7 +253,7 @@ export function Chat() {
 
       {/* Session chats */}
       {pureSessionChatList.length > 0 && (
-        <section className="mb-5">
+        <section className="mb-5" style={{ order: sessionOrder }}>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
             Session chats · {pureSessionChatList.length}
           </h2>
@@ -229,7 +264,7 @@ export function Chat() {
       {/* 1:1 DMs — cruxmates plus anyone whose message request was
           accepted (either direction) */}
       {dmIds.length > 0 && (
-        <section>
+        <section style={{ order: dmOrder }}>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
             Direct messages · {dmIds.length}
           </h2>
@@ -283,6 +318,7 @@ export function Chat() {
           </ul>
         </section>
       )}
+      </div>
       <UserProfileSheet
         userId={profileUserId}
         open={!!profileUserId}
