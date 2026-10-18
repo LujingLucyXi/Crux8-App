@@ -2917,6 +2917,20 @@ export const useAppStore = create<Store>()(
           void get().ensureDirectoryProfiles(
             translated.flatMap((g) => [...(g.member_ids ?? []), ...(g.admin_ids ?? [])]),
           );
+          // Crew chats must EXIST for members, not just owners: a
+          // shell per crew I'm in, then a message pull — otherwise a
+          // member's Chats list shows nothing and crew messages are
+          // invisible until they happen to open the crew page
+          // (Lucy 2026-10-17: 'I messaged in my new crew, members
+          // received nothing' — their clients never even fetched:
+          // groups hydrated at boot only, and no thread shells).
+          for (const g of translated) {
+            if (!memberships.has(g.id)) continue;
+            if (!get().sessionChats[g.id]) {
+              get().ensureSessionChat(g.id, 'group', g.name, undefined, g.member_ids ?? []);
+            }
+            void get().fetchThreadMessages('group', g.id);
+          }
         } catch {
           groupHydrating = false;
         }
