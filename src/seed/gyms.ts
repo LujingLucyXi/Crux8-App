@@ -282,3 +282,22 @@ export const SEED_GYMS: Gym[] = [
 ];
 
 export const GYM_BY_ID = Object.fromEntries(SEED_GYMS.map((g) => [g.id, g] as const));
+
+// Launch-city slug → the state its metro gyms sit in. Home-gym pickers
+// scope to the user's chosen city with this (Lucy 2026-10-18: picked
+// Austin in onboarding and still got Seattle gyms — the picker listed
+// every gym in the app). Unknown slugs fall back to the full list so a
+// picker never dead-ends.
+const LOCATION_STATE: Record<string, string> = {
+  'greater-seattle': 'WA',
+  austin: 'TX',
+  denver: 'CO',
+  'salt-lake-city': 'UT',
+  'sf-bay-area': 'CA',
+};
+
+export function gymsForLocation(all: Gym[], location: string | undefined): Gym[] {
+  const state = location ? LOCATION_STATE[location] : undefined;
+  if (!state) return all;
+  return all.filter((g) => g.city.endsWith(`, ${state}`));
+}

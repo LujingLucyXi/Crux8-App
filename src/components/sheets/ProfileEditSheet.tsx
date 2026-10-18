@@ -4,6 +4,7 @@ import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Input, Label } from '@/components/ui/Input';
 import { useAppStore } from '@/store/useAppStore';
+import { gymsForLocation } from '@/seed/gyms';
 import type { Profile } from '@/seed/types';
 import { cn } from '@/lib/utils';
 
@@ -73,6 +74,15 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
   const [tags, setTags] = useState<string[]>(me?.tags ?? []);
   const [saving, setSaving] = useState(false);
 
+  // Home-gym options follow the chosen city (same fix as onboarding,
+  // Lucy 2026-10-18). A saved gym outside the city's list still renders
+  // as its own option so the select never shows a blank lie.
+  const cityGyms = gymsForLocation(gyms, location);
+  const savedGymOutsideCity =
+    homeGymId && !cityGyms.some((g) => g.id === homeGymId)
+      ? gyms.find((g) => g.id === homeGymId)
+      : undefined;
+
   if (!me) return null;
 
   const toggleTag = (t: string) =>
@@ -128,7 +138,14 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
           <Section title="Location">
             <select
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setLocation(v);
+                const scoped = gymsForLocation(gyms, v);
+                if (homeGymId && !scoped.some((g) => g.id === homeGymId)) {
+                  setHomeGymId(scoped[0]?.id ?? '');
+                }
+              }}
               className="w-full rounded-xl border border-ink-200 bg-paper-100 px-3 py-2.5 text-sm text-ink-900"
             >
               {CITIES.map((c) => (
@@ -144,11 +161,17 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
                 onChange={(e) => setHomeGymId(e.target.value)}
                 className="w-full rounded-xl border border-ink-200 bg-paper-100 px-3 py-2.5 text-sm text-ink-900"
               >
-                {gyms.map((g) => (
+                {cityGyms.length === 0 && !savedGymOutsideCity && (
+                  <option value="">No gyms listed for this city yet</option>
+                )}
+                {cityGyms.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
                   </option>
                 ))}
+                {savedGymOutsideCity && (
+                  <option value={savedGymOutsideCity.id}>{savedGymOutsideCity.name}</option>
+                )}
               </select>
             </div>
           </Section>

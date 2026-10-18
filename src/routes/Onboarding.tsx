@@ -17,6 +17,7 @@ import { getPendingIntent, clearPendingIntent, pendingIntentPath } from '@/lib/p
 import { inviteLink } from '@/lib/inviteCode';
 import { DnaCard } from '@/components/DnaCard';
 import type { Style, Activity } from '@/seed/types';
+import { gymsForLocation } from '@/seed/gyms';
 
 const GRADE_BANDS = [
   { value: 'V0-5.7', label: 'V0 / 5.7' },
@@ -133,6 +134,9 @@ export function Onboarding() {
   const [tags, setTags] = useState<string[]>(draft?.tags ?? me?.tags ?? []);
   const [activities, setActivities] = useState<Activity[]>(draft?.activities ?? me?.activities ?? ['climb']);
   const [homeGymId, setHomeGymId] = useState<string>(draft?.homeGymId ?? me?.home_gym_id ?? gyms[0]?.id ?? '');
+  // Home-gym options are scoped to the chosen city (Lucy 2026-10-18:
+  // picked Austin, still got Seattle gyms).
+  const cityGyms = gymsForLocation(gyms, location);
   // Fall back to a real band when the stored grade isn't one of the band values
   // (e.g. the login default '5.10c', which matches no band → nothing would highlight).
   const [topGrade, setTopGrade] = useState<string>(
@@ -157,6 +161,16 @@ export function Onboarding() {
       }));
     } catch { /* storage full/blocked — draft just won't persist */ }
   }, [step, dob, location, displayName, hikeDistance, hikePace, climbSkipped, hikeSkipped, avatar, photoUrl, signature, bio, tags, activities, homeGymId, topGrade, preferredStyles, weightLbs, heightFt, heightIn]);
+
+  // When the city changes, a home-gym pick from another metro is dropped
+  // for the new city's first gym (or none, when that metro has no gyms
+  // yet — the field is optional at Finish).
+  useEffect(() => {
+    if (homeGymId && !cityGyms.some((g) => g.id === homeGymId)) {
+      setHomeGymId(cityGyms[0]?.id ?? '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location]);
 
 
   // The flow NEVER navigates away on its own (Lucy 2026-10-16,
@@ -464,7 +478,10 @@ export function Onboarding() {
                     onChange={(e) => setHomeGymId(e.target.value)}
                     className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
                   >
-                    {gyms.map((g) => (
+                    {cityGyms.length === 0 && (
+                      <option value="">No gyms listed for this city yet</option>
+                    )}
+                    {cityGyms.map((g) => (
                       <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
                   </select>
