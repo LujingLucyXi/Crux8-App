@@ -703,6 +703,16 @@ export async function fetchMyInvites(userId: string): Promise<Invite[]> {
   return asRows<Invite>(data);
 }
 
+export async function fetchSentInvites(userId: string): Promise<Invite[]> {
+  const { data, error } = await supabase
+    .from('invites')
+    .select('id,kind,target_id,from_id,to_id,status,created_at')
+    .eq('from_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(`fetchSentInvites: ${error.message}`);
+  return asRows<Invite>(data);
+}
+
 export async function setInviteStatusRemote(
   id: string,
   status: 'accepted' | 'denied',

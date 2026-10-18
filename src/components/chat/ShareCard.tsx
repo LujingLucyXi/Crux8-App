@@ -65,6 +65,7 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
   const requestPair = useAppStore((s) => s.requestPair);
   const rsvp = useAppStore((s) => s.rsvp);
   const invites = useAppStore((s) => s.invites);
+  const sentInvites = useAppStore((s) => s.sentInvites);
   const acceptInvite = useAppStore((s) => s.acceptInvite);
   const denyInvite = useAppStore((s) => s.denyInvite);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -164,6 +165,46 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
     );
   };
 
+  // Sender's seat (Lucy 2026-10-17: 'I want boulder session
+  // invite' — the card the SENDER sees in the DM was a generic
+  // share; an invitation should look like one from both seats).
+  const sentInvite = sentInvites.find(
+    (i) =>
+      i.from_id === me.id &&
+      i.target_id === (session?.id ?? call?.id) &&
+      i.kind === (session ? 'session' : 'call'),
+  );
+  const sentInvitationCard = (title: string, place: string, startsAt: string) => {
+    if (!sentInvite) return null;
+    const invitee = resolveUser(sentInvite.to_id, me, users, directory);
+    const first = invitee?.display_name.split(' ')[0] ?? 'Your cruxmate';
+    return shell(
+      '🧗 Invitation',
+      <>
+        <p className="mt-1 text-sm text-ink-700">
+          You invited <span className="font-semibold text-ink-900">{first}</span> to climb
+        </p>
+        <p className="mt-1 font-semibold text-ink-900 text-sm leading-snug">{title}</p>
+        <p className="text-xs text-ink-500 mt-0.5">
+          {place} · {formatSessionWhen(startsAt)}
+        </p>
+        {sentInvite.status === 'accepted' ? (
+          <p className="mt-2 text-xs font-semibold text-brand-600">✓ {first} accepted — they&apos;re in</p>
+        ) : sentInvite.status === 'denied' ? (
+          <p className="mt-2 text-xs font-medium text-ink-400">{first} declined</p>
+        ) : (
+          <p className="mt-2 text-xs font-medium text-ink-400">Waiting for {first} to respond</p>
+        )}
+        <button
+          onClick={() => setDetailOpen(true)}
+          className="mt-2.5 w-full rounded-xl border border-ink-100 py-2 text-sm font-semibold text-ink-700"
+        >
+          View →
+        </button>
+      </>,
+    );
+  };
+
   if (call) {
     const gym = call.gym_id ? gyms.find((g) => g.id === call.gym_id) : undefined;
     const place = gym?.short_name ?? call.area ?? 'Outdoor';
@@ -176,6 +217,14 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
       return (
         <>
           {invitationCard(title, place, call.starts_at)}
+          <ClimbCallDetailSheet call={detailOpen ? call : null} open={detailOpen} onOpenChange={setDetailOpen} />
+        </>
+      );
+    }
+    if (sentInvite) {
+      return (
+        <>
+          {sentInvitationCard(title, place, call.starts_at)}
           <ClimbCallDetailSheet call={detailOpen ? call : null} open={detailOpen} onOpenChange={setDetailOpen} />
         </>
       );
@@ -329,6 +378,14 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
       return (
         <>
           {invitationCard(session.title, place, session.starts_at)}
+          <SessionDetailSheet session={detailOpen ? session : null} open={detailOpen} onOpenChange={setDetailOpen} />
+        </>
+      );
+    }
+    if (sentInvite) {
+      return (
+        <>
+          {sentInvitationCard(session.title, place, session.starts_at)}
           <SessionDetailSheet session={detailOpen ? session : null} open={detailOpen} onOpenChange={setDetailOpen} />
         </>
       );

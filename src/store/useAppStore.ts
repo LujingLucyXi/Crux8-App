@@ -86,6 +86,7 @@ import {
   befriendInviterRemote,
   befriendUserRemote,
   fetchMyInvites,
+  fetchSentInvites,
   setInviteStatusRemote,
   createMateRequestRemote,
   fetchMyMateRequests,
@@ -211,9 +212,14 @@ interface Store {
   leftSessions: string[];
   /** Server-backed personal invites addressed to me (call/session). */
   invites: Invite[];
+  /** Invites I sent — the sender's side of the invitation card
+   *  (Lucy 2026-10-17: the DM card must read as an invitation from
+   *  the sender's seat too, not a generic share). */
+  sentInvites: Invite[];
   fetchInvites: () => Promise<void>;
   acceptInvite: (invite: Invite) => void;
   denyInvite: (invite: Invite) => void;
+  recordSentInvite: (kind: 'call' | 'session' | 'group', targetId: string, toId: string) => void;
   /** Follow graph (public.cruxmate_requests rows are FOLLOWS — the
    *  Instagram model, Lucy 2026-10-15): a row from_id→to_id means "from
    *  follows to". Friendship is derived: both directions exist ⟺
@@ -848,6 +854,7 @@ export const useAppStore = create<Store>()(
       gymSuggestions: [],
       leftSessions: [],
       invites: [],
+      sentInvites: [],
       sentGroupInvites: {},
       mateRequests: [],
       messageRequests: [],
@@ -1128,6 +1135,7 @@ export const useAppStore = create<Store>()(
           gymSuggestions: [],
           leftSessions: [],
           invites: [],
+          sentInvites: [],
           sentGroupInvites: {},
           mateRequests: [],
       messageRequests: [],
@@ -1633,6 +1641,7 @@ export const useAppStore = create<Store>()(
           gymSuggestions: [],
           leftSessions: [],
           invites: [],
+          sentInvites: [],
           sentGroupInvites: {},
           mateRequests: [],
       messageRequests: [],
@@ -2659,6 +2668,7 @@ export const useAppStore = create<Store>()(
           // pre-migration the table may not exist yet.
           if (isUuid(uid) && get().me?.id) {
             void createInviteRemote('call', callId, get().me!.id, uid).catch(() => {});
+            get().recordSentInvite('call', callId, uid);
           }
           // Inviting IS befriending (Lucy 2026-10-17) — no follow step.
           get().befriendOnInvite(uid);
@@ -2709,6 +2719,7 @@ export const useAppStore = create<Store>()(
           // Server-backed invite row for real accounts (see call invites).
           if (isUuid(uid) && get().me?.id) {
             void createInviteRemote('session', sessionId, get().me!.id, uid).catch(() => {});
+            get().recordSentInvite('session', sessionId, uid);
           }
           // Inviting IS befriending (Lucy 2026-10-17) — no follow step.
           get().befriendOnInvite(uid);
@@ -2724,6 +2735,12 @@ export const useAppStore = create<Store>()(
         } catch {
           // Table may not exist until the invites migration runs — the
           // inbox just stays empty; never break boot over it.
+        }
+        try {
+          const sent = await fetchSentInvites(me.id);
+          set({ sentInvites: sent });
+        } catch {
+          /* the sent side just stays as-is */
         }
       },
 
@@ -2749,6 +2766,28 @@ export const useAppStore = create<Store>()(
           ),
         });
         void setInviteStatusRemote(invite.id, 'accepted').catch(() => {});
+      },
+
+      recordSentInvite: (kind, targetId, toId) => {
+        const me = get().me;
+        if (!me) return;
+        const rest = get().sentInvites.filter(
+          (i) => !(i.kind === kind && i.target_id === targetId && i.to_id === toId),
+        );
+        set({
+          sentInvites: [
+            {
+              id: crypto.randomUUID(),
+              kind,
+              target_id: targetId,
+              from_id: me.id,
+              to_id: toId,
+              status: 'pending' as const,
+              created_at: new Date().toISOString(),
+            },
+            ...rest,
+          ],
+        });
       },
 
       denyInvite: (invite) => {
