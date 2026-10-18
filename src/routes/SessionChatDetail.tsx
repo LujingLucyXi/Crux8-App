@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { NavArrowLeft, Send, Community, UserPlus } from 'iconoir-react';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/Input';
+import { UserProfileSheet } from '@/components/sheets/UserProfileSheet';
 import { Button } from '@/components/ui/Button';
 import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { ReactionPicker } from '@/components/chat/ReactionPicker';
@@ -33,6 +34,7 @@ export function SessionChatDetail() {
   const fetchThreadMessages = useAppStore((s) => s.fetchThreadMessages);
 
   const [text, setText] = useState('');
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -212,21 +214,34 @@ export function SessionChatDetail() {
                 )}
                 <div className={cn('flex gap-2', isMe ? 'justify-end' : 'justify-start')}>
                   {!isMe && (
-                    <Avatar
-                      photoUrl={author?.photo_url ?? undefined}
-                      config={author?.avatar}
-                      alt={author?.display_name ?? '?'}
-                      size={28}
-                      fallback={author?.display_name}
-                      className="mt-4"
-                    />
+                    <button
+                      type="button"
+                      aria-label={`View ${author?.display_name ?? 'profile'}`}
+                      onClick={() => m.from !== 'system' && setProfileUserId(m.from)}
+                      className="shrink-0"
+                    >
+                      <Avatar
+                        photoUrl={author?.photo_url ?? undefined}
+                        config={author?.avatar}
+                        alt={author?.display_name ?? '?'}
+                        size={28}
+                        fallback={author?.display_name}
+                        className="mt-4"
+                      />
+                    </button>
                   )}
                   <div className={cn('flex flex-col max-w-[75%]', isMe ? 'items-end' : 'items-start')}>
                     {/* Every message in a group/session thread carries its
                         sender's name (Lucy 2026-10-16) — including your
                         own, so who said what is never ambiguous. */}
                     <p className="text-[11px] font-semibold text-ink-700 mb-0.5">
-                      {userName(m.from)}
+                      {isMe || m.from === 'system' ? (
+                        userName(m.from)
+                      ) : (
+                        <button type="button" onClick={() => setProfileUserId(m.from)}>
+                          {userName(m.from)}
+                        </button>
+                      )}
                     </p>
                     {(() => {
                       // Shared calls/sessions render as joinable cards, not
@@ -302,6 +317,11 @@ export function SessionChatDetail() {
         group={chat.source === 'group' ? (groups.find((g) => g.id === chat.id) ?? null) : null}
         open={inviteOpen}
         onOpenChange={setInviteOpen}
+      />
+      <UserProfileSheet
+        userId={profileUserId}
+        open={!!profileUserId}
+        onOpenChange={(o) => !o && setProfileUserId(null)}
       />
     </div>
   );

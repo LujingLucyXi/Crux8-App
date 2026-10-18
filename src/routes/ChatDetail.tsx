@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { NavArrowLeft, Send, ShieldCheck } from 'iconoir-react';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/Input';
+import { UserProfileSheet } from '@/components/sheets/UserProfileSheet';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ReactionPicker } from '@/components/chat/ReactionPicker';
@@ -34,6 +35,7 @@ export function ChatDetail() {
   const setNewSessionOpen = useAppStore((s) => s.setNewSessionOpen);
   const me = useAppStore((s) => s.me);
   const [text, setText] = useState('');
+  const [profileOpen, setProfileOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Resolve through me/NPC/directory — this page used to search ONLY
@@ -115,9 +117,16 @@ export function ChatDetail() {
         <button onClick={() => nav('/chat')} aria-label="Back">
           <NavArrowLeft width={22} height={22} className="text-ink-700" />
         </button>
-        <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={36} fallback={user.display_name} />
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-ink-900 truncate">{user.display_name}</p>
+        {/* Avatar + name open the profile (Lucy 2026-10-17: tapping
+            the avatar in a chat should enter the user profile). */}
+        <button
+          type="button"
+          onClick={() => setProfileOpen(true)}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left"
+        >
+          <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={36} fallback={user.display_name} />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-ink-900 truncate">{user.display_name}</p>
           <div className="flex gap-1 mt-0.5">
             {(['top_rope', 'lead', 'trad'] as const)
               .filter((c) => verifMap[c] === 'verified')
@@ -130,8 +139,9 @@ export function ChatDetail() {
                   {c === 'top_rope' ? 'TR' : c === 'lead' ? 'Lead' : 'Trad'}
                 </span>
               ))}
+            </div>
           </div>
-        </div>
+        </button>
         {access === 'open' && userId && (
           <button
             type="button"
@@ -289,6 +299,7 @@ export function ChatDetail() {
           </div>
         </form>
       )}
+      <UserProfileSheet userId={userId ?? null} open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
   );
 }
