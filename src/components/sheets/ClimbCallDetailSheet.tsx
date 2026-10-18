@@ -37,6 +37,7 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
   const pairRequests = useAppStore((s) => s.pairRequests);
   const invites = useAppStore((s) => s.invites);
   const acceptInvite = useAppStore((s) => s.acceptInvite);
+  const denyInvite = useAppStore((s) => s.denyInvite);
   const requestPair = useAppStore((s) => s.requestPair);
   const cancelPairRequest = useAppStore((s) => s.cancelPairRequest);
   const requestCruxmate = useAppStore((s) => s.requestCruxmate);
@@ -66,7 +67,12 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
     (i) => i.kind === 'call' && i.target_id === call.id && i.to_id === me.id && i.status !== 'denied',
   );
   const isParticipant = call.participant_ids.includes(me.id);
-  const isIn = isRequested || isParticipant;
+  // An accepted invitation means I'm in — full stop. Deriving 'in'
+  // from the invite as well as the participant list keeps the sheet
+  // truthful even if the pairing row hasn't merged into this
+  // device's copy of the call yet (Lucy 2026-10-17 23:40: card said
+  // accepted, sheet still offered 'Request to pair').
+  const isIn = isRequested || isParticipant || myInvite?.status === 'accepted';
   const weightSafe = isWeightSafe(me.weight_kg, call.weight_kg);
   const isMyCall = caller.id === me.id;
   // The host can always start their own call (even solo — others can join
@@ -76,6 +82,10 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
   const handleRequest = async () => {
     if (isIn) {
       await cancelPairRequest(call.id);
+      // Leaving a call I entered by invitation closes the invite
+      // loop too — otherwise the still-'accepted' invite would keep
+      // deriving 'you're in' on every device.
+      if (myInvite?.status === 'accepted') denyInvite(myInvite);
       toast('You left this call');
       return;
     }
