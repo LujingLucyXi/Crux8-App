@@ -865,6 +865,42 @@ export async function upsertGroupRemote(group: Group): Promise<void> {
  * inside the document (member_ids / admin_ids), so membership reads
  * are jsonb containment queries, merged and deduped by id.
  */
+// ── Gym check-ins (public.gym_checkins) ─────────────────────────
+// One row per user: their current check-in. Cross-device by design
+// (Lucy 2026-10-17: a friend's phone check-in was invisible on his
+// computer — the state was browser-local). Freshness is judged by
+// the caller (a check-in older than ~6h no longer means 'here').
+
+export interface GymCheckinRow {
+  user_id: string;
+  gym_id: string;
+  checked_in_at: string;
+}
+
+export async function upsertCheckinRemote(userId: string, gymId: string): Promise<void> {
+  const { error } = await supabase
+    .from('gym_checkins')
+    .upsert(
+      { user_id: userId, gym_id: gymId, checked_in_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    );
+  if (error) throw new Error(`upsertCheckinRemote: ${error.message}`);
+}
+
+export async function deleteCheckinRemote(userId: string): Promise<void> {
+  const { error } = await supabase.from('gym_checkins').delete().eq('user_id', userId);
+  if (error) throw new Error(`deleteCheckinRemote: ${error.message}`);
+}
+
+export async function fetchActiveCheckinsRemote(sinceIso: string): Promise<GymCheckinRow[]> {
+  const { data, error } = await supabase
+    .from('gym_checkins')
+    .select('user_id,gym_id,checked_in_at')
+    .gte('checked_in_at', sinceIso);
+  if (error) throw new Error(`fetchActiveCheckinsRemote: ${error.message}`);
+  return asRows<GymCheckinRow>(data);
+}
+
 export async function fetchMyGroupsRemote(myId: string): Promise<Group[]> {
   const byId = new Map<string, Group>();
   const absorb = (rows: unknown) => {

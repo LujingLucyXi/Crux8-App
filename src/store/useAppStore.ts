@@ -103,6 +103,9 @@ import {
   type DirectoryProfile,
   upsertGroupRemote,
   fetchMyGroupsRemote,
+  upsertCheckinRemote,
+  deleteCheckinRemote,
+  fetchActiveCheckinsRemote,
   fetchGroupByIdRemote,
   insertChatMessageRemote,
   fetchThreadMessagesRemote,
@@ -418,6 +421,8 @@ interface Store {
   cancelPairRequest: (callId: string) => Promise<void>;
 
   checkIn: (gymId: string) => void;
+  /** Hydrate my check-in + real presence counts from the server. */
+  fetchCheckin: () => Promise<void>;
   checkOut: () => void;
 
   addXp: (amount: number) => void;
@@ -984,6 +989,7 @@ export const useAppStore = create<Store>()(
         void get().fetchMateRequests();
         void get().fetchMessageRequests();
         void get().fetchMyGroups();
+        void get().fetchCheckin();
         void get().fetchMyMessages();
         void get().fetchCollectedCards();
         get().ensureCruxyThread();
@@ -2075,6 +2081,10 @@ export const useAppStore = create<Store>()(
           presence[gymId] = (presence[gymId] ?? 0) + 1;
         }
         set({ checkin: { gym_id: gymId, at: new Date().toISOString() }, gymPresence: presence });
+        const meCi = get().me;
+        if (meCi && isUuid(meCi.id)) {
+          void upsertCheckinRemote(meCi.id, gymId).catch(() => {});
+        }
 
         // Reward the first check-in of each day; always celebrate the moment.
         const today = new Date().toISOString().slice(0, 10);
@@ -2097,6 +2107,45 @@ export const useAppStore = create<Store>()(
         const presence = { ...get().gymPresence };
         presence[cur.gym_id] = Math.max(0, (presence[cur.gym_id] ?? 1) - 1);
         set({ checkin: null, gymPresence: presence });
+        const meCo = get().me;
+        if (meCo && isUuid(meCo.id)) {
+          void deleteCheckinRemote(meCo.id).catch(() => {});
+        }
+      },
+
+      fetchCheckin: async () => {
+        const me = get().me;
+        if (!me || !isUuid(me.id)) return;
+        try {
+          const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+          const rows = await fetchActiveCheckinsRemote(since);
+          const mine = rows.find((r) => r.user_id === me.id);
+          // My check-in follows my account: the server row wins over
+          // whatever this browser last showed (the friend's report —
+          // phone check-in invisible on his computer). Exception: a
+          // check-in made seconds ago on THIS device whose upsert is
+          // still in flight — never let a refresh unseat it.
+          const local = get().checkin;
+          const localFresh = local && Date.now() - new Date(local.at).getTime() < 2 * 60 * 1000;
+          if (!localFresh) {
+            set({ checkin: mine ? { gym_id: mine.gym_id, at: mine.checked_in_at } : null });
+          }
+          // Presence becomes real: seeded baselines + actual fresh
+          // check-ins (mine included via the row, so no local +1
+          // double-count — the local theater increment is retired
+          // wherever server rows speak).
+          const presence: Record<string, number> = {};
+          for (const g of get().gyms) presence[g.id] = g.here_now;
+          for (const r of rows) presence[r.gym_id] = (presence[r.gym_id] ?? 0) + 1;
+          if (get().checkin && !mine) {
+            // Local-only leftover (pre-table or failed write): keep
+            // counting myself until the write lands.
+            presence[get().checkin!.gym_id] = (presence[get().checkin!.gym_id] ?? 0) + 1;
+          }
+          set({ gymPresence: presence });
+        } catch {
+          /* table pending — device-local check-in keeps working */
+        }
       },
 
       addXp: (amount) => {
