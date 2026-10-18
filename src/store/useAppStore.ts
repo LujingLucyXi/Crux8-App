@@ -107,6 +107,7 @@ import {
   insertChatMessageRemote,
   fetchThreadMessagesRemote,
   fetchMyDmMessagesRemote,
+  type RemoteChatMessage,
   updateChatMessageReactionsRemote,
   dmThreadKey,
   upsertCollectedCardRemote,
@@ -231,6 +232,9 @@ interface Store {
   fetchMateRequests: () => Promise<void>;
   fetchMyGroups: () => Promise<void>;
   fetchMyMessages: () => Promise<void>;
+  startDmRealtime: () => void;
+  stopDmRealtime: () => void;
+  receiveDmMessage: (row: RemoteChatMessage) => void;
   fetchThreadMessages: (
     kind: 'dm' | 'session' | 'event' | 'call' | 'group',
     id: string,
@@ -752,6 +756,8 @@ const initialFilters: Filters = {
 
 /** Guards the onAuthStateChange subscription in initAuth (module singleton). */
 let initAuthSubscribed = false;
+let dmRealtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+let dmRealtimeUserId: string | null = null;
 
 /**
  * Fresh accounts' profile rows are created by a DB trigger that can
@@ -1389,6 +1395,7 @@ export const useAppStore = create<Store>()(
             if (row?.display_name && row.display_name !== cur.display_name) {
               set({ me: { ...cur, display_name: row.display_name } });
             }
+            get().startDmRealtime();
             return;
           }
           get().prepareForUser(userId);
@@ -1425,6 +1432,7 @@ export const useAppStore = create<Store>()(
             void persistProfilePatch(userId, { photo_url: localBefore.photo_url });
           }
           set({ me: isGuest ? { ...profile, isGuest: true } : profile });
+          get().startDmRealtime();
           // Provider-confirmed emails are proof of inbox ownership by
           // construction — Google sign-in and email-code sign-in both
           // arrive with email_confirmed_at set. Mark them verified so
@@ -1480,6 +1488,7 @@ export const useAppStore = create<Store>()(
         const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
         const sessionUser = data.session?.user ?? null;
         if (!sessionUser) {
+          get().stopDmRealtime();
           if (get().me) set({ me: null });
         } else {
           await applySessionUser(sessionUser.id, sessionUser.email ?? '', sessionUser.is_anonymous === true, sessionUser.email_confirmed_at, (sessionUser.user_metadata?.full_name as string | undefined) ?? (sessionUser.user_metadata?.name as string | undefined));
@@ -1504,6 +1513,7 @@ export const useAppStore = create<Store>()(
               return;
             }
             if (event === 'SIGNED_OUT') {
+              get().stopDmRealtime();
               set({ me: null });
             } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
               await applySessionUser(session.user.id, session.user.email ?? '', session.user.is_anonymous === true, session.user.email_confirmed_at, (session.user.user_metadata?.full_name as string | undefined) ?? (session.user.user_metadata?.name as string | undefined));
@@ -1562,6 +1572,7 @@ export const useAppStore = create<Store>()(
 
       signOut: async () => {
         await supabase.auth.signOut().catch(() => {});
+        get().stopDmRealtime();
         set({ me: null });
       },
 
@@ -1641,6 +1652,7 @@ export const useAppStore = create<Store>()(
       },
 
       resetAll: () => {
+        get().stopDmRealtime();
         set({
           me: null,
           sessions: [],
@@ -2606,7 +2618,9 @@ export const useAppStore = create<Store>()(
             body: text,
             reactions: [],
             created_at: msg.sent_at,
-          }).catch(() => {});
+          }).catch((error) => {
+            console.error('[chat] message send failed', error);
+          });
         }
         // Cruxy bot auto-replies (rule-based, no backend needed).
         if (userId === 'cruxy') {
@@ -2993,9 +3007,71 @@ export const useAppStore = create<Store>()(
             chats[peer] = mergeChatMessages(chats[peer] ?? [], msgs);
           }
           set({ chats });
-        } catch {
-          /* chats table pending — device-local threads keep working */
+        } catch (error) {
+          console.warn('[chat] inbox sync failed', error);
         }
+      },
+
+      startDmRealtime: () => {
+        const me = get().me;
+        if (!me || !isUuid(me.id)) {
+          get().stopDmRealtime();
+          return;
+        }
+        if (dmRealtimeChannel && dmRealtimeUserId === me.id) return;
+        get().stopDmRealtime();
+
+        dmRealtimeUserId = me.id;
+        const handleChange = (payload: { new: unknown }) => {
+          const row = payload.new as RemoteChatMessage;
+          if (row?.thread_kind === 'dm' && row.id) get().receiveDmMessage(row);
+        };
+        dmRealtimeChannel = supabase
+          .channel(`dm-inbox:${me.id}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'chat_messages', filter: `peer_id=eq.${me.id}` },
+            handleChange,
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'chat_messages', filter: `sender_id=eq.${me.id}` },
+            handleChange,
+          )
+          .subscribe((status, error) => {
+            if (status === 'SUBSCRIBED') {
+              // Reconcile messages sent while this device was offline.
+              void get().fetchMyMessages();
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              console.warn('[chat] realtime subscription failed', error);
+            }
+          });
+      },
+
+      stopDmRealtime: () => {
+        if (dmRealtimeChannel) void supabase.removeChannel(dmRealtimeChannel);
+        dmRealtimeChannel = null;
+        dmRealtimeUserId = null;
+      },
+
+      receiveDmMessage: (row) => {
+        const me = get().me;
+        if (!me || row.thread_kind !== 'dm') return;
+        const peer = row.sender_id === me.id ? row.peer_id : row.sender_id;
+        if (!peer || row.thread_id !== dmThreadKey(me.id, peer)) return;
+        const message: ChatMessage = {
+          id: row.id,
+          from: row.sender_id === me.id ? 'me' : row.sender_id,
+          text: row.body,
+          sent_at: row.created_at,
+          reactions: row.reactions?.length ? row.reactions : undefined,
+        };
+        set({
+          chats: {
+            ...get().chats,
+            [peer]: mergeChatMessages(get().chats[peer] ?? [], [message]),
+          },
+        });
       },
 
       fetchThreadMessages: async (kind, id) => {
@@ -3035,8 +3111,8 @@ export const useAppStore = create<Store>()(
               },
             });
           }
-        } catch {
-          /* chats table pending — device-local threads keep working */
+        } catch (error) {
+          console.warn('[chat] thread sync failed', error);
         }
       },
 
