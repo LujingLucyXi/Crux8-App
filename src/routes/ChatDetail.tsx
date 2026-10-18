@@ -266,12 +266,27 @@ export function ChatDetail() {
             e.preventDefault();
             handleSend();
           }}
-          className="px-4 py-3 border-t border-ink-100 bg-paper-100 flex gap-2"
+          className="px-4 py-3 border-t border-ink-100 bg-paper-100"
         >
-          <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a message" />
-          <Button type="submit" size="icon" disabled={!text.trim()}>
-            <Send width={18} height={18} />
-          </Button>
+          {/* Send lives INSIDE the pill (Lucy 2026-10-17: the loose
+              side button 'didn't fit' the composer) — one rounded
+              bar, button inset right, vertically centered by
+              construction. */}
+          <div className="relative">
+            <Input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Type a message"
+              className="h-11 rounded-full pr-12"
+            />
+            <Button
+              type="submit"
+              disabled={!text.trim()}
+              className="absolute right-1 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full p-0"
+            >
+              <Send width={16} height={16} />
+            </Button>
+          </div>
         </form>
       )}
     </div>
