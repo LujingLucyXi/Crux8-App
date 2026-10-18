@@ -43,6 +43,19 @@ export function ShareMessage({
   if (share && (session || call)) {
     return <ShareCard call={call} session={session} />;
   }
+  if (share) {
+    // Never flash the raw text+link version (Lucy 2026-10-17): while
+    // the entity resolves, render a placeholder in the card's own
+    // shell — the real invitation card swaps into the same footprint.
+    return (
+      <div className="w-[270px] max-w-full rounded-2xl border border-brand-600/50 bg-paper-100 p-3">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-brand-600">
+          🧗 Invitation
+        </p>
+        <p className="mt-1 text-sm text-ink-500">Loading invitation…</p>
+      </div>
+    );
+  }
   return (
     <div
       className={cn(

@@ -35,6 +35,8 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
   const gyms = useAppStore((s) => s.gyms);
   const cruxmates = useAppStore((s) => s.cruxmates);
   const pairRequests = useAppStore((s) => s.pairRequests);
+  const invites = useAppStore((s) => s.invites);
+  const acceptInvite = useAppStore((s) => s.acceptInvite);
   const requestPair = useAppStore((s) => s.requestPair);
   const cancelPairRequest = useAppStore((s) => s.cancelPairRequest);
   const requestCruxmate = useAppStore((s) => s.requestCruxmate);
@@ -52,7 +54,19 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
   // NPC-only fields (verifications, pronouns) aren't on resolved directory users.
   const callerNpc = users.find((u) => u.id === call.user_id);
 
-  const isRequested = pairRequests.includes(call.id);  const isFriend = cruxmates.includes(caller.id);
+  const isRequested = pairRequests.includes(call.id);
+  const isFriend = cruxmates.includes(caller.id);
+  // Invitation state drives this sheet for invitees (Lucy
+  // 2026-10-17: 'Invitation shouldn't have request to pair'): an
+  // invited guest Accepts — they never 'request'. Participant state
+  // comes from the server-backed participant_ids, not the
+  // device-local pairRequests, so the sheet agrees with the card
+  // ('✓ You accepted') on every device.
+  const myInvite = invites.find(
+    (i) => i.kind === 'call' && i.target_id === call.id && i.to_id === me.id && i.status !== 'denied',
+  );
+  const isParticipant = call.participant_ids.includes(me.id);
+  const isIn = isRequested || isParticipant;
   const weightSafe = isWeightSafe(me.weight_kg, call.weight_kg);
   const isMyCall = caller.id === me.id;
   // The host can always start their own call (even solo — others can join
@@ -60,7 +74,7 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
   const canStart = call.status === 'live' && (isMyCall || call.participant_ids.length >= 2);
 
   const handleRequest = async () => {
-    if (isRequested) {
+    if (isIn) {
       await cancelPairRequest(call.id);
       toast('You left this call');
       return;
@@ -193,13 +207,23 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
                     End call
                   </button>
                 </>
+              ) : myInvite?.status === 'pending' && !isParticipant ? (
+                <Button
+                  className="bg-teal-600 hover:bg-teal-500 border-teal-600"
+                  onClick={() => {
+                    acceptInvite(myInvite);
+                    toast("You're in — invitation accepted");
+                  }}
+                >
+                  Accept invitation
+                </Button>
               ) : (
                 <Button
-                  variant={isRequested ? 'outline' : 'primary'}
-                  className={isRequested ? '' : 'bg-teal-600 hover:bg-teal-500 border-teal-600'}
+                  variant={isIn ? 'outline' : 'primary'}
+                  className={isIn ? '' : 'bg-teal-600 hover:bg-teal-500 border-teal-600'}
                   onClick={handleRequest}
                 >
-                  {isRequested ? 'Leave call' : 'Request to pair'}
+                  {isIn ? 'Leave call' : 'Request to pair'}
                 </Button>
               )}
               <Button variant="outline" onClick={() => setShareOpen(true)}>
