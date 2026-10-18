@@ -45,6 +45,10 @@ export function FilterRow() {
   const [open, setOpen] = useState<Key | null>(null);
 
   const { l1, env } = filters;
+  const styleSel = filters.climb_styles ?? [];
+  const ropeInPlay =
+    styleSel.length === 0 ||
+    styleSel.some((x) => ['top_rope', 'lead', 'outdoor_sport', 'trad', 'multi_pitch'].includes(x));
   const levelBands = bandsForStyles(filters.climb_styles ?? []);
   // A band from the other grading system can't survive a style
   // change (Boulder picked while '5.10a–5.10c' was selected).
@@ -71,10 +75,6 @@ export function FilterRow() {
   // Belay roles + weight-safety are ROPE concepts: bouldering has no
   // belayer (Lucy 2026-10-17: 'boulder shouldn't have these roles').
   // They show when rope styles are in play or nothing is selected.
-  const styleSel = filters.climb_styles ?? [];
-  const ropeInPlay =
-    styleSel.length === 0 ||
-    styleSel.some((x) => ['top_rope', 'lead', 'outdoor_sport', 'trad', 'multi_pitch'].includes(x));
   const showRole = l1 === 'climb' && ropeInPlay;
   const showFree = l1 === 'event';
 
