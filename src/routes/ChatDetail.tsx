@@ -277,7 +277,7 @@ export function ChatDetail() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Type a message"
-              className="h-11 rounded-full pr-12"
+              className="h-11 rounded-full pr-12 text-base"
             />
             <Button
               type="submit"

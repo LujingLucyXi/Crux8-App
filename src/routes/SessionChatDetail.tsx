@@ -265,7 +265,7 @@ export function SessionChatDetail() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={`Message ${chat.title}`}
-            className="h-11 rounded-full pr-12"
+            className="h-11 rounded-full pr-12 text-base"
           />
           <Button
             type="submit"
