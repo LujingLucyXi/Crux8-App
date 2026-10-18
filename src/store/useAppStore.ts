@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { toast } from 'sonner';
 import type {
   Profile,
   Session,
@@ -88,6 +89,7 @@ import {
   setInviteStatusRemote,
   createMateRequestRemote,
   fetchMyMateRequests,
+  fetchProfileByInviteCode,
   deleteMateRequestRemote,
   createMessageRequestRemote,
   fetchMyMessageRequests,
@@ -111,7 +113,7 @@ import {
 import { resolveUser } from '@/lib/resolveUser';
 import { normalizeInviteCode, isValidInviteCode, randomInviteCode } from '@/lib/inviteCode';
 import { hasStarted, sessionPhase, type SessionLifecycle } from '@/lib/sessionPhase';
-import { getPendingIntent, pendingIntentPath } from '@/lib/pendingIntent';
+import { getPendingIntent, hasFreshPendingIntent, pendingIntentPath } from '@/lib/pendingIntent';
 
 export type Verification = { status: VerificationStatus; photo_url?: string; verified_at?: string; attested_at?: string };
 
@@ -240,6 +242,10 @@ interface Store {
    *  Returns what happened so callers can pick the right copy. */
   requestCruxmate: (userId: string) => 'sent' | 'requested' | 'accepted' | 'already' | 'instant';
   autoBefriendInviter: (inviterId: string) => void;
+  /** Resume an unfinished invite-link auto-befriend: a fresh 'add'
+   *  intent that survived an auth detour, or a stored marker whose
+   *  server rows never confirmed. Idempotent. */
+  resumePendingBefriend: () => Promise<void>;
   /** Invite auto-friend (Lucy 2026-10-17): anyone I invite (session,
    *  call, or crew) becomes my cruxmate at send time — no follow
    *  step, no follow-back wait. */
@@ -638,6 +644,36 @@ export function countActionableInvites(s: {
   sessionLifecycle: Record<string, SessionLifecycle>;
 }): number {
   return s.invites.filter((i) => isInviteActionable(i, s)).length;
+}
+
+// ── Pending auto-befriend marker ─────────────────────────────────
+// An invite-link join must end with the pair written SERVER-side.
+// The befriend RPC can silently no-op (it returns void even when
+// auth.uid() was null mid-Google-redirect), so the client keeps the
+// inviter's id in localStorage until a server read CONFIRMS both
+// follow rows exist; AppShell resumes the attempt whenever the
+// signed-in identity materializes or the app regains focus.
+const PENDING_BEFRIEND_KEY = 'crux8-pending-befriend';
+function readPendingBefriend(): string | null {
+  try {
+    return localStorage.getItem(PENDING_BEFRIEND_KEY);
+  } catch {
+    return null;
+  }
+}
+function writePendingBefriend(id: string): void {
+  try {
+    localStorage.setItem(PENDING_BEFRIEND_KEY, id);
+  } catch {
+    /* storage unavailable — the in-memory attempt still runs */
+  }
+}
+function clearPendingBefriend(): void {
+  try {
+    localStorage.removeItem(PENDING_BEFRIEND_KEY);
+  } catch {
+    /* ok */
+  }
 }
 
 /** Short display label for a launch-city slug, e.g. 'greater-seattle' → 'Seattle'. */
@@ -3041,17 +3077,61 @@ export const useAppStore = create<Store>()(
           set({ mateRequests: rows, cruxmates: [...get().cruxmates, inviterId] });
           get().collectCard(inviterId, 'cruxmate');
         }
+        writePendingBefriend(inviterId);
         void (async () => {
+          // The RPC returning success is NOT proof: it no-ops
+          // silently when auth.uid() is null (fresh Google sign-in).
+          // Only a server read showing BOTH rows counts as landed.
+          const verify = async (): Promise<boolean> => {
+            try {
+              const rows = await fetchMyMateRequests(me.id);
+              const live = rows.filter((r) => r.status !== 'denied');
+              return (
+                live.some((r) => r.from_id === me.id && r.to_id === inviterId) &&
+                live.some((r) => r.from_id === inviterId && r.to_id === me.id)
+              );
+            } catch {
+              return false;
+            }
+          };
           let ok = await befriendInviterRemote(inviterId).catch(() => false);
+          if (ok) ok = await verify();
           if (!ok) {
             await new Promise((r) => setTimeout(r, 1500));
             ok = await befriendInviterRemote(inviterId).catch(() => false);
+            if (ok) ok = await verify();
           }
-          // Reconcile only on success — a failed RPC keeps the local
-          // pair (both directions) instead of erasing the inviter's
-          // half of the friendship.
-          if (ok) await get().fetchMateRequests();
+          if (ok) {
+            clearPendingBefriend();
+            await get().fetchMateRequests();
+          }
+          // Still unlanded: the marker + local pair persist; the
+          // next sign-in / app focus resumes via resumePendingBefriend.
         })();
+      },
+
+      resumePendingBefriend: async () => {
+        const me = get().me;
+        if (!me || !isUuid(me.id)) return;
+        // (a) A fresh invite-link intent that survived an auth detour
+        // (Google redirect especially): befriend the inviter no
+        // matter which route the user landed on. The /add page can
+        // still consume the intent itself for its celebration state.
+        if (hasFreshPendingIntent()) {
+          const intent = getPendingIntent();
+          if (intent?.type === 'add') {
+            const prof = await fetchProfileByInviteCode(intent.id).catch(() => null);
+            if (prof && prof.id !== me.id && isUuid(prof.id)) {
+              if (readPendingBefriend() !== prof.id) get().autoBefriendInviter(prof.id);
+              return;
+            }
+          }
+        }
+        // (b) An earlier auto-befriend that never confirmed.
+        const marker = readPendingBefriend();
+        if (marker && marker !== me.id && isUuid(marker)) {
+          get().autoBefriendInviter(marker);
+        }
       },
 
       requestCruxmate: (userId) => {
@@ -3080,7 +3160,22 @@ export const useAppStore = create<Store>()(
         };
         set({ mateRequests: [...get().mateRequests, row] });
         if (isUuid(me.id)) {
-          void createMateRequestRemote(row).catch(() => {});
+          void (async () => {
+            try {
+              await createMateRequestRemote(row);
+            } catch {
+              await new Promise((r) => setTimeout(r, 1500));
+              try {
+                await createMateRequestRemote(row);
+              } catch {
+                // Two failures: say so instead of letting the local
+                // optimistic row masquerade as a delivered follow
+                // (Lucy 2026-10-17: 'I followed him and he never
+                // saw it' — silent write failures are how).
+                toast.error("Follow didn't reach the server — check your connection and try again.");
+              }
+            }
+          })();
         }
         if (followsMe) {
           // Follow-back: the mutual state forms on THIS tap. This side
