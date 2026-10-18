@@ -62,7 +62,7 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
   const handleRequest = async () => {
     if (isRequested) {
       await cancelPairRequest(call.id);
-      toast('Pair request canceled');
+      toast('You left this call');
       return;
     }
     await requestPair(call.id);
@@ -199,7 +199,7 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
                   className={isRequested ? '' : 'bg-teal-600 hover:bg-teal-500 border-teal-600'}
                   onClick={handleRequest}
                 >
-                  {isRequested ? 'Cancel pair request' : 'Request to pair'}
+                  {isRequested ? 'Leave call' : 'Request to pair'}
                 </Button>
               )}
               <Button variant="outline" onClick={() => setShareOpen(true)}>

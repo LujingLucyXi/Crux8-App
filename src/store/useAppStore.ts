@@ -1608,6 +1608,13 @@ export const useAppStore = create<Store>()(
         await supabase.auth.signOut().catch(() => {});
         get().stopDmRealtime();
         get().stopSessionRealtime();
+        // Wipe the user-scoped slices BEFORE me goes null (Lucy
+        // 2026-10-17: signed out, signed in with another Gmail, and
+        // saw the FIRST account's chat history). prepareForUser keys
+        // its account-switch wipe off the previous me — with me
+        // already null it early-returns, so the next account used to
+        // inherit everything local: chats, friends, invites, cards.
+        get().prepareForUser('signed-out');
         set({ me: null });
       },
 
