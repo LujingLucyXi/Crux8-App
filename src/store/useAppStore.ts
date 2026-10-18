@@ -1498,6 +1498,16 @@ export const useAppStore = create<Store>()(
           void get().fetchMyGroups();
           void get().fetchMyMessages();
           void get().fetchCollectedCards();
+          // The follow graph + invites hydrate HERE too — at the one
+          // point every session path passes through (restore,
+          // sign-in, token refresh). They were missing, so a cold
+          // browser (Lucy 2026-10-17: signed in on the web and her
+          // whole DM list was gone) rebuilt cruxmates from nothing
+          // and only recovered if a heartbeat tick happened to land
+          // while she stared at the empty list.
+          void get().fetchMateRequests();
+          void get().fetchInvites();
+          void get().fetchMessageRequests();
         };
         const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
         const sessionUser = data.session?.user ?? null;

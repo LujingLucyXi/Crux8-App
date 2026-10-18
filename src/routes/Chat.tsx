@@ -5,6 +5,7 @@ import { NewCrewSheet } from '@/components/sheets/NewCrewSheet';
 import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { UserProfileSheet } from '@/components/sheets/UserProfileSheet';
 import { useAppStore, dmKey, scKey } from '@/store/useAppStore';
+import { isUuid } from '@/lib/db';
 import { formatChatTimestamp } from '@/lib/date';
 import { resolveUser } from '@/lib/resolveUser';
 import { cn } from '@/lib/utils';
@@ -54,7 +55,13 @@ export function Chat() {
   // Most recent chat floats to the top (Lucy 2026-10-17): DM rows
   // used to render in friendship-formation order, so the person you
   // just talked to sat at the bottom under never-messaged contacts.
-  const dmIds = [...new Set([...cruxmates, ...acceptedCounterpartIds])]
+  // Anyone I actually have messages with belongs in this list even
+  // if the follow graph hasn't synced them in yet — a conversation
+  // is a fact, not a derivation (Lucy 2026-10-17 web report).
+  const messagedIds = Object.entries(chats)
+    .filter(([id, msgs]) => msgs.length > 0 && id !== 'cruxy' && isUuid(id))
+    .map(([id]) => id);
+  const dmIds = [...new Set([...cruxmates, ...acceptedCounterpartIds, ...messagedIds])]
     .map((id, idx) => {
       const msgs = chats[id] ?? [];
       return { id, idx, lastAt: msgs.length ? msgs[msgs.length - 1].sent_at : '' };
