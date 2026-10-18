@@ -132,8 +132,15 @@ export function AddDeepLink() {
 
   // Stash the add target before any auth detour so the link survives
   // sign-in + onboarding and lands back here.
+  const stashPendingBefriendCode = useAppStore((s) => s.stashPendingBefriendCode);
   useEffect(() => {
-    if (!me && valid) savePendingIntent({ type: 'add', id: code });
+    if (!me && valid) {
+      savePendingIntent({ type: 'add', id: code });
+      // The code gets its own marker too: the intent can be consumed
+      // by other flows mid-detour, but the join → cruxmates promise
+      // must survive until the server confirms it (Lucy 2026-10-17).
+      stashPendingBefriendCode(code);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me?.id, code, valid]);
 

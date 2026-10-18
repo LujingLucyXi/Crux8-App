@@ -246,6 +246,11 @@ interface Store {
    *  intent that survived an auth detour, or a stored marker whose
    *  server rows never confirmed. Idempotent. */
   resumePendingBefriend: () => Promise<void>;
+  /** Stash an invite CODE for a later auto-befriend (called by the
+   *  /add page when a logged-out visitor lands: the code must
+   *  survive any auth detour, even if the pending intent itself
+   *  gets consumed elsewhere). */
+  stashPendingBefriendCode: (code: string) => void;
   /** Invite auto-friend (Lucy 2026-10-17): anyone I invite (session,
    *  call, or crew) becomes my cruxmate at send time — no follow
    *  step, no follow-back wait. */
@@ -654,6 +659,21 @@ export function countActionableInvites(s: {
 // follow rows exist; AppShell resumes the attempt whenever the
 // signed-in identity materializes or the app regains focus.
 const PENDING_BEFRIEND_KEY = 'crux8-pending-befriend';
+const PENDING_BEFRIEND_CODE_KEY = 'crux8-pending-befriend-code';
+function readPendingBefriendCode(): string | null {
+  try {
+    return localStorage.getItem(PENDING_BEFRIEND_CODE_KEY);
+  } catch {
+    return null;
+  }
+}
+function clearPendingBefriendCode(): void {
+  try {
+    localStorage.removeItem(PENDING_BEFRIEND_CODE_KEY);
+  } catch {
+    /* ok */
+  }
+}
 function readPendingBefriend(): string | null {
   try {
     return localStorage.getItem(PENDING_BEFRIEND_KEY);
@@ -3103,6 +3123,7 @@ export const useAppStore = create<Store>()(
           }
           if (ok) {
             clearPendingBefriend();
+            clearPendingBefriendCode();
             await get().fetchMateRequests();
           }
           // Still unlanded: the marker + local pair persist; the
@@ -3110,21 +3131,32 @@ export const useAppStore = create<Store>()(
         })();
       },
 
+      stashPendingBefriendCode: (code) => {
+        try {
+          localStorage.setItem(PENDING_BEFRIEND_CODE_KEY, code);
+        } catch {
+          /* storage unavailable */
+        }
+      },
+
       resumePendingBefriend: async () => {
         const me = get().me;
         if (!me || !isUuid(me.id)) return;
-        // (a) A fresh invite-link intent that survived an auth detour
-        // (Google redirect especially): befriend the inviter no
-        // matter which route the user landed on. The /add page can
-        // still consume the intent itself for its celebration state.
-        if (hasFreshPendingIntent()) {
-          const intent = getPendingIntent();
-          if (intent?.type === 'add') {
-            const prof = await fetchProfileByInviteCode(intent.id).catch(() => null);
-            if (prof && prof.id !== me.id && isUuid(prof.id)) {
-              if (readPendingBefriend() !== prof.id) get().autoBefriendInviter(prof.id);
-              return;
-            }
+        // (a) An invite-link intent / stashed code that survived an
+        // auth detour (Google redirect especially): befriend the
+        // inviter no matter which route the user landed on, and no
+        // matter how long the detour took — joining through
+        // someone's link means you're their cruxmate, full stop
+        // (Lucy 2026-10-17). The /add page can still consume the
+        // intent itself for its celebration state.
+        const code = getPendingIntent()?.type === 'add'
+          ? getPendingIntent()!.id
+          : readPendingBefriendCode();
+        if (code) {
+          const prof = await fetchProfileByInviteCode(code).catch(() => null);
+          if (prof && prof.id !== me.id && isUuid(prof.id)) {
+            if (readPendingBefriend() !== prof.id) get().autoBefriendInviter(prof.id);
+            return;
           }
         }
         // (b) An earlier auto-befriend that never confirmed.
