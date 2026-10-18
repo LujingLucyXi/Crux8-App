@@ -68,6 +68,8 @@ import {
 import { celebrate } from '@/store/useCelebration';
 import {
   fetchSessions as dbFetchSessions,
+  fetchSessionById,
+  fetchCallById,
   createSession as dbCreateSession,
   updateSession as dbUpdateSession,
   setSessionLifecycle as dbSetSessionLifecycle,
@@ -449,6 +451,8 @@ interface Store {
   addGroupMember: (groupId: string, userId: string) => void;
   inviteToGroup: (groupId: string, userId: string) => void;
   ensureGroupDoc: (groupId: string) => Promise<void>;
+  ensureSessionById: (sessionId: string) => Promise<void>;
+  ensureCallById: (callId: string) => Promise<void>;
   sentGroupInvites: Record<string, string[]>;
   updateGroup: (groupId: string, patch: Partial<Group>) => void;
   openGroupChat: (groupId: string) => void;
@@ -2490,6 +2494,28 @@ export const useAppStore = create<Store>()(
       // Pull one crew document I don't have locally (an invite names
       // a crew I'm not a member of yet) so its name/roster can
       // render and Accept can join it.
+      ensureSessionById: async (sessionId) => {
+        if (get().sessions.some((s) => s.id === sessionId)) return;
+        try {
+          const s = await fetchSessionById(sessionId);
+          if (!s || get().sessions.some((x) => x.id === sessionId)) return;
+          set({ sessions: [...get().sessions, s] });
+        } catch {
+          /* unresolved links stay raw text */
+        }
+      },
+
+      ensureCallById: async (callId) => {
+        if (get().climbCalls.some((c) => c.id === callId)) return;
+        try {
+          const c = await fetchCallById(callId);
+          if (!c || get().climbCalls.some((x) => x.id === callId)) return;
+          set({ climbCalls: [...get().climbCalls, c] });
+        } catch {
+          /* unresolved links stay raw text */
+        }
+      },
+
       ensureGroupDoc: async (groupId) => {
         if (get().groups.some((g) => g.id === groupId)) return;
         try {

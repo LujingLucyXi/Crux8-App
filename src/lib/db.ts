@@ -168,6 +168,38 @@ function mapCallRow(row: ClimbCallRow, participantIds: string[]): ClimbCall {
  * With `meId`, also attaches each session's approval state: my own
  * RSVP status (so a pending request survives refresh) and, on
  * sessions I host, the pending requester ids. */
+/** One session by id — the chat link resolver's on-demand fetch, so a
+ *  shared /session/<id> link renders its card even when the viewer's
+ *  sessions list predates the session (or never included it). */
+export async function fetchSessionById(id: string): Promise<Session | null> {
+  const { data, error } = await supabase.from('sessions').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(`fetchSessionById: ${error.message}`);
+  if (!data) return null;
+  const row = data as SessionRow;
+  const { data: rsvpData } = await supabase
+    .from('session_rsvps')
+    .select('session_id,user_id')
+    .eq('session_id', id)
+    .eq('status', 'going');
+  const ids = asRows<RsvpRow>(rsvpData ?? []).map((r) => r.user_id);
+  return mapSessionRow(row, ids);
+}
+
+/** One climb call by id — same on-demand resolver for /call/<id> links. */
+export async function fetchCallById(id: string): Promise<ClimbCall | null> {
+  const { data, error } = await supabase.from('climb_calls').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(`fetchCallById: ${error.message}`);
+  if (!data) return null;
+  const row = data as ClimbCallRow;
+  const { data: pairingData } = await supabase
+    .from('call_pairings')
+    .select('call_id,user_id')
+    .eq('call_id', id)
+    .in('status', ['requested', 'confirmed']);
+  const ids = asRows<PairingRow>(pairingData ?? []).map((r) => r.user_id);
+  return mapCallRow(row, ids);
+}
+
 export async function fetchSessions(meId?: string): Promise<Session[]> {
   const cutoff = new Date(Date.now() - 7 * 86400_000).toISOString();
   const { data, error } = await supabase

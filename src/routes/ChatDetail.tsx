@@ -7,7 +7,7 @@ import { UserProfileSheet } from '@/components/sheets/UserProfileSheet';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { ReactionPicker } from '@/components/chat/ReactionPicker';
-import { ShareCard, parseShareLink } from '@/components/chat/ShareCard';
+import { ShareMessage } from '@/components/chat/ShareMessage';
 import { useAppStore, dmKey } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { resolveUser } from '@/lib/resolveUser';
@@ -195,26 +195,11 @@ export function ChatDetail() {
                     </p>
                   )}
                   <div className={cn('flex flex-col', isMe ? 'items-end' : 'items-start')}>
-                    {(() => {
-                      const share = parseShareLink(m.text);
-                      const sharedCall = share?.kind === 'call' ? climbCalls.find((c) => c.id === share.id) : undefined;
-                      const sharedSession = share?.kind === 'session' ? sessions.find((s) => s.id === share.id) : undefined;
-                      if (sharedCall || sharedSession) {
-                        return <ShareCard call={sharedCall} session={sharedSession} />;
-                      }
-                      return (
-                        <div
-                          className={cn(
-                            'max-w-[80%] rounded-2xl px-3.5 py-2 text-sm',
-                            isMe
-                              ? 'bg-brand-600 text-[#161310] rounded-tr-md'
-                              : 'bg-paper-100 border border-ink-100 text-ink-900 rounded-tl-md',
-                          )}
-                        >
-                          {m.text}
-                        </div>
-                      );
-                    })()}
+                    <ShareMessage
+                      text={m.text}
+                      isMe={isMe}
+                      bubbleClassName="max-w-[80%] rounded-2xl px-3.5 py-2 text-sm"
+                    />
                     <ReactionPicker
                       reactions={m.reactions}
                       meId={me?.id ?? 'me'}
