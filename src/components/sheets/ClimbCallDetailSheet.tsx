@@ -91,7 +91,10 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
       toast('You left this call');
       return;
     }
-    await requestPair(call.id);
+    const paired = await requestPair(call.id);
+    // A refused pairing (time-slot conflict) already explained itself
+    // via toast — no follow, no intro DM, no success state.
+    if (!paired) return;
     // Cruxmate status follows the follow model (Lucy 2026-10-15): a pair
     // request FOLLOWS the host alongside — never a silent add. If the
     // host follows back, the mutual state makes them cruxmates. NPC
@@ -351,7 +354,7 @@ function EditCallForm({ call, onDone }: { call: ClimbCall; onDone: () => void })
       return;
     }
     setSaving(true);
-    await updateClimbCall(call.id, {
+    const savedOk = await updateClimbCall(call.id, {
       title: title.trim() || null,
       looking_for: lookingFor,
       category,
@@ -364,6 +367,9 @@ function EditCallForm({ call, onDone }: { call: ClimbCall; onDone: () => void })
       capacity,
     });
     setSaving(false);
+    // A refused retime already toasted its reason; only claim
+    // success (and close) when the save actually landed.
+    if (!savedOk) return;
     toast.success('Call updated');
     onDone();
   };

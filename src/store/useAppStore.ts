@@ -416,11 +416,11 @@ interface Store {
   updateSession: (id: string, patch: Partial<Session>) => Promise<void>;
   postEvent: (event: Omit<EventItem, 'id' | 'attendee_ids' | 'waitlist_ids'>) => EventItem;
   postClimbCall: (call: Omit<ClimbCall, 'id' | 'user_id' | 'status' | 'participant_ids'>) => Promise<ClimbCall>;
-  updateClimbCall: (id: string, patch: ClimbCallPatch) => Promise<void>;
+  updateClimbCall: (id: string, patch: ClimbCallPatch) => Promise<boolean>;
   /** Host ends their own live call: it retires everywhere (status 'expired'). */
   cancelClimbCall: (id: string) => Promise<void>;
   reopenClimbCall: (id: string) => Promise<void>;
-  requestPair: (callId: string) => Promise<void>;
+  requestPair: (callId: string) => Promise<boolean>;
   cancelPairRequest: (callId: string) => Promise<void>;
 
   checkIn: (gymId: string) => void;
@@ -610,6 +610,30 @@ function cruxyWelcomeMessages(): ChatMessage[] {
  * than me AND was sent after the last time I opened that thread. My own
  * messages never count, and threads I've opened since the last message clear.
  */
+export function findCallConflict(
+  calls: ClimbCall[],
+  meId: string,
+  startsAt: string,
+  endsAt: string,
+  excludeId?: string,
+): ClimbCall | undefined {
+  const start = new Date(startsAt).getTime();
+  const end = new Date(endsAt).getTime();
+  return calls.find(
+    (c) =>
+      c.id !== excludeId &&
+      c.status !== 'expired' &&
+      c.participant_ids.includes(meId) &&
+      new Date(c.starts_at).getTime() < end &&
+      start < new Date(c.ends_at).getTime(),
+  );
+}
+
+const conflictToast = (other: ClimbCall) =>
+  toast.error('Already committed at that time', {
+    description: `One call per time slot — you're already in a ${other.category === 'top_rope' ? 'top-rope' : 'lead'} call then (${new Date(other.starts_at).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}). Leave that one first if you want to switch.`,
+  });
+
 export function countUnreadThreads(s: {
   cruxmates: string[];
   chats: Record<string, ChatMessage[]>;
@@ -2057,6 +2081,15 @@ export const useAppStore = create<Store>()(
 
       postClimbCall: async (call) => {
         const me = get().me!;
+        // One call per time slot — hosting a new call over one I'm
+        // already in (hosted or joined) is refused up front.
+        const conflict = findCallConflict(
+          get().climbCalls, me.id, call.starts_at, call.ends_at,
+        );
+        if (conflict) {
+          conflictToast(conflict);
+          throw new Error('OVERLAP: already committed to a call at that time');
+        }
         // Errors throw to the caller (the sheet shows a toast).
         const created = await dbCreateClimbCall({ ...call, user_id: me.id });
         set({ climbCalls: [created, ...get().climbCalls] });
@@ -2065,6 +2098,21 @@ export const useAppStore = create<Store>()(
       },
 
       updateClimbCall: async (id, patch) => {
+        // Retiming into a slot where I'm already committed to
+        // another call is refused before anything is written.
+        const me = get().me;
+        const existing = get().climbCalls.find((c) => c.id === id);
+        if (me && existing && (patch.starts_at !== undefined || patch.ends_at !== undefined)) {
+          const nextStart = patch.starts_at ?? existing.starts_at;
+          const nextEnd = patch.ends_at ?? existing.ends_at;
+          if (nextStart !== existing.starts_at || nextEnd !== existing.ends_at) {
+            const conflict = findCallConflict(get().climbCalls, me.id, nextStart, nextEnd, id);
+            if (conflict) {
+              conflictToast(conflict);
+              return false;
+            }
+          }
+        }
         // Optimistic local apply (nulls mean "clear the field").
         set({
           climbCalls: get().climbCalls.map((c) => {
@@ -2085,6 +2133,7 @@ export const useAppStore = create<Store>()(
         });
         // Remote persist for real calls; seed calls live locally only.
         await updateClimbCallRemote(id, patch);
+        return true;
       },
 
       cancelClimbCall: async (id) => {
@@ -2268,8 +2317,21 @@ export const useAppStore = create<Store>()(
 
       requestPair: async (callId) => {
         const me = get().me;
-        if (!me) return;
-        if (get().pairRequests.includes(callId)) return;
+        if (!me) return false;
+        if (get().pairRequests.includes(callId)) return true;
+        // One call per time slot (Lucy 2026-10-18): joining a call
+        // that overlaps one I'm already in — hosted or joined — is
+        // refused before anything is written.
+        const target = get().climbCalls.find((c) => c.id === callId);
+        if (target) {
+          const conflict = findCallConflict(
+            get().climbCalls, me.id, target.starts_at, target.ends_at, callId,
+          );
+          if (conflict) {
+            conflictToast(conflict);
+            return false;
+          }
+        }
         set({
           pairRequests: [...get().pairRequests, callId],
           climbCalls: get().climbCalls.map((c) => {
@@ -2297,6 +2359,7 @@ export const useAppStore = create<Store>()(
         } catch (e) {
           console.error('[calls] pair write failed', e);
         }
+        return true;
       },
 
       cancelPairRequest: async (callId) => {
@@ -2926,7 +2989,23 @@ export const useAppStore = create<Store>()(
               .then(() => get().joinGroup(invite.target_id));
           }
         } else if (invite.kind === 'session') get().rsvp(invite.target_id, { viaShare: true });
-        else get().requestPair(invite.target_id);
+        else {
+          // Call invites join through requestPair, which enforces one
+          // call per time slot — a refused join must NOT flip the
+          // invite to accepted (the conflict toast explains why).
+          void get()
+            .requestPair(invite.target_id)
+            .then((ok) => {
+              if (!ok) return;
+              set({
+                invites: get().invites.map((i) =>
+                  i.id === invite.id ? { ...i, status: 'accepted' as const } : i,
+                ),
+              });
+              void setInviteStatusRemote(invite.id, 'accepted').catch(() => {});
+            });
+          return;
+        }
         set({
           invites: get().invites.map((i) =>
             i.id === invite.id ? { ...i, status: 'accepted' as const } : i,

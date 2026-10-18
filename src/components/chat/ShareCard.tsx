@@ -258,9 +258,9 @@ export function ShareCard({ call, session }: { call?: ClimbCall; session?: Sessi
               </button>
             ) : (
               <button
-                onClick={() => {
-                  requestPair(call.id);
-                  toast.success('Request sent 🤝');
+                onClick={async () => {
+                  const ok = await requestPair(call.id);
+                  if (ok) toast.success('Request sent 🤝');
                 }}
                 className="mt-2.5 w-full rounded-xl bg-brand-600 py-2 text-sm font-bold text-[#161310]"
               >

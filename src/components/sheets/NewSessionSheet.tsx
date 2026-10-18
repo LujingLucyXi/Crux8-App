@@ -336,8 +336,11 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
         weight_kg: me?.weight_kg,
         capacity: callCapacity,
       });
-    } catch {
-      toast("Couldn't post — check your connection and try again.");
+    } catch (e) {
+      // An overlap refusal already toasted its reason in the store.
+      if (!(e instanceof Error && e.message.startsWith('OVERLAP'))) {
+        toast("Couldn't post — check your connection and try again.");
+      }
       return;
     }
     // Invites chosen in the form fire the moment the call exists: Cruxy
