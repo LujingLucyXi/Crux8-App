@@ -42,10 +42,12 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
   const cancelPairRequest = useAppStore((s) => s.cancelPairRequest);
   const requestCruxmate = useAppStore((s) => s.requestCruxmate);
   const cancelClimbCall = useAppStore((s) => s.cancelClimbCall);
+  const reopenClimbCall = useAppStore((s) => s.reopenClimbCall);
   const sendMessage = useAppStore((s) => s.sendMessage);
   const [shareOpen, setShareOpen] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
 
   if (!call || !me) return null;
   const caller = resolveUser(call.user_id, me, users, directory);
@@ -194,29 +196,55 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
                 </Button>
               )}
               {isMyCall ? (
-                <>
-                  <p className="text-sm text-ink-500 text-center">
-                    {call.participant_ids.length >= 2
-                      ? "Your crew's here — start the session when you're at the gym."
-                      : 'Just you so far — start solo now, or invite cruxmates to fill it.'}
-                  </p>
-                  <Button variant="outline" onClick={() => setEditing(true)}>
-                    Edit call
-                  </Button>
-                  <Button variant="outline" onClick={() => setShareOpen(true)}>
-                    Invite CruxMate
-                  </Button>
-                  <button
-                    onClick={() => {
-                      void cancelClimbCall(call.id);
-                      toast('Call ended — no longer visible to others');
-                      onOpenChange(false);
-                    }}
-                    className="mt-1 text-sm font-semibold text-coral-500 py-1"
-                  >
-                    End call
-                  </button>
-                </>
+                call.status === 'expired' ? (
+                  <>
+                    <p className="text-sm text-ink-500 text-center">
+                      This call has ended — it sits in your Past and guests see it as over.
+                    </p>
+                    <Button
+                      onClick={() => {
+                        void reopenClimbCall(call.id);
+                        toast('Call reopened — live again');
+                        onOpenChange(false);
+                      }}
+                    >
+                      Reopen call
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-ink-500 text-center">
+                      {call.participant_ids.length >= 2
+                        ? "Your crew's here — start the session when you're at the gym."
+                        : 'Just you so far — start solo now, or invite cruxmates to fill it.'}
+                    </p>
+                    <Button variant="outline" onClick={() => setEditing(true)}>
+                      Edit call
+                    </Button>
+                    <Button variant="outline" onClick={() => setShareOpen(true)}>
+                      Invite CruxMate
+                    </Button>
+                    <button
+                      onClick={() => {
+                        // Two-tap confirm (Lucy 2026-10-18): ending is
+                        // one-way and the button sits in the sheet she
+                        // opens most — a stray tap shouldn't retire a
+                        // call whose time hasn't even come.
+                        if (!confirmEnd) {
+                          setConfirmEnd(true);
+                          setTimeout(() => setConfirmEnd(false), 3000);
+                          return;
+                        }
+                        void cancelClimbCall(call.id);
+                        toast('Call ended — no longer visible to others');
+                        onOpenChange(false);
+                      }}
+                      className="mt-1 text-sm font-semibold text-coral-500 py-1"
+                    >
+                      {confirmEnd ? 'Tap again to end this call' : 'End call'}
+                    </button>
+                  </>
+                )
               ) : myInvite?.status === 'pending' && !isParticipant ? (
                 <Button
                   className="bg-teal-600 hover:bg-teal-500 border-teal-600"

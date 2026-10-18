@@ -419,6 +419,7 @@ interface Store {
   updateClimbCall: (id: string, patch: ClimbCallPatch) => Promise<void>;
   /** Host ends their own live call: it retires everywhere (status 'expired'). */
   cancelClimbCall: (id: string) => Promise<void>;
+  reopenClimbCall: (id: string) => Promise<void>;
   requestPair: (callId: string) => Promise<void>;
   cancelPairRequest: (callId: string) => Promise<void>;
 
@@ -2093,6 +2094,19 @@ export const useAppStore = create<Store>()(
           ),
         });
         await updateClimbCallRemote(id, { status: 'expired' });
+      },
+
+      // Undo an ending (Lucy 2026-10-18: tonight's call sat in Past
+      // marked ended while its time hadn't even come — with twin
+      // duplicate calls, ending 'the spare' can take the real one
+      // down too). Same id, so pairings and invites stay attached.
+      reopenClimbCall: async (id) => {
+        set({
+          climbCalls: get().climbCalls.map((c) =>
+            c.id === id ? { ...c, status: 'live' as const } : c,
+          ),
+        });
+        await updateClimbCallRemote(id, { status: 'live' });
       },
 
       checkIn: (gymId) => {
