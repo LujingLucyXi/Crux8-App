@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import * as RadioGroup from '@radix-ui/react-radio-group';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
@@ -180,6 +180,28 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
   const [area, setArea] = useState<string>('Index');
   const [durationHours, setDurationHours] = useState(2);
   const [capacity, setCapacity] = useState(4);
+
+  // Group size follows the invites (Lucy 2026-10-17: 'group session
+  // size should change with cruxmates invited'): inviting people
+  // raises the size to fit them (+ you); un-inviting lowers it again
+  // — but only while the size is exactly tracking the invite count,
+  // so a bigger number she picked on purpose is never overridden.
+  const prevInviteCount = useRef(0);
+  useEffect(() => {
+    const prev = prevInviteCount.current;
+    const now = inviteIds.length;
+    prevInviteCount.current = now;
+    const track = (c: number, cap: number) => {
+      if (c >= UNCAPPED_CAPACITY) return c;
+      const min = now + 1;
+      if (c < min) return min > cap ? UNCAPPED_CAPACITY : min;
+      if (now < prev && c === prev + 1) return min;
+      return c;
+    };
+    setCapacity((c) => track(c, 10));
+    setCallCapacity((c) => track(c, 12));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inviteIds.length]);
   // Who can join (Lucy 2026-10-17): free join vs host approval.
   const [joinMode, setJoinMode] = useState<'open' | 'approval'>('open');
   const [vibe, setVibe] = useState<Vibe>('chill');
@@ -954,7 +976,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
                 <button
                   type="button"
                   aria-label="Fewer people"
-                  onClick={() => setCallCapacity(Math.max(2, callCapacity - 1))}
+                  onClick={() => setCallCapacity(Math.max(inviteIds.length + 1, callCapacity - 1))}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-100 bg-paper-100 text-lg font-bold text-ink-700"
                 >
                   −
@@ -1077,7 +1099,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
             <div>
               <Label>People</Label>
               <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
-                {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((c) => (<option key={c} value={c}>{c} people</option>))}
+                {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((c) => (<option key={c} value={c} disabled={c < inviteIds.length + 1}>{c} people</option>))}
                 <option value={UNCAPPED_CAPACITY}>10+ (uncapped)</option>
               </select>
             </div>

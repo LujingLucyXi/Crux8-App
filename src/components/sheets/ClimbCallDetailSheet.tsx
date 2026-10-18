@@ -259,6 +259,20 @@ function EditCallForm({ call, onDone }: { call: ClimbCall; onDone: () => void })
   const [capacity, setCapacity] = useState(call.capacity);
   const [saving, setSaving] = useState(false);
 
+  // Group size can't drop below the people already committed: who's
+  // in + who's invited (Lucy 2026-10-17: size follows the invites).
+  const pendingInvitees = useAppStore(
+    (s) =>
+      s.invites.filter(
+        (i) => i.kind === 'call' && i.target_id === call.id && i.status === 'pending',
+      ).length,
+  );
+  const minSize = Math.max(2, call.participant_ids.length, pendingInvitees + 1);
+  useEffect(() => {
+    if (capacity < minSize) setCapacity(minSize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minSize]);
+
   // The gym list follows the category: top-rope calls list top-rope gyms,
   // lead calls list lead gyms (same rule as call creation).
   const gymOptions = useMemo(() => gymsForCategory(gyms, category), [gyms, category]);
@@ -374,8 +388,8 @@ function EditCallForm({ call, onDone }: { call: ClimbCall; onDone: () => void })
         <div>
           <Label>Group size (incl. you)</Label>
           <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className={selectCls}>
-            {[2, 3, 4, 5, 6].map((n) => (
-              <option key={n} value={n}>{n}</option>
+            {Array.from({ length: Math.max(6, minSize) - 1 }, (_, i) => i + 2).map((n) => (
+              <option key={n} value={n} disabled={n < minSize}>{n}</option>
             ))}
           </select>
         </div>
