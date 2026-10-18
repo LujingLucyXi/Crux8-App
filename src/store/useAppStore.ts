@@ -619,6 +619,10 @@ export function countUnreadThreads(s: {
 
   let count = 0;
   for (const userId of s.cruxmates) {
+    // Cruxy never counts (Lucy 2026-10-17): the badge means 'a real
+    // friend has a new chat for you' — one per friend — and the
+    // mascot's seeded welcome thread kept it lit at 1 forever.
+    if (userId === 'cruxy') continue;
     const msgs = s.chats[userId] ?? [];
     if (isUnread(dmKey(userId), msgs[msgs.length - 1])) count++;
   }

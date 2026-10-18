@@ -28,6 +28,9 @@ export function Chat() {
   const me = useAppStore((s) => s.me);
 
   const isThreadUnread = (key: string, last: { from: string; sent_at: string } | undefined) => {
+    // Cruxy's thread never shows an unread dot either — same rule as
+    // the header badge (Lucy 2026-10-17: do not count Cruxy).
+    if (key === 'dm:cruxy') return false;
     if (!last || last.from === 'me' || last.from === 'system') return false;
     const readAt = chatReads[key];
     return !readAt || last.sent_at > readAt;
