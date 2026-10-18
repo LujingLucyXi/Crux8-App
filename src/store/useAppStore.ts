@@ -2718,9 +2718,27 @@ export const useAppStore = create<Store>()(
           const remoteIds = new Set(rows.map((r) => r.id));
           // Keep local-only optimistic rows the remote fetch can't know yet
           // (created while the migration was still missing on the server).
-          const localOnly = get().mateRequests.filter(
-            (r) => r.from_id === me.id && r.status === 'pending' && !remoteIds.has(r.id),
-          );
+          const localRows = get().mateRequests;
+          const localOnly = localRows.filter((r) => {
+            if (r.status !== 'pending' || remoteIds.has(r.id)) return false;
+            if (r.from_id === me.id) return true;
+            // An unconfirmed auto-befriend pair (invite-link join)
+            // keeps BOTH directions until the server confirms —
+            // dropping the inviter→me row here made the friendship
+            // silently vanish from the joiner's side whenever the
+            // befriend RPC hadn't landed yet (Lucy 2026-10-17: the
+            // new user saw the friendship, the inviter saw nothing).
+            return (
+              r.to_id === me.id &&
+              localRows.some(
+                (o) =>
+                  o.from_id === me.id &&
+                  o.to_id === r.from_id &&
+                  o.status === 'pending' &&
+                  !remoteIds.has(o.id),
+              )
+            );
+          });
           const all = [...rows, ...localOnly];
           set({ mateRequests: all });
           // Reconcile cruxmates with the follow graph: for every real
@@ -3023,9 +3041,17 @@ export const useAppStore = create<Store>()(
           set({ mateRequests: rows, cruxmates: [...get().cruxmates, inviterId] });
           get().collectCard(inviterId, 'cruxmate');
         }
-        void befriendInviterRemote(inviterId)
-          .then(() => get().fetchMateRequests())
-          .catch(() => {});
+        void (async () => {
+          let ok = await befriendInviterRemote(inviterId).catch(() => false);
+          if (!ok) {
+            await new Promise((r) => setTimeout(r, 1500));
+            ok = await befriendInviterRemote(inviterId).catch(() => false);
+          }
+          // Reconcile only on success — a failed RPC keeps the local
+          // pair (both directions) instead of erasing the inviter's
+          // half of the friendship.
+          if (ok) await get().fetchMateRequests();
+        })();
       },
 
       requestCruxmate: (userId) => {
