@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { useAppStore, isInviteActionable } from '@/store/useAppStore';
+import { useAppStore, isInviteActionable, crewAddNotices } from '@/store/useAppStore';
+import { useNavigate } from 'react-router-dom';
 import { resolveUser } from '@/lib/resolveUser';
 import { formatSessionWhen } from '@/lib/date';
 import { getArchetype } from '@/lib/quizMeta';
@@ -27,7 +28,17 @@ export function InvitesSection({
   invitesFirst?: boolean;
   hideHeading?: boolean;
 } = {}) {
+  const navigate = useNavigate();
   const me = useAppStore((s) => s.me);
+  const notices = useAppStore((s) =>
+    crewAddNotices({
+      invites: s.invites,
+      dismissedNotices: s.dismissedNotices,
+      myGroupMemberships: s.myGroupMemberships,
+    }),
+  );
+  const dismissNotice = useAppStore((s) => s.dismissNotice);
+  const openGroupChat = useAppStore((s) => s.openGroupChat);
   const invites = useAppStore((s) => s.invites);
   const sessions = useAppStore((s) => s.sessions);
   const climbCalls = useAppStore((s) => s.climbCalls);
@@ -144,9 +155,59 @@ export function InvitesSection({
   // The section must survive on follower rows alone — an earlier version
   // returned null whenever no session/call invite resolved, which hid
   // pending mate requests entirely.
-  if (rows.length === 0 && mateRows.length === 0) return null;
+  if (rows.length === 0 && mateRows.length === 0 && notices.length === 0) return null;
 
-  const totalCount = actionableCount + mateRows.length;
+  const totalCount = actionableCount + mateRows.length + notices.length;
+
+  // Crew-add notifications (Lucy 2026-10-17): being added to a crew
+  // was silent — the added person just eventually noticed a new
+  // crew. An informational card: who added you, which crew, a door
+  // into the crew chat, and a dismiss.
+  const noticeCards = notices.map((inv) => {
+    const g = groups.find((x) => x.id === inv.target_id);
+    const sender = resolveUser(inv.from_id, me, users, directory);
+    return (
+      <div key={inv.id} className="rounded-2xl border border-ink-100 bg-paper-100 p-3.5">
+        <div className="flex items-start gap-3">
+          <Avatar
+            photoUrl={sender?.photo_url ?? undefined}
+            config={sender?.avatar}
+            seed={sender?.display_name ?? 'Crew'}
+            alt={sender?.display_name ?? ''}
+            size={36}
+            fallback={sender?.display_name}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-ink-900 truncate">
+              {sender?.display_name ?? 'A cruxmate'} added you to a crew
+            </p>
+            <p className="text-xs text-ink-500 mt-0.5 truncate">
+              🧑‍🤝‍🧑 {g?.name ?? 'Crew'} ·{' '}
+              {new Date(inv.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+            </p>
+            <div className="mt-2.5 flex gap-2">
+              <button
+                onClick={() => {
+                  dismissNotice(inv.id);
+                  openGroupChat(inv.target_id);
+                  navigate(`/chat/session/${inv.target_id}`);
+                }}
+                className="flex-1 rounded-xl bg-brand-600 text-[#161310] text-xs font-bold py-2.5 active:scale-[0.98] transition"
+              >
+                Open crew chat
+              </button>
+              <button
+                onClick={() => dismissNotice(inv.id)}
+                className="rounded-xl border border-ink-200 px-3 text-xs font-semibold text-ink-500"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  });
 
   const onAccept = (inv: Invite) => {
     if (inv.kind === 'session') {
@@ -273,12 +334,14 @@ export function InvitesSection({
         {invitesFirst ? (
           <>
             {inviteCards}
+            {noticeCards}
             {mateCards}
           </>
         ) : (
           <>
             {mateCards}
             {inviteCards}
+            {noticeCards}
           </>
         )}
       </div>

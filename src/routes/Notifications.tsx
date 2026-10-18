@@ -1,5 +1,5 @@
 import { InvitesSection } from '@/components/chat/InvitesSection';
-import { useAppStore, countActionableInvites } from '@/store/useAppStore';
+import { useAppStore, countActionableInvites, crewAddNotices } from '@/store/useAppStore';
 
 /**
  * Notifications (Lucy 2026-10-17): climb invitations belong here —
@@ -31,7 +31,14 @@ export function Notifications() {
         ).length
       : 0,
   );
-  const allClear = pendingInvites === 0 && pendingFollowers === 0;
+  const crewNotices = useAppStore((s) =>
+    crewAddNotices({
+      invites: s.invites,
+      dismissedNotices: s.dismissedNotices,
+      myGroupMemberships: s.myGroupMemberships,
+    }).length,
+  );
+  const allClear = pendingInvites === 0 && pendingFollowers === 0 && crewNotices === 0;
 
   return (
     <div>

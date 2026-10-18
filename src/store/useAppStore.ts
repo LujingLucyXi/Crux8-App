@@ -83,6 +83,7 @@ import {
   createClimbCall as dbCreateClimbCall,
   updateClimbCallRemote,
   createInviteRemote,
+  createGroupNoticeRemote,
   befriendInviterRemote,
   befriendUserRemote,
   fetchMyInvites,
@@ -268,6 +269,9 @@ interface Store {
   /** Followers I've hidden from the inbox ("Not now") — local only. */
   dismissedFollowers: string[];
   dismissFollower: (userId: string) => void;
+  /** Crew-add notification cards I've dismissed (invite ids). */
+  dismissedNotices: string[];
+  dismissNotice: (inviteId: string) => void;
   /** One-sided follow between me and userId, if any ('outgoing' = I
    *  follow them, 'incoming' = they follow me; mutual reads as null —
    *  the cruxmate state speaks for it). */
@@ -647,6 +651,26 @@ export function isInviteActionable(
   return phase === 'upcoming' || phase === 'live';
 }
 
+/** Crew-add notifications addressed to me: pre-accepted group
+ * invites for crews I'm actually in, not dismissed, recent. Shared
+ * by the bell badge, the Notifications page count, and the section
+ * itself so all three always agree. */
+export function crewAddNotices(s: {
+  invites: Invite[];
+  dismissedNotices: string[];
+  myGroupMemberships: string[];
+}): Invite[] {
+  const cutoff = Date.now() - 14 * 24 * 3600 * 1000;
+  return s.invites.filter(
+    (i) =>
+      i.kind === 'group' &&
+      i.status === 'accepted' &&
+      s.myGroupMemberships.includes(i.target_id) &&
+      !s.dismissedNotices.includes(i.id) &&
+      new Date(i.created_at).getTime() > cutoff,
+  );
+}
+
 export function countActionableInvites(s: {
   me: { id: string } | null;
   invites: Invite[];
@@ -859,6 +883,7 @@ export const useAppStore = create<Store>()(
       mateRequests: [],
       messageRequests: [],
       dismissedFollowers: [],
+      dismissedNotices: [],
       pairRequests: [],
       checkin: null,
       gymPresence: {},
@@ -2333,6 +2358,7 @@ export const useAppStore = create<Store>()(
       // content; Cruxy is a cruxmate anyway).
       addGroupMember: (groupId, userId) => {
         if (isUuid(userId) && !get().cruxmates.includes(userId)) return;
+        const isNew = !(get().groups.find((g) => g.id === groupId)?.member_ids ?? []).includes(userId);
         set({
           groups: get().groups.map((g) =>
             g.id === groupId &&
@@ -2346,6 +2372,12 @@ export const useAppStore = create<Store>()(
               : g
           ),
         });
+        // Tell them (Lucy 2026-10-17): a pre-accepted group invite
+        // row lands in their Notifications as 'added you to {crew}'.
+        const meAdd = get().me;
+        if (isNew && meAdd && isUuid(meAdd.id) && isUuid(userId)) {
+          void createGroupNoticeRemote(groupId, meAdd.id, userId).catch(() => {});
+        }
       },
 
       // Invite a non-friend to join a crew: an invites row (kind
@@ -3304,6 +3336,11 @@ export const useAppStore = create<Store>()(
         set({ dismissedFollowers: [...get().dismissedFollowers, userId] });
       },
 
+      dismissNotice: (inviteId) => {
+        if (get().dismissedNotices.includes(inviteId)) return;
+        set({ dismissedNotices: [...get().dismissedNotices, inviteId] });
+      },
+
       markThreadRead: (key: string) => {
         set({ chatReads: { ...get().chatReads, [key]: new Date().toISOString() } });
       },
@@ -3778,7 +3815,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 25,
+      version: 26,
       /**
        * v16 → v17: sessions + climb calls move to real Supabase tables.
        *   Drop persisted mock sessions/calls (and their chats/pairings/
@@ -3810,6 +3847,10 @@ export const useAppStore = create<Store>()(
           if (!('chargeLastActiveDay' in s)) s.chargeLastActiveDay = null;
           if (!('chargeSettledDay' in s)) s.chargeSettledDay = null;
           if (!('chargeLastLoss' in s)) s.chargeLastLoss = null;
+        }
+        if (version < 26) {
+          // v25 → v26: crew-add notification dismissals.
+          if (!Array.isArray(s.dismissedNotices)) s.dismissedNotices = [];
         }
         if (version < 23) {
           // v22 → v23: finished-session card collection guard set.

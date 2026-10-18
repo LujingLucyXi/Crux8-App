@@ -1,7 +1,7 @@
 import { Menu, ChatBubbleEmpty, Group, Bell, Plus } from 'iconoir-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAppStore, countUnreadThreads, countActionableInvites } from '@/store/useAppStore';
+import { useAppStore, countUnreadThreads, countActionableInvites, crewAddNotices } from '@/store/useAppStore';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { InfoSheet } from '@/components/sheets/InfoSheet';
 import { FeedbackSheet } from '@/components/sheets/FeedbackSheet';
@@ -69,7 +69,15 @@ export function Header() {
   // Notifications get their own bell + badge (Lucy 2026-10-17: climb
   // invitations in Notifications are 'more visible' than inside
   // Chats). The chat badge now means unread conversations only.
-  const notifCount = pendingInvites + pendingMateRequests;
+  // Crew-add notifications ride the same badge until dismissed.
+  const crewNotices = useAppStore((s) =>
+    crewAddNotices({
+      invites: s.invites,
+      dismissedNotices: s.dismissedNotices,
+      myGroupMemberships: s.myGroupMemberships,
+    }).length,
+  );
+  const notifCount = pendingInvites + pendingMateRequests + crewNotices;
 
   return (
     <>

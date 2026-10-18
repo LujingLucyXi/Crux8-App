@@ -693,6 +693,25 @@ export async function createInviteRemote(
   if (error) throw new Error(`createInviteRemote: ${error.message}`);
 }
 
+/** A crew-add NOTIFICATION: a direct add (cruxmates only) writes a
+ * pre-accepted group invite row so the added person SEES it in
+ * their Notifications — membership alone was silent (Lucy
+ * 2026-10-17: 'make sure when I add people to my crew it sends a
+ * notification'). */
+export async function createGroupNoticeRemote(
+  groupId: string,
+  fromId: string,
+  toId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('invites')
+    .upsert(
+      { kind: 'group', target_id: groupId, from_id: fromId, to_id: toId, status: 'accepted' },
+      { onConflict: 'kind,target_id,to_id' },
+    );
+  if (error) throw new Error(`createGroupNoticeRemote: ${error.message}`);
+}
+
 export async function fetchMyInvites(userId: string): Promise<Invite[]> {
   const { data, error } = await supabase
     .from('invites')
