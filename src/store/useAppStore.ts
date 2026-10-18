@@ -2803,11 +2803,10 @@ export const useAppStore = create<Store>()(
           ? (get().gyms.find((g) => g.id === call.gym_id)?.short_name ?? 'the gym')
           : (call.area ?? 'outdoors');
         const text =
-          `🧗 ${get().me?.display_name ?? 'Someone'} invited you to climb\n` +
-          `${call.category === 'top_rope' ? 'Top-rope' : 'Lead'} · ${call.grade} · ${where}\n` +
-          `${when}` +
+          `🧗 ${get().me?.display_name ?? 'Someone'} invited you to climb: ` +
+          `${call.category === 'top_rope' ? 'Top-rope' : 'Lead'} · ${call.grade} · ${where} · ${when}` +
           (call.note ? `\n"${call.note}"` : '') +
-          `\nTap to view and request to pair: https://crux8.app/call/${call.id}`;
+          `\nhttps://crux8.app/call/${call.id}`;
         for (const uid of userIds) {
           get().sendMessage(uid, text);
           // Server-backed invite row for real accounts — this is what
@@ -2853,14 +2852,14 @@ export const useAppStore = create<Store>()(
         const where = session.location_type === 'indoor'
           ? (get().gyms.find((g) => g.id === session.gym_id)?.short_name ?? 'the gym')
           : (session.area ?? 'outdoors');
-        const spots = session.capacity - session.participant_ids.length;
+        // Short by design (Lucy 2026-10-17): the message resolves into
+        // the clickable session card in chat, which carries the live
+        // details — the text is the fallback and the list preview, so
+        // it keeps only who / what / where / when plus the link.
         const text =
-          `🧗 ${get().me?.display_name ?? 'Someone'} invited you to a session\n` +
-          `${session.title} · ${where}\n` +
-          `${when}` +
-          (session.subtitle ? `\n${session.subtitle}` : '') +
-          (spots > 0 ? `\n${spots} spot${spots === 1 ? '' : 's'} open` : '') +
-          `\nTap to view and RSVP: https://crux8.app/session/${session.id}`;
+          `🧗 ${get().me?.display_name ?? 'Someone'} invited you to a session: ` +
+          `${session.title} · ${where} · ${when}\n` +
+          `https://crux8.app/session/${session.id}`;
         for (const uid of userIds) {
           get().sendMessage(uid, text);
           // Server-backed invite row for real accounts (see call invites).
