@@ -13,6 +13,7 @@ import { CrewsBrowser } from '@/components/crews/CrewsBrowser';
 import { MysteryCrewCard } from '@/components/cards/MysteryCrewCard';
 import { MysteryCrewSheet } from '@/components/sheets/MysteryCrewSheet';
 import { useAppStore } from '@/store/useAppStore';
+import { gradeMatchesBand } from '@/lib/gradeBand';
 import { inHour } from '@/lib/date';
 import { isWeightSafe } from '@/lib/weight';
 import { cn } from '@/lib/utils';
@@ -119,6 +120,7 @@ export function Find() {
         if (env === 'indoor' && filters.gym_id && c.gym_id !== filters.gym_id) return false;
         if (env === 'outdoor' && filters.area && c.area !== filters.area) return false;
         if (filters.looking_for && c.looking_for !== filters.looking_for) return false;
+        if (filters.grade_band && !gradeMatchesBand(c.grade, filters.grade_band)) return false;
         if (filters.weight_safe_only && !isWeightSafe(me?.weight_kg, c.weight_kg)) return false;
         return dateOk(c.starts_at);
       })
@@ -151,6 +153,9 @@ export function Find() {
         if (styles.length > 0 && !styles.includes(s.category)) return false;
         if (env === 'indoor' && filters.gym_id && s.gym_id !== filters.gym_id) return false;
         if (env === 'outdoor' && filters.area && s.area !== filters.area) return false;
+        // Sessions carry their level in the subtitle ('V3 – V6',
+        // '5.10a – 5.11c', 'All levels welcome').
+        if (filters.grade_band && !gradeMatchesBand(s.subtitle, filters.grade_band)) return false;
         return dateOk(s.starts_at);
       })
       .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());

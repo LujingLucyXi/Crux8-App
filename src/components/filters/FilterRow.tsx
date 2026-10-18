@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavArrowDown, Filter, Xmark } from 'iconoir-react';
 import { format } from 'date-fns';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAppStore } from '@/store/useAppStore';
+import { bandsForStyles } from '@/lib/gradeBand';
 import { AREAS } from '@/seed/routes';
 import { cn } from '@/lib/utils';
 
@@ -21,7 +22,9 @@ const TIME_OPTS = [
   { value: 'evening', label: 'Evening · 5p–10p' },
 ] as const;
 
-const GRADE_BANDS = ['V0-5.7', '5.8-5.9', '5.10a-5.10c', '5.10d-5.11b', '5.11c-5.12b', '5.12c+'];
+// Level bands come from lib/gradeBand: boulder styles see V bands,
+// rope styles see YDS bands — one mixed list served both before,
+// which put rope grades in front of boulderers (Lucy 2026-10-17).
 
 const ROLE_OPTS = [
   { value: 'belayer', label: 'Needs belayer' },
@@ -42,6 +45,16 @@ export function FilterRow() {
   const [open, setOpen] = useState<Key | null>(null);
 
   const { l1, env } = filters;
+  const levelBands = bandsForStyles(filters.climb_styles ?? []);
+  // A band from the other grading system can't survive a style
+  // change (Boulder picked while '5.10a–5.10c' was selected).
+  const gradeBand = filters.grade_band;
+  useEffect(() => {
+    if (gradeBand && !levelBands.includes(gradeBand)) {
+      setFilter({ grade_band: undefined });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gradeBand, filters.climb_styles]);
   const showGym = l1 === 'climb' && env === 'indoor';
   const showArea = (l1 === 'climb' && env === 'outdoor') || l1 === 'hike';
   const showLevel = l1 === 'climb';
@@ -206,7 +219,7 @@ export function FilterRow() {
 
           {open === 'level' && (
             <div className="grid grid-cols-2 gap-2">
-              {GRADE_BANDS.map((b) => {
+              {levelBands.map((b) => {
                 const active = filters.grade_band === b;
                 return (
                   <button
