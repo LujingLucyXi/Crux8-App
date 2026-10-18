@@ -322,6 +322,9 @@ interface Store {
   syncSeedGyms: () => void;
   /** Load sessions / climb calls from Supabase (real backend). */
   fetchSessions: () => Promise<void>;
+  /** Keep session RSVPs current across devices. */
+  startSessionRealtime: () => void;
+  stopSessionRealtime: () => void;
   fetchClimbCalls: () => Promise<void>;
   /** Fetch unknown user ids into `directory` for display resolution. */
   ensureDirectoryProfiles: (ids: string[]) => Promise<void>;
@@ -758,6 +761,8 @@ const initialFilters: Filters = {
 let initAuthSubscribed = false;
 let dmRealtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 let dmRealtimeUserId: string | null = null;
+let sessionRealtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+let sessionRealtimeUserId: string | null = null;
 
 /**
  * Fresh accounts' profile rows are created by a DB trigger that can
@@ -1363,6 +1368,7 @@ export const useAppStore = create<Store>()(
           row && !row.display_name && metaName ? { ...row, display_name: metaName } : row;
         const profile = profileRowToProfile(user.id, user.email ?? '', effectiveRow);
         set({ me: profile });
+        get().startSessionRealtime();
         if (!row?.display_name && profile.display_name) {
           void persistProfilePatch(user.id, { display_name: profile.display_name });
         }
@@ -1396,6 +1402,7 @@ export const useAppStore = create<Store>()(
               set({ me: { ...cur, display_name: row.display_name } });
             }
             get().startDmRealtime();
+            get().startSessionRealtime();
             return;
           }
           get().prepareForUser(userId);
@@ -1433,6 +1440,7 @@ export const useAppStore = create<Store>()(
           }
           set({ me: isGuest ? { ...profile, isGuest: true } : profile });
           get().startDmRealtime();
+          get().startSessionRealtime();
           // Provider-confirmed emails are proof of inbox ownership by
           // construction — Google sign-in and email-code sign-in both
           // arrive with email_confirmed_at set. Mark them verified so
@@ -1489,6 +1497,7 @@ export const useAppStore = create<Store>()(
         const sessionUser = data.session?.user ?? null;
         if (!sessionUser) {
           get().stopDmRealtime();
+          get().stopSessionRealtime();
           if (get().me) set({ me: null });
         } else {
           await applySessionUser(sessionUser.id, sessionUser.email ?? '', sessionUser.is_anonymous === true, sessionUser.email_confirmed_at, (sessionUser.user_metadata?.full_name as string | undefined) ?? (sessionUser.user_metadata?.name as string | undefined));
@@ -1514,6 +1523,7 @@ export const useAppStore = create<Store>()(
             }
             if (event === 'SIGNED_OUT') {
               get().stopDmRealtime();
+              get().stopSessionRealtime();
               set({ me: null });
             } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
               await applySessionUser(session.user.id, session.user.email ?? '', session.user.is_anonymous === true, session.user.email_confirmed_at, (session.user.user_metadata?.full_name as string | undefined) ?? (session.user.user_metadata?.name as string | undefined));
@@ -1573,6 +1583,7 @@ export const useAppStore = create<Store>()(
       signOut: async () => {
         await supabase.auth.signOut().catch(() => {});
         get().stopDmRealtime();
+        get().stopSessionRealtime();
         set({ me: null });
       },
 
@@ -1653,6 +1664,7 @@ export const useAppStore = create<Store>()(
 
       resetAll: () => {
         get().stopDmRealtime();
+        get().stopSessionRealtime();
         set({
           me: null,
           sessions: [],
@@ -3046,6 +3058,43 @@ export const useAppStore = create<Store>()(
               console.warn('[chat] realtime subscription failed', error);
             }
           });
+      },
+
+      startSessionRealtime: () => {
+        const me = get().me;
+        if (!me || !isUuid(me.id)) {
+          get().stopSessionRealtime();
+          return;
+        }
+        if (sessionRealtimeChannel && sessionRealtimeUserId === me.id) return;
+        get().stopSessionRealtime();
+
+        sessionRealtimeUserId = me.id;
+        sessionRealtimeChannel = supabase
+          .channel(`session-rsvps:${me.id}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'session_rsvps' },
+            () => {
+              // RSVP rows are the source of truth for session participants.
+              // Reconcile the host's roster and pending requests immediately.
+              void get().fetchSessions();
+            },
+          )
+          .subscribe((status, error) => {
+            if (status === 'SUBSCRIBED') {
+              // Catch RSVPs created while this device was offline.
+              void get().fetchSessions();
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              console.warn('[sessions] RSVP realtime subscription failed', error);
+            }
+          });
+      },
+
+      stopSessionRealtime: () => {
+        if (sessionRealtimeChannel) void supabase.removeChannel(sessionRealtimeChannel);
+        sessionRealtimeChannel = null;
+        sessionRealtimeUserId = null;
       },
 
       stopDmRealtime: () => {
