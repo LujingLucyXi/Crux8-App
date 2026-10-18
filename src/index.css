@@ -104,3 +104,18 @@
 @media (prefers-reduced-motion: reduce) {
   .bolt-jitter { animation: none; }
 }
+
+/* iOS focus-zoom guard (Lucy 2026-10-17): Safari auto-zooms the page when a
+   focused input/textarea/select renders text under 16px, and the zoom sticks
+   after navigation — the next screen looks cropped and oversized (login →
+   Home, and earlier the chat composer at 14px). The chat fix bumped the
+   composers to 16px; this floors EVERY form control on touch devices so no
+   present or future small-font field can trigger the zoom. Unlayered on
+   purpose: it must beat Tailwind's layered text-* utilities. */
+@media (hover: none) and (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+}
