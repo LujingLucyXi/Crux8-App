@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { NavArrowDown, Filter, Xmark } from 'iconoir-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { NavArrowDown, Xmark, Calendar } from 'iconoir-react';
 import { format } from 'date-fns';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
@@ -9,7 +9,7 @@ import { bandsForStyles } from '@/lib/gradeBand';
 import { AREAS } from '@/seed/routes';
 import { cn } from '@/lib/utils';
 
-type Key = 'gym' | 'area' | 'date' | 'time' | 'level' | 'role' | 'all';
+type Key = 'gym' | 'area' | 'date';
 
 const DATE_OPTS = [
   { value: 'today', label: 'Today' },
@@ -17,14 +17,10 @@ const DATE_OPTS = [
 ] as const;
 
 const TIME_OPTS = [
-  { value: 'morning', label: 'Morning · 6a–12p' },
-  { value: 'afternoon', label: 'Afternoon · 12p–5p' },
-  { value: 'evening', label: 'Evening · 5p–10p' },
+  { value: 'morning', label: 'Morning' },
+  { value: 'afternoon', label: 'Afternoon' },
+  { value: 'evening', label: 'Evening' },
 ] as const;
-
-// Level bands come from lib/gradeBand: boulder styles see V bands,
-// rope styles see YDS bands — one mixed list served both before,
-// which put rope grades in front of boulderers (Lucy 2026-10-17).
 
 const ROLE_OPTS = [
   { value: 'belayer', label: 'Needs belayer' },
@@ -33,9 +29,14 @@ const ROLE_OPTS = [
 ] as const;
 
 /**
- * Secondary refinement chips for Find. Styles now live inline in Find as a
- * visible multi-select — this row handles the rest: location, date, time,
- * level, rope-role + weight-safe (climb), free-only (event).
+ * Find filters, broken into labeled rows (Lucy 2026-10-17: 'break
+ * the climb search options down to more rows and simplify — the
+ * selection range is too long'). The old design was ONE
+ * horizontally scrolling chip strip (half the filters lived
+ * off-screen) plus a modal sheet per filter. Now each dimension is
+ * its own visible row with its options inline — no scrolling, no
+ * sheets except the two long lists (gyms, areas) and the calendar.
+ * Rope-only rows (belay roles, weight-safe) hide for bouldering.
  */
 export function FilterRow() {
   const filters = useAppStore((s) => s.filters);
@@ -50,6 +51,7 @@ export function FilterRow() {
     styleSel.length === 0 ||
     styleSel.some((x) => ['top_rope', 'lead', 'outdoor_sport', 'trad', 'multi_pitch'].includes(x));
   const levelBands = bandsForStyles(filters.climb_styles ?? []);
+
   // A band from the other grading system can't survive a style
   // change (Boulder picked while '5.10a–5.10c' was selected).
   const gradeBand = filters.grade_band;
@@ -60,7 +62,7 @@ export function FilterRow() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gradeBand, filters.climb_styles]);
 
-  // Going boulder-only retires any rope-role selection with the chips.
+  // Going boulder-only retires any rope-role selection with the rows.
   const lookingFor = filters.looking_for;
   const weightSafe = filters.weight_safe_only;
   useEffect(() => {
@@ -69,12 +71,10 @@ export function FilterRow() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ropeInPlay, lookingFor, weightSafe]);
+
   const showGym = l1 === 'climb' && env === 'indoor';
   const showArea = (l1 === 'climb' && env === 'outdoor') || l1 === 'hike';
   const showLevel = l1 === 'climb';
-  // Belay roles + weight-safety are ROPE concepts: bouldering has no
-  // belayer (Lucy 2026-10-17: 'boulder shouldn't have these roles').
-  // They show when rope styles are in play or nothing is selected.
   const showRole = l1 === 'climb' && ropeInPlay;
   const showFree = l1 === 'event';
 
@@ -84,73 +84,153 @@ export function FilterRow() {
   );
 
   const gym = filters.gym_id ? gyms.find((g) => g.id === filters.gym_id) : undefined;
+
   const chip = (active: boolean) =>
     cn(
-      'shrink-0 inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
-      active ? 'enamel bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] text-white border-transparent' : 'bg-paper-100 text-ink-700 border-ink-100 hover:border-brand-400',
+      'inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+      active
+        ? 'enamel bg-[linear-gradient(160deg,#8B5CF6,#6D28D9)] text-white border-transparent'
+        : 'bg-paper-100 text-ink-700 border-ink-100 hover:border-brand-400',
     );
 
-  const dateLabel = () => {
-    if (filters.date_specific) return format(new Date(filters.date_specific + 'T00:00:00'), 'MMM d');
-    return DATE_OPTS.find((d) => d.value === filters.date)?.label ?? 'Date';
-  };
+  const Row = ({ label, children }: { label: string; children: ReactNode }) => (
+    <div className="flex items-start gap-2">
+      <span className="w-[52px] shrink-0 pt-1.5 text-[10px] font-bold uppercase tracking-wider text-ink-400">
+        {label}
+      </span>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
+  );
+
+  const specificLabel = filters.date_specific
+    ? format(new Date(filters.date_specific + 'T00:00:00'), 'MMM d')
+    : null;
 
   return (
     <>
-      <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 -mx-4 px-4">
-        {showGym && (
-          <button className={chip(!!filters.gym_id)} onClick={() => setOpen('gym')}>
-            {gym?.short_name ?? 'Gym'} <NavArrowDown width={12} height={12} />
-          </button>
+      <div className="flex flex-col gap-2.5 mb-4">
+        {(showGym || showArea) && (
+          <Row label="Where">
+            {showGym && (
+              <button className={chip(!!filters.gym_id)} onClick={() => setOpen('gym')}>
+                {gym?.short_name ?? 'Any gym'} <NavArrowDown width={12} height={12} />
+              </button>
+            )}
+            {showArea && (
+              <button className={chip(!!filters.area)} onClick={() => setOpen('area')}>
+                {filters.area ?? 'Any area'} <NavArrowDown width={12} height={12} />
+              </button>
+            )}
+          </Row>
         )}
-        {showArea && (
-          <button className={chip(!!filters.area)} onClick={() => setOpen('area')}>
-            {filters.area ?? 'Area'} <NavArrowDown width={12} height={12} />
+
+        <Row label="When">
+          <button
+            className={chip(!filters.date && !filters.date_specific)}
+            onClick={() => setFilter({ date: undefined, date_specific: undefined })}
+          >
+            Anytime
           </button>
-        )}
-        <button className={chip(!!filters.date || !!filters.date_specific)} onClick={() => setOpen('date')}>
-          {dateLabel()} <NavArrowDown width={12} height={12} />
-        </button>
-        <button className={chip(!!filters.time)} onClick={() => setOpen('time')}>
-          {TIME_OPTS.find((t) => t.value === filters.time)?.label.split(' ')[0] ?? 'Time'} <NavArrowDown width={12} height={12} />
-        </button>
-        {showLevel && (
-          <button className={chip(!!filters.grade_band)} onClick={() => setOpen('level')}>
-            {filters.grade_band ?? 'Level'} <NavArrowDown width={12} height={12} />
-          </button>
-        )}
-        {showRole && (
-          <>
-            <button className={chip(!!filters.looking_for)} onClick={() => setOpen('role')}>
-              {filters.looking_for ? ROLE_OPTS.find((r) => r.value === filters.looking_for)?.label : 'Looking for'}
-              <NavArrowDown width={12} height={12} />
+          {DATE_OPTS.map((d) => (
+            <button
+              key={d.value}
+              className={chip(filters.date === d.value && !filters.date_specific)}
+              onClick={() => setFilter({ date: d.value, date_specific: undefined })}
+            >
+              {d.label}
             </button>
+          ))}
+          <button className={chip(!!filters.date_specific)} onClick={() => setOpen('date')}>
+            <Calendar width={12} height={12} /> {specificLabel ?? 'Pick a date'}
+          </button>
+        </Row>
+
+        <Row label="Time">
+          <button className={chip(!filters.time)} onClick={() => setFilter({ time: undefined })}>
+            Any
+          </button>
+          {TIME_OPTS.map((t) => (
+            <button
+              key={t.value}
+              className={chip(filters.time === t.value)}
+              onClick={() => setFilter({ time: filters.time === t.value ? undefined : t.value })}
+            >
+              {t.label}
+            </button>
+          ))}
+        </Row>
+
+        {showLevel && (
+          <Row label="Level">
+            <button
+              className={chip(!filters.grade_band)}
+              onClick={() => setFilter({ grade_band: undefined })}
+            >
+              Any
+            </button>
+            {levelBands.map((b) => (
+              <button
+                key={b}
+                className={chip(filters.grade_band === b)}
+                onClick={() => setFilter({ grade_band: filters.grade_band === b ? undefined : b })}
+              >
+                {b}
+              </button>
+            ))}
+          </Row>
+        )}
+
+        {showRole && (
+          <Row label="Looking for">
+            <button
+              className={chip(!filters.looking_for)}
+              onClick={() => setFilter({ looking_for: undefined })}
+            >
+              Anyone
+            </button>
+            {ROLE_OPTS.map((r) => (
+              <button
+                key={r.value}
+                className={chip(filters.looking_for === r.value)}
+                onClick={() =>
+                  setFilter({ looking_for: filters.looking_for === r.value ? undefined : r.value })
+                }
+              >
+                {r.label}
+              </button>
+            ))}
             <button
               className={chip(filters.weight_safe_only)}
               onClick={() => setFilter({ weight_safe_only: !filters.weight_safe_only })}
             >
               ⚖ Weight-safe
             </button>
-          </>
+          </Row>
         )}
+
         {showFree && (
-          <button className={chip(filters.free_only)} onClick={() => setFilter({ free_only: !filters.free_only })}>
-            Free only
+          <Row label="Cost">
+            <button
+              className={chip(filters.free_only)}
+              onClick={() => setFilter({ free_only: !filters.free_only })}
+            >
+              Free only
+            </button>
+          </Row>
+        )}
+
+        {hasFilters && (
+          <button
+            onClick={clearFilters}
+            className="self-start inline-flex items-center gap-1 text-xs text-teal-600 font-medium"
+          >
+            <Xmark width={12} height={12} /> Clear filters
           </button>
         )}
-        <button className={chip(false)} onClick={() => setOpen('all')} aria-label="More filters">
-          <Filter width={13} height={13} />
-        </button>
       </div>
 
-      {hasFilters && (
-        <button onClick={clearFilters} className="mb-3 inline-flex items-center gap-1 text-xs text-teal-600 font-medium">
-          <Xmark width={12} height={12} /> Clear filters
-        </button>
-      )}
-
       <Sheet open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
-        <SheetContent title={open === 'all' ? 'Filters' : (open ?? '') as string}>
+        <SheetContent title={open === 'date' ? 'Pick a date' : open === 'gym' ? 'Gym' : 'Area'}>
           {open === 'gym' && (
             <div className="flex flex-col gap-1">
               <button className="text-left px-3 py-3 rounded-xl hover:bg-paper-50 text-ink-500" onClick={() => { setFilter({ gym_id: undefined }); setOpen(null); }}>
@@ -187,96 +267,21 @@ export function FilterRow() {
 
           {open === 'date' && (
             <div className="flex flex-col gap-4">
-              <div className="flex gap-2">
-                <button
-                  className={cn('flex-1 rounded-xl border py-2 text-xs font-medium', !filters.date && !filters.date_specific ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100')}
-                  onClick={() => setFilter({ date: undefined, date_specific: undefined })}
+              <Input
+                type="date"
+                min={new Date().toISOString().slice(0, 10)}
+                value={filters.date_specific ?? ''}
+                onChange={(e) => setFilter({ date_specific: e.target.value || undefined, date: undefined })}
+              />
+              {filters.date_specific && (
+                <Button
+                  variant="outline"
+                  onClick={() => setFilter({ date_specific: undefined })}
                 >
-                  Anytime
-                </button>
-                {DATE_OPTS.map((d) => (
-                  <button
-                    key={d.value}
-                    className={cn('flex-1 rounded-xl border py-2 text-xs font-medium', filters.date === d.value && !filters.date_specific ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100')}
-                    onClick={() => setFilter({ date: d.value, date_specific: undefined })}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">Or pick a specific date</p>
-                <Input
-                  type="date"
-                  min={new Date().toISOString().slice(0, 10)}
-                  value={filters.date_specific ?? ''}
-                  onChange={(e) => setFilter({ date_specific: e.target.value || undefined, date: undefined })}
-                />
-              </div>
+                  Clear specific date
+                </Button>
+              )}
               <Button onClick={() => setOpen(null)}>Done</Button>
-            </div>
-          )}
-
-          {open === 'time' && (
-            <div className="flex flex-col gap-1">
-              <button className="text-left px-3 py-3 rounded-xl hover:bg-paper-50 text-ink-500" onClick={() => { setFilter({ time: undefined }); setOpen(null); }}>
-                Any time
-              </button>
-              {TIME_OPTS.map((t) => (
-                <button
-                  key={t.value}
-                  className={cn('text-left px-3 py-3 rounded-xl', filters.time === t.value ? 'bg-brand-600 text-[#161310]' : 'text-ink-900 hover:bg-paper-50')}
-                  onClick={() => { setFilter({ time: t.value }); setOpen(null); }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {open === 'level' && (
-            <div className="grid grid-cols-2 gap-2">
-              {levelBands.map((b) => {
-                const active = filters.grade_band === b;
-                return (
-                  <button
-                    key={b}
-                    className={cn('rounded-xl border py-3 text-sm', active ? 'bg-brand-600 text-[#161310] border-brand-600' : 'bg-paper-100 text-ink-700 border-ink-100')}
-                    onClick={() => { setFilter({ grade_band: active ? undefined : b }); setOpen(null); }}
-                  >
-                    {b}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {open === 'role' && (
-            <div className="flex flex-col gap-1">
-              <button
-                className={cn('text-left px-3 py-3 rounded-xl', !filters.looking_for ? 'bg-brand-600 text-[#161310]' : 'text-ink-900 hover:bg-paper-50')}
-                onClick={() => { setFilter({ looking_for: undefined }); setOpen(null); }}
-              >
-                Any role
-              </button>
-              {ROLE_OPTS.map((r) => (
-                <button
-                  key={r.value}
-                  className={cn('text-left px-3 py-3 rounded-xl', filters.looking_for === r.value ? 'bg-brand-600 text-[#161310]' : 'text-ink-900 hover:bg-paper-50')}
-                  onClick={() => { setFilter({ looking_for: r.value }); setOpen(null); }}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {open === 'all' && (
-            <div className="flex flex-col gap-3">
-              <p className="text-sm text-ink-500">Reset all active filters.</p>
-              <Button variant="outline" onClick={() => { clearFilters(); setOpen(null); }}>
-                Clear all filters
-              </Button>
             </div>
           )}
         </SheetContent>
