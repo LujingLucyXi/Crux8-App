@@ -80,6 +80,8 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const approveSessionRequest = useAppStore((s) => s.approveSessionRequest);
+  const declineSessionRequest = useAppStore((s) => s.declineSessionRequest);
 
   if (!session || !me) return null;
   // Lifecycle is manual (see lib/sessionPhase): the clock never starts or
@@ -91,8 +93,6 @@ export function SessionDetailSheet({ session: sessionProp, open, onOpenChange }:
   // Approval-needed sessions: my pending request, and (for the
   // host) the queue of people waiting on me.
   const isRequested = !isJoined && session.my_rsvp_status === 'requested';
-  const approveSessionRequest = useAppStore((s) => s.approveSessionRequest);
-  const declineSessionRequest = useAppStore((s) => s.declineSessionRequest);
   const hostFirst = resolveUser(session.host_id, me, users, directory)?.display_name.split(' ')[0];
   const isFull = session.participant_ids.length >= session.capacity;
   // Editing locks 2 hours before the session starts.
