@@ -280,7 +280,9 @@ interface Store {
   dismissFollower: (userId: string) => void;
   /** Crew-add notification cards I've dismissed (invite ids). */
   dismissedNotices: string[];
+  dismissedReminders: string[];
   dismissNotice: (inviteId: string) => void;
+  dismissReminder: (key: string) => void;
   /** One-sided follow between me and userId, if any ('outgoing' = I
    *  follow them, 'incoming' = they follow me; mutual reads as null —
    *  the cruxmate state speaks for it). */
@@ -700,6 +702,72 @@ export function isInviteActionable(
  * invites for crews I'm actually in, not dismissed, recent. Shared
  * by the bell badge, the Notifications page count, and the section
  * itself so all three always agree. */
+export interface ClimbReminder {
+  kind: 'session' | 'call';
+  id: string;
+  title: string;
+  place: string;
+  starts_at: string;
+  tier: 'soon' | 'day';
+}
+
+/**
+ * Upcoming climbs I'm committed to (joined or hosting) starting
+ * within 24 hours — the Notifications page's reminder cards and the
+ * bell badge share this selector so they always agree. 'soon' =
+ * starts within 2 hours (badge-worthy); 'day' = within 24 hours
+ * (page only). Dismissed reminders (per climb) stay hidden.
+ */
+export function upcomingReminders(
+  s: {
+    me: { id: string } | null;
+    sessions: Session[];
+    climbCalls: ClimbCall[];
+    sessionLifecycle: Record<string, SessionLifecycle>;
+    dismissedReminders: string[];
+    gyms: Gym[];
+  },
+  now: number = Date.now(),
+): ClimbReminder[] {
+  if (!s.me) return [];
+  const out: ClimbReminder[] = [];
+  const H24 = 24 * 3600 * 1000;
+  const H2 = 2 * 3600 * 1000;
+  const push = (
+    kind: 'session' | 'call', id: string, title: string, place: string, starts_at: string, ends_at: string,
+  ) => {
+    if (s.dismissedReminders.includes(`${kind}:${id}`)) return;
+    const start = new Date(starts_at).getTime();
+    if (new Date(ends_at).getTime() <= now) return;
+    if (start - now > H24) return;
+    out.push({ kind, id, title, place, starts_at, tier: start - now <= H2 ? 'soon' : 'day' });
+  };
+  for (const sess of s.sessions) {
+    if (!sess.participant_ids.includes(s.me.id)) continue;
+    const ph = sessionPhase(sess, s.sessionLifecycle[sess.id], now);
+    if (ph === 'done' || ph === 'expired') continue;
+    const gym = sess.gym_id ? s.gyms.find((g) => g.id === sess.gym_id) : undefined;
+    push(
+      'session', sess.id,
+      sess.title || sess.subtitle || 'Climbing session',
+      sess.location_type === 'indoor' ? (gym?.short_name ?? gym?.name ?? 'Indoor gym') : (sess.area ?? 'Outdoors'),
+      sess.starts_at, sess.ends_at,
+    );
+  }
+  for (const c of s.climbCalls) {
+    if (c.status === 'expired') continue;
+    if (!c.participant_ids.includes(s.me.id)) continue;
+    const gym = c.gym_id ? s.gyms.find((g) => g.id === c.gym_id) : undefined;
+    push(
+      'call', c.id,
+      c.title || `${c.category === 'top_rope' ? 'Top rope' : 'Lead'} · ${c.grade}`,
+      c.location_type === 'indoor' ? (gym?.short_name ?? gym?.name ?? 'Indoor gym') : (c.area ?? 'Outdoors'),
+      c.starts_at, c.ends_at,
+    );
+  }
+  return out.sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+}
+
 export function crewAddNotices(s: {
   invites: Invite[];
   dismissedNotices: string[];
@@ -933,6 +1001,7 @@ export const useAppStore = create<Store>()(
       messageRequests: [],
       dismissedFollowers: [],
       dismissedNotices: [],
+      dismissedReminders: [],
       pairRequests: [],
       checkin: null,
       gymPresence: {},
@@ -3654,6 +3723,11 @@ export const useAppStore = create<Store>()(
         set({ dismissedNotices: [...get().dismissedNotices, inviteId] });
       },
 
+      dismissReminder: (key: string) => {
+        if (get().dismissedReminders.includes(key)) return;
+        set({ dismissedReminders: [...get().dismissedReminders, key] });
+      },
+
       markThreadRead: (key: string) => {
         set({ chatReads: { ...get().chatReads, [key]: new Date().toISOString() } });
       },
@@ -4128,7 +4202,7 @@ export const useAppStore = create<Store>()(
     }),
     {
       name: 'cruxmate-v1',
-      version: 26,
+      version: 27,
       /**
        * v16 → v17: sessions + climb calls move to real Supabase tables.
        *   Drop persisted mock sessions/calls (and their chats/pairings/
@@ -4164,6 +4238,10 @@ export const useAppStore = create<Store>()(
         if (version < 26) {
           // v25 → v26: crew-add notification dismissals.
           if (!Array.isArray(s.dismissedNotices)) s.dismissedNotices = [];
+        }
+        if (version < 27) {
+          // v26 → v27: session-reminder dismissals.
+          if (!Array.isArray(s.dismissedReminders)) s.dismissedReminders = [];
         }
         if (version < 23) {
           // v22 → v23: finished-session card collection guard set.

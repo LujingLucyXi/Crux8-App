@@ -1,5 +1,6 @@
 import { InvitesSection } from '@/components/chat/InvitesSection';
-import { useAppStore, countActionableInvites, crewAddNotices } from '@/store/useAppStore';
+import { RemindersSection } from '@/components/chat/RemindersSection';
+import { useAppStore, countActionableInvites, crewAddNotices, upcomingReminders } from '@/store/useAppStore';
 
 /**
  * Notifications (Lucy 2026-10-17): climb invitations belong here —
@@ -38,11 +39,23 @@ export function Notifications() {
       myGroupMemberships: s.myGroupMemberships,
     }).length,
   );
-  const allClear = pendingInvites === 0 && pendingFollowers === 0 && crewNotices === 0;
+  const reminderCount = useAppStore((s) =>
+    upcomingReminders({
+      me: s.me,
+      sessions: s.sessions,
+      climbCalls: s.climbCalls,
+      sessionLifecycle: s.sessionLifecycle,
+      dismissedReminders: s.dismissedReminders,
+      gyms: s.gyms,
+    }).length,
+  );
+  const allClear =
+    pendingInvites === 0 && pendingFollowers === 0 && crewNotices === 0 && reminderCount === 0;
 
   return (
     <div>
       <h1 className="text-xl font-bold text-ink-900 mb-4">Notifications</h1>
+      <RemindersSection />
       <InvitesSection invitesFirst hideHeading />
       {allClear && (
         <div className="rounded-2xl border border-ink-100 bg-paper-100 p-6 text-center">

@@ -1,7 +1,7 @@
 import { Menu, ChatBubbleEmpty, Group, Bell, Plus } from 'iconoir-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAppStore, countUnreadThreads, countActionableInvites, crewAddNotices } from '@/store/useAppStore';
+import { useAppStore, countUnreadThreads, countActionableInvites, crewAddNotices, upcomingReminders } from '@/store/useAppStore';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { InfoSheet } from '@/components/sheets/InfoSheet';
 import { FeedbackSheet } from '@/components/sheets/FeedbackSheet';
@@ -77,7 +77,19 @@ export function Header() {
       myGroupMemberships: s.myGroupMemberships,
     }).length,
   );
-  const notifCount = pendingInvites + pendingMateRequests + crewNotices;
+  // Imminent-climb reminders (≤2h away) ride the bell too — they're
+  // the time-sensitive ones; the 24h ones wait quietly on the page.
+  const imminentReminders = useAppStore((s) =>
+    upcomingReminders({
+      me: s.me,
+      sessions: s.sessions,
+      climbCalls: s.climbCalls,
+      sessionLifecycle: s.sessionLifecycle,
+      dismissedReminders: s.dismissedReminders,
+      gyms: s.gyms,
+    }).filter((r) => r.tier === 'soon').length,
+  );
+  const notifCount = pendingInvites + pendingMateRequests + crewNotices + imminentReminders;
 
   return (
     <>
