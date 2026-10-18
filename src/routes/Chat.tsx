@@ -6,6 +6,13 @@ import { Avatar, AvatarStack } from '@/components/ui/Avatar';
 import { UserProfileSheet } from '@/components/sheets/UserProfileSheet';
 import { useAppStore, dmKey, scKey } from '@/store/useAppStore';
 import { isUuid } from '@/lib/db';
+import { parseShareLink } from '@/components/chat/ShareCard';
+
+// My own invitation messages are stored in recipient-speak ('lucy
+// xi invited you to climb…') because that's what lands in THEIR
+// inbox; under my own name in my own list it reads oddly (Lucy
+// 2026-10-17). On the sender's side the preview is just this:
+const SENDER_INVITE_PREVIEW = '🧗 Invitation sent';
 import { formatChatTimestamp } from '@/lib/date';
 import { resolveUser } from '@/lib/resolveUser';
 import { cn } from '@/lib/utils';
@@ -176,7 +183,9 @@ export function Chat() {
               <p className={cn('text-sm truncate flex-1', unread ? 'text-ink-900 font-medium' : 'text-ink-500')}>
                 {last
                   ? last.from === 'me' || last.from === me?.id
-                    ? `You: ${last.text}`
+                    ? parseShareLink(last.text)
+                      ? SENDER_INVITE_PREVIEW
+                      : `You: ${last.text}`
                     : last.from === 'system'
                       ? last.text
                       : `${(me ? resolveUser(last.from, me, users, directory)?.display_name : undefined)?.split(' ')[0] ?? 'Someone'}: ${last.text}`
@@ -318,7 +327,11 @@ export function Chat() {
                         )}
                       </div>
                       <p className={cn('text-sm truncate', unread ? 'text-ink-900 font-medium' : 'text-ink-500')}>
-                        {last ? (last.from === 'me' ? 'You: ' : '') + last.text : 'Say hi!'}
+                        {last
+                          ? last.from === 'me' && parseShareLink(last.text)
+                            ? SENDER_INVITE_PREVIEW
+                            : (last.from === 'me' ? 'You: ' : '') + last.text
+                          : 'Say hi!'}
                       </p>
                     </div>
                   </button>
