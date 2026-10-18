@@ -55,10 +55,27 @@ export function FilterRow() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gradeBand, filters.climb_styles]);
+
+  // Going boulder-only retires any rope-role selection with the chips.
+  const lookingFor = filters.looking_for;
+  const weightSafe = filters.weight_safe_only;
+  useEffect(() => {
+    if (!ropeInPlay && (lookingFor || weightSafe)) {
+      setFilter({ looking_for: undefined, weight_safe_only: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ropeInPlay, lookingFor, weightSafe]);
   const showGym = l1 === 'climb' && env === 'indoor';
   const showArea = (l1 === 'climb' && env === 'outdoor') || l1 === 'hike';
   const showLevel = l1 === 'climb';
-  const showRole = l1 === 'climb'; // rope calls
+  // Belay roles + weight-safety are ROPE concepts: bouldering has no
+  // belayer (Lucy 2026-10-17: 'boulder shouldn't have these roles').
+  // They show when rope styles are in play or nothing is selected.
+  const styleSel = filters.climb_styles ?? [];
+  const ropeInPlay =
+    styleSel.length === 0 ||
+    styleSel.some((x) => ['top_rope', 'lead', 'outdoor_sport', 'trad', 'multi_pitch'].includes(x));
+  const showRole = l1 === 'climb' && ropeInPlay;
   const showFree = l1 === 'event';
 
   const hasFilters = Boolean(
