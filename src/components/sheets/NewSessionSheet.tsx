@@ -141,6 +141,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
       setDirectInviteId(preselectInvite);
       setLeanBelayOk(false);
       setLeanHeadcount(2);
+      sizeTouched.current = false;
       setCapacity(2);
       setCallCapacity(2);
       setLeanStep('type');
@@ -181,27 +182,28 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
   const [durationHours, setDurationHours] = useState(2);
   const [capacity, setCapacity] = useState(4);
 
-  // Group size follows the invites (Lucy 2026-10-17: 'group session
-  // size should change with cruxmates invited'): inviting people
-  // raises the size to fit them (+ you); un-inviting lowers it again
-  // — but only while the size is exactly tracking the invite count,
-  // so a bigger number she picked on purpose is never overridden.
-  const prevInviteCount = useRef(0);
+  // Group size FOLLOWS the invite count (Lucy 2026-10-17, stated
+  // twice: 'size 跟着加的人数走' — the size picker sits BEFORE the
+  // invite picker in the form, so people added afterwards must move
+  // it). Until she sets a size by hand, size == invitees + her,
+  // moving on every add and remove. Once she picks a size herself,
+  // it only ever grows to fit the invitees — never strands them and
+  // never shrinks a number she chose.
+  const sizeTouched = useRef(false);
   useEffect(() => {
-    const prev = prevInviteCount.current;
     const now = inviteIds.length;
-    prevInviteCount.current = now;
-    const track = (c: number, cap: number) => {
-      if (c >= UNCAPPED_CAPACITY) return c;
-      const min = now + 1;
-      if (c < min) return min > cap ? UNCAPPED_CAPACITY : min;
-      if (now < prev && c === prev + 1) return min;
-      return c;
-    };
-    setCapacity((c) => track(c, 10));
-    setCallCapacity((c) => track(c, 12));
+    const follow = Math.max(2, now + 1);
+    if (!sizeTouched.current) {
+      setCapacity(now + 1 > 10 ? UNCAPPED_CAPACITY : follow);
+      setCallCapacity(Math.min(12, follow));
+    } else {
+      setCapacity((c) =>
+        c >= UNCAPPED_CAPACITY || c >= now + 1 ? c : now + 1 > 10 ? UNCAPPED_CAPACITY : now + 1,
+      );
+      setCallCapacity((c) => Math.max(c, Math.min(12, now + 1)));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inviteIds.length]);
+  }, [inviteIds.length, open]);
   // Who can join (Lucy 2026-10-17): free join vs host approval.
   const [joinMode, setJoinMode] = useState<'open' | 'approval'>('open');
   const [vibe, setVibe] = useState<Vibe>('chill');
@@ -309,6 +311,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
     setEvtDesc('');
     setEvtGroupId('');
     setInviteIds([]);
+    sizeTouched.current = false;
   };
 
   const handleSubmitCall = async () => {
@@ -976,7 +979,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
                 <button
                   type="button"
                   aria-label="Fewer people"
-                  onClick={() => setCallCapacity(Math.max(inviteIds.length + 1, callCapacity - 1))}
+                  onClick={() => { sizeTouched.current = true; setCallCapacity(Math.max(inviteIds.length + 1, callCapacity - 1)); }}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-100 bg-paper-100 text-lg font-bold text-ink-700"
                 >
                   −
@@ -987,7 +990,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
                 <button
                   type="button"
                   aria-label="More people"
-                  onClick={() => setCallCapacity(Math.min(12, callCapacity + 1))}
+                  onClick={() => { sizeTouched.current = true; setCallCapacity(Math.min(12, callCapacity + 1)); }}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-ink-100 bg-paper-100 text-lg font-bold text-ink-700"
                 >
                   +
@@ -1098,7 +1101,7 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
             </div>
             <div>
               <Label>People</Label>
-              <select value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
+              <select value={capacity} onChange={(e) => { sizeTouched.current = true; setCapacity(Number(e.target.value)); }} className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900">
                 {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((c) => (<option key={c} value={c} disabled={c < inviteIds.length + 1}>{c} people</option>))}
                 <option value={UNCAPPED_CAPACITY}>10+ (uncapped)</option>
               </select>
