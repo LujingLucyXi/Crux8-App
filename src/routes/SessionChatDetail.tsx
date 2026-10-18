@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { NavArrowLeft, Send, Community } from 'iconoir-react';
+import { NavArrowLeft, Send, Community, UserPlus } from 'iconoir-react';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -10,6 +10,7 @@ import { ShareCard, parseShareLink } from '@/components/chat/ShareCard';
 import { useAppStore, scKey } from '@/store/useAppStore';
 import { formatSessionWhen } from '@/lib/date';
 import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
+import { CrewInviteSheet } from '@/components/sheets/CrewInviteSheet';
 import { ClimbCallDetailSheet } from '@/components/sheets/ClimbCallDetailSheet';
 import { cn } from '@/lib/utils';
 import { resolveUser, type ResolvedUser } from '@/lib/resolveUser';
@@ -33,6 +34,7 @@ export function SessionChatDetail() {
 
   const [text, setText] = useState('');
   const [detailOpen, setDetailOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const chat = sessionChatId ? sessionChats[sessionChatId] : null;
@@ -139,6 +141,15 @@ export function SessionChatDetail() {
             <span className="text-[11px] text-ink-500">{chat.participant_ids.length} in chat</span>
           </div>
         </div>
+        {chat.source === 'group' && (
+          <button
+            onClick={() => setInviteOpen(true)}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-3.5 py-1.5 text-xs font-bold text-[#161310] active:scale-95 transition"
+          >
+            <UserPlus width={14} height={14} />
+            Invite
+          </button>
+        )}
       </div>
 
       {/* Time + place strip (Lucy 2026-10-17: session chats showed
@@ -286,6 +297,11 @@ export function SessionChatDetail() {
         call={detailOpen && chat.source === 'call' ? (climbCalls.find((x) => x.id === chat.id) ?? null) : null}
         open={detailOpen && chat.source === 'call'}
         onOpenChange={setDetailOpen}
+      />
+      <CrewInviteSheet
+        group={chat.source === 'group' ? (groups.find((g) => g.id === chat.id) ?? null) : null}
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
       />
     </div>
   );
