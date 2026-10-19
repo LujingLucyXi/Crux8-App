@@ -16,6 +16,8 @@ export interface ResolvedUser {
   quiz_result_type?: string;
   quiz_house_id?: string;
   location?: string;
+  usual_times?: string[];
+  usual_gym_ids?: string[];
 }
 
 /**
@@ -45,6 +47,8 @@ export function resolveUser(
       quiz_result_type: me.quiz_result_type,
       quiz_house_id: me.quiz_house_id,
       location: me.location,
+      usual_times: me.usual_times,
+      usual_gym_ids: me.usual_gym_ids,
     };
   }
   const npc = users.find((u) => u.id === id);
@@ -75,6 +79,8 @@ export function resolveUser(
       quiz_result_type: dir.quiz_result_type ?? undefined,
       quiz_house_id: dir.quiz_house_id ?? undefined,
       location: dir.location ?? undefined,
+      usual_times: dir.usual_times ?? undefined,
+      usual_gym_ids: dir.usual_gym_ids ?? undefined,
     };
   }
   return undefined;

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input, Label, Textarea } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
 import { AvatarCustomizer } from '@/components/ui/AvatarCustomizer';
+import { UsualTimesEditor } from '@/components/profile/UsualTimesEditor';
 import { avatarFromSeed, type AvatarConfig } from '@/lib/avatar';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
 import { AuthSheet } from '@/components/AuthSheet';
@@ -134,6 +135,13 @@ export function Onboarding() {
   const [tags, setTags] = useState<string[]>(draft?.tags ?? me?.tags ?? []);
   const [activities, setActivities] = useState<Activity[]>(draft?.activities ?? me?.activities ?? ['climb']);
   const [homeGymId, setHomeGymId] = useState<string>(draft?.homeGymId ?? me?.home_gym_id ?? gyms[0]?.id ?? '');
+  // Usual climb times + gyms (Lucy 2026-10-19): asked right here in
+  // the climb step so people can be FOUND by when they climb from
+  // day one — it powers people search and timed climb invites.
+  const [usualTimes, setUsualTimes] = useState<string[]>(draft?.usualTimes ?? me?.usual_times ?? []);
+  const [usualGymIds, setUsualGymIds] = useState<string[]>(
+    draft?.usualGymIds ?? me?.usual_gym_ids ?? (me?.home_gym_id ? [me.home_gym_id] : []),
+  );
   // Home-gym options are scoped to the chosen city (Lucy 2026-10-18:
   // picked Austin, still got Seattle gyms).
   const cityGyms = gymsForLocation(gyms, location);
@@ -157,10 +165,10 @@ export function Onboarding() {
       localStorage.setItem('crux8-onboarding-draft', JSON.stringify({
         step, dob, location, displayName, hikeDistance, hikePace, climbSkipped, hikeSkipped,
         avatar, photoUrl, signature, bio, tags, activities, homeGymId, topGrade, preferredStyles,
-        weightLbs, heightFt, heightIn,
+        weightLbs, heightFt, heightIn, usualTimes, usualGymIds,
       }));
     } catch { /* storage full/blocked — draft just won't persist */ }
-  }, [step, dob, location, displayName, hikeDistance, hikePace, climbSkipped, hikeSkipped, avatar, photoUrl, signature, bio, tags, activities, homeGymId, topGrade, preferredStyles, weightLbs, heightFt, heightIn]);
+  }, [step, dob, location, displayName, hikeDistance, hikePace, climbSkipped, hikeSkipped, avatar, photoUrl, signature, bio, tags, activities, homeGymId, topGrade, preferredStyles, weightLbs, heightFt, heightIn, usualTimes, usualGymIds]);
 
   // When the city changes, a home-gym pick from another metro is dropped
   // for the new city's first gym (or none, when that metro has no gyms
@@ -289,6 +297,7 @@ export function Onboarding() {
       activities,
       ...(homeGymId ? { home_gym_id: homeGymId } : {}),
       ...(climbs ? { preferred_styles: preferredStyles } : {}),
+      ...(climbs ? { usual_times: usualTimes, usual_gym_ids: usualGymIds } : {}),
     });
     try { localStorage.removeItem('crux8-onboarding-draft'); } catch { /* ok */ }
     try { localStorage.removeItem('crux8-onboarding-deferred'); } catch { /* ok */ }
@@ -470,6 +479,21 @@ export function Onboarding() {
                       );
                     })}
                   </div>
+                </div>
+                <div className="mt-5">
+                  <Label>When do you usually climb?</Label>
+                  <p className="text-xs text-ink-500 mt-0.5 mb-2">
+                    Climbers find you by these times and send invites that land right in your usual slots.
+                  </p>
+                  <UsualTimesEditor
+                    times={usualTimes}
+                    gymIds={usualGymIds}
+                    gyms={cityGyms}
+                    onChange={(next) => {
+                      setUsualTimes(next.times);
+                      setUsualGymIds(next.gymIds);
+                    }}
+                  />
                 </div>
                 <div className="mt-5">
                   <Label>Home gym</Label>

@@ -32,6 +32,10 @@ export interface DirectoryProfile {
   top_grade?: string | null;
   boulder_grade?: string | null;
   home_gym_id?: string | null;
+  /** Usual climb slots + gyms — present only after the 2026-10-19
+   *  availability migration; absent/null before it runs. */
+  usual_times?: string[] | null;
+  usual_gym_ids?: string[] | null;
   /** Rich fields — present only after the directory-rich migration
    *  (2026-10-16-directory-rich.sql); absent/null before it runs. */
   avatar?: import('@/lib/avatar').AvatarConfig | null;
@@ -660,7 +664,7 @@ export async function fetchDirectoryProfiles(ids: string[]): Promise<DirectoryPr
   const rich = await supabase
     .from('directory_profiles')
     .select(
-      'id,display_name,photo_url,top_grade,boulder_grade,home_gym_id,avatar,about,signature,preferred_styles,quiz_result_type,quiz_house_id,location',
+      'id,display_name,photo_url,top_grade,boulder_grade,home_gym_id,usual_times,usual_gym_ids,avatar,about,signature,preferred_styles,quiz_result_type,quiz_house_id,location',
     )
     .in('id', unique);
   if (!rich.error) return asRows<DirectoryProfile>(rich.data);
@@ -674,6 +678,30 @@ export async function fetchDirectoryProfiles(ids: string[]): Promise<DirectoryPr
     .select('id,display_name,photo_url,top_grade,home_gym_id')
     .in('id', unique);
   if (error) throw new Error(`fetchDirectoryProfiles: ${error.message}`);
+  return asRows<DirectoryProfile>(data);
+}
+
+/**
+ * People search by usual climb time (Lucy 2026-10-19): directory
+ * entries whose usual_times overlap any of the requested slot keys.
+ * Gym narrowing happens client-side (usual_gym_ids OR home gym).
+ * Returns [] before the availability migration runs — the search
+ * simply finds nobody yet instead of breaking.
+ */
+export async function searchClimbersByAvailability(
+  slotKeys: string[],
+  excludeId: string,
+): Promise<DirectoryProfile[]> {
+  if (slotKeys.length === 0) return [];
+  const { data, error } = await supabase
+    .from('directory_profiles')
+    .select(
+      'id,display_name,photo_url,top_grade,boulder_grade,home_gym_id,usual_times,usual_gym_ids,avatar,about,signature,preferred_styles,quiz_result_type,quiz_house_id,location',
+    )
+    .overlaps('usual_times', slotKeys)
+    .neq('id', excludeId)
+    .limit(40);
+  if (error) return [];
   return asRows<DirectoryProfile>(data);
 }
 

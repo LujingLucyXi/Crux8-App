@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input, Label } from '@/components/ui/Input';
 import { useAppStore } from '@/store/useAppStore';
 import { gymsForLocation } from '@/seed/gyms';
+import { UsualTimesEditor } from '@/components/profile/UsualTimesEditor';
 import type { Profile } from '@/seed/types';
 import { cn } from '@/lib/utils';
 
@@ -72,6 +73,8 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
   const [topGrade, setTopGrade] = useState(me?.top_grade ?? '');
   const [boulderGrade, setBoulderGrade] = useState(me?.boulder_grade ?? '');
   const [tags, setTags] = useState<string[]>(me?.tags ?? []);
+  const [usualTimes, setUsualTimes] = useState<string[]>(me?.usual_times ?? []);
+  const [usualGymIds, setUsualGymIds] = useState<string[]>(me?.usual_gym_ids ?? []);
   const [saving, setSaving] = useState(false);
 
   // Home-gym options follow the chosen city (same fix as onboarding,
@@ -99,6 +102,8 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
       top_grade: topGrade || me.top_grade,
       boulder_grade: boulderGrade || undefined,
       tags,
+      usual_times: usualTimes,
+      usual_gym_ids: usualGymIds,
     };
     updateProfile(patch);
     setSaving(false);
@@ -177,6 +182,21 @@ export function ProfileEditSheet({ open, onOpenChange }: Props) {
           </Section>
 
           <Section title="Climbing">
+            <div>
+              <Label>When do you usually climb?</Label>
+              <p className="text-xs text-ink-500 mt-0.5 mb-2">
+                Public — climbers find you by these times and invite you right into your usual slots.
+              </p>
+              <UsualTimesEditor
+                times={usualTimes}
+                gymIds={usualGymIds}
+                gyms={cityGyms}
+                onChange={(next) => {
+                  setUsualTimes(next.times);
+                  setUsualGymIds(next.gymIds);
+                }}
+              />
+            </div>
             <div>
               <Label>Boulder grade</Label>
               <div className="flex flex-wrap gap-1.5 mt-1">

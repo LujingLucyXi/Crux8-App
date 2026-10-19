@@ -23,6 +23,8 @@ export interface ProfileRow {
   home_gym_id?: string | null;
   top_grade?: string | null;
   boulder_grade?: string | null;
+  usual_times?: string[] | null;
+  usual_gym_ids?: string[] | null;
   preferred_styles?: string[] | null;
   about?: string | null;
   signature?: string | null;
@@ -90,6 +92,8 @@ export function profileRowToProfile(userId: string, email: string, row: ProfileR
     home_gym_id: row?.home_gym_id ?? 'gym_vertical_world',
     top_grade: row?.top_grade ?? '5.10c',
     boulder_grade: row?.boulder_grade ?? undefined,
+    usual_times: row?.usual_times ?? undefined,
+    usual_gym_ids: row?.usual_gym_ids ?? undefined,
     preferred_styles: (row?.preferred_styles as Style[] | undefined) ?? ['top_rope', 'lead', 'outdoor_sport'],
     about: row?.about ?? '',
     signature: row?.signature ?? undefined,
@@ -125,6 +129,8 @@ export function profilePatchToRow(patch: Partial<Profile>): Record<string, unkno
   if (patch.home_gym_id !== undefined) row.home_gym_id = patch.home_gym_id;
   if (patch.top_grade !== undefined) row.top_grade = patch.top_grade;
   if (patch.boulder_grade !== undefined) row.boulder_grade = patch.boulder_grade;
+  if (patch.usual_times !== undefined) row.usual_times = patch.usual_times;
+  if (patch.usual_gym_ids !== undefined) row.usual_gym_ids = patch.usual_gym_ids;
   if (patch.preferred_styles !== undefined) row.preferred_styles = patch.preferred_styles;
   if (patch.about !== undefined) row.about = patch.about;
   if (patch.signature !== undefined) row.signature = patch.signature;

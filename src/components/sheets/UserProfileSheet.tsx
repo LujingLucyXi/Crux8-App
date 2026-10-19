@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ShieldCheck } from 'iconoir-react';
+import { summarizeUsualTimes } from '@/lib/availability';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
@@ -69,6 +70,9 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
   const userVerifications =
     npcUser?.verifications ?? directoryVerifications[user.id];
   const homeGymId = npcUser?.home_gym_id ?? user.home_gym_id;
+  const usualSummary = user.usual_times?.length
+    ? summarizeUsualTimes(user.usual_times)
+    : '';
   const gym = gyms.find((g) => g.id === homeGymId);
   const isCruxmate = cruxmates.includes(user.id);
   const reqDir = isCruxmate ? null : mateRequestFor(user.id);
@@ -128,6 +132,11 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
             <span className="rounded-full border border-teal-600 text-teal-600 text-[11px] font-medium px-2.5 py-0.5">
               {gym?.short_name ?? 'no home gym'}
             </span>
+            {usualSummary && (
+              <span className="rounded-full border border-brand-600 text-brand-600 text-[11px] font-medium px-2.5 py-0.5">
+                🕐 {usualSummary}
+              </span>
+            )}
             {user.top_grade && (
               <span className="rounded-full border border-gold-500 text-gold-500 text-[11px] font-medium px-2.5 py-0.5">
                 Top: {user.top_grade}

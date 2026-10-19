@@ -318,6 +318,11 @@ interface Store {
    *  cleared by NewSessionSheet on open. */
   newSessionPreselectInvite: string | null;
   setNewSessionPreselectInvite: (id: string | null) => void;
+  /** Optional start time pre-filled alongside the preselect invite —
+   *  set by availability search so the invite lands in the slot the
+   *  person actually climbs (Lucy 2026-10-19). */
+  newSessionPreselectWhen: string | null;
+  setNewSessionPreselect: (id: string | null, whenIso: string | null) => void;
   setNewSessionOpen: (open: boolean) => void;
 
   // ---------- actions ----------
@@ -1022,7 +1027,10 @@ export const useAppStore = create<Store>()(
       setNewSessionOpen: (open: boolean) => set({ newSessionOpen: open }),
       newSessionPreselectInvite: null,
       setNewSessionPreselectInvite: (id: string | null) =>
-        set({ newSessionPreselectInvite: id }),
+        set({ newSessionPreselectInvite: id, newSessionPreselectWhen: null }),
+      newSessionPreselectWhen: null,
+      setNewSessionPreselect: (id: string | null, whenIso: string | null) =>
+        set({ newSessionPreselectInvite: id, newSessionPreselectWhen: whenIso }),
 
       syncSeedGyms: () => {
         const cur = get().gyms;

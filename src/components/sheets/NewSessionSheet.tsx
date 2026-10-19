@@ -105,6 +105,8 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
   // with that friend pre-invited (Lucy 2026-10-16: pick the time, the
   // gym, the level, the style — the template IS the invite composer).
   const preselectInvite = useAppStore((s) => s.newSessionPreselectInvite);
+  const preselectWhen = useAppStore((s) => s.newSessionPreselectWhen);
+  const setPreselect = useAppStore((s) => s.setNewSessionPreselect);
   const setPreselectInvite = useAppStore((s) => s.setNewSessionPreselectInvite);
   // Direct-invite mode (tester feedback relayed by Lucy 2026-10-16:
   // the full template has 'too many buttons' for a simple invite).
@@ -146,7 +148,17 @@ export function NewSessionSheet({ open, onOpenChange, defaultGroupId, startAsEve
       setCallCapacity(2);
       setLeanStep('type');
       setLeanGrade('All levels');
+      // A pre-filled start time (availability search) lands the call
+      // in the exact slot the invitee usually climbs.
+      if (preselectWhen) {
+        const d = new Date(preselectWhen);
+        const pad = (n: number) => String(n).padStart(2, '0');
+        setCallDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+        setCallTime(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
+        setCallWhen('custom');
+      }
       setPreselectInvite(null);
+      setPreselect(null, null);
     }
   }, [open, preselectInvite, setPreselectInvite]);
 

@@ -8,6 +8,7 @@ import { SessionDetailSheet } from '@/components/sheets/SessionDetailSheet';
 import { EventDetailSheet } from '@/components/sheets/EventDetailSheet';
 import { ClimbCallDetailSheet } from '@/components/sheets/ClimbCallDetailSheet';
 import { AiMatchSheet } from '@/components/sheets/AiMatchSheet';
+import { AvailabilitySearchSheet } from '@/components/sheets/AvailabilitySearchSheet';
 import { FilterRow } from '@/components/filters/FilterRow';
 import { CrewsBrowser } from '@/components/crews/CrewsBrowser';
 import { MysteryCrewCard } from '@/components/cards/MysteryCrewCard';
@@ -98,6 +99,7 @@ export function Find() {
   const [detailEvent, setDetailEvent] = useState<EventItem | null>(null);
   const [detailCall, setDetailCall] = useState<ClimbCall | null>(null);
   const [aiMatchOpen, setAiMatchOpen] = useState(false);
+  const [availOpen, setAvailOpen] = useState(false);
   const [mysteryOpen, setMysteryOpen] = useState(false);
 
   const { l1, env } = filters;
@@ -354,6 +356,23 @@ export function Find() {
               </div>
             </button>
           )}
+
+          {/* ── Who climbs when (availability people-search) ── */}
+          {l1 === 'climb' && (
+            <button
+              onClick={() => setAvailOpen(true)}
+              className="w-full mb-4 rounded-2xl bg-paper-100 border border-ink-100 p-4 flex items-center gap-3 text-left hover:brightness-[0.98] active:scale-[0.99] transition-all"
+            >
+              <div className="w-10 h-10 shrink-0 rounded-full bg-brand-100 flex items-center justify-center text-lg">
+                🕐
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-ink-900 text-sm">Who climbs when?</p>
+                <p className="text-xs text-ink-600 mt-0.5">Find climbers by their usual times & gyms — invite them right into their slot.</p>
+              </div>
+            </button>
+          )}
+          <AvailabilitySearchSheet open={availOpen} onOpenChange={setAvailOpen} />
 
           {/* ── Content ── */}
           <div className="flex flex-col gap-3">

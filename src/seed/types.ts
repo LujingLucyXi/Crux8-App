@@ -211,6 +211,10 @@ export interface Profile {
   /** Boulder grade (V-scale), separate from the rope grade — boulderers
    *  had no way to state theirs before 2026-10-16. */
   boulder_grade?: string;
+  /** Usual weekly climb slots (`${dow}:${part}` keys, lib/availability)
+   *  + the gyms they usually climb at — published for people search. */
+  usual_times?: string[];
+  usual_gym_ids?: string[];
   preferred_styles: Style[];
   about?: string;
   // ── profile identity (set during onboarding) ──
