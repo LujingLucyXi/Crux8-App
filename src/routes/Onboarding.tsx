@@ -416,33 +416,44 @@ export function Onboarding() {
                 </select>
                 <p className="mt-1 text-[11px] text-ink-500">Helps match you with climbers and crags near you.</p>
               </div>
-              <div>
-                <Label>Home gym</Label>
-                <select
-                  value={homeGymId}
-                  onChange={(e) => handleHomeGymChange(e.target.value)}
-                  className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
-                >
-                  {cityGyms.length === 0 && (
-                    <option value="">No gyms listed for this city yet</option>
-                  )}
-                  {cityGyms.map((g) => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label>When do you usually climb?</Label>
-                <p className="text-xs text-ink-500 mt-0.5 mb-2">
-                  Climbers find you by these times and send invites that land right in your usual slots.
+              {/* Highlight section (Lucy 2026-10-19): when + where you
+                  climb is THE findability answer of this step — it gets
+                  its own gold card instead of blending into the form. */}
+              <section className="rounded-3xl border-2 border-brand-500/50 bg-gradient-to-b from-brand-100 to-paper-100 p-4 shadow-[0_10px_36px_rgba(201,162,75,0.18)]">
+                <h3 className="text-base font-bold text-ink-900">
+                  🧗 When do you climb — and where?
+                </h3>
+                <p className="mt-1 text-xs leading-relaxed text-ink-600">
+                  This is how partners find you: climbers searching these times can invite you
+                  right into your usual slots.
                 </p>
-                <UsualTimesEditor
-                  times={usualTimes}
-                  gymIds={usualGymIds}
-                  gyms={cityGyms}
-                  onChange={handleUsualChange}
-                />
-              </div>
+                <div className="mt-4">
+                  <Label>Home gym</Label>
+                  <select
+                    value={homeGymId}
+                    onChange={(e) => handleHomeGymChange(e.target.value)}
+                    className="w-full rounded-xl border border-ink-100 bg-paper-50 px-3.5 py-2.5 text-sm text-ink-900"
+                  >
+                    {cityGyms.length === 0 && (
+                      <option value="">No gyms listed for this city yet</option>
+                    )}
+                    {cityGyms.map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mt-4">
+                  <Label>Your usual times</Label>
+                  <div className="mt-1.5">
+                    <UsualTimesEditor
+                      times={usualTimes}
+                      gymIds={usualGymIds}
+                      gyms={cityGyms}
+                      onChange={handleUsualChange}
+                    />
+                  </div>
+                </div>
+              </section>
               <div>
                 <Label>Date of birth (optional)</Label>
                 <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />

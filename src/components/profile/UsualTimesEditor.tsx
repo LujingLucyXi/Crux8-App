@@ -50,7 +50,7 @@ export function UsualTimesEditor({
                       'flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors',
                       on
                         ? 'bg-brand-600 text-[#161310] border-brand-600 font-semibold'
-                        : 'bg-paper-100 text-ink-600 border-ink-100',
+                        : 'bg-white/70 text-ink-600 border-ink-100',
                     )}
                   >
                     {label}
@@ -76,7 +76,7 @@ export function UsualTimesEditor({
                     'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                     on
                       ? 'bg-brand-600 text-[#161310] border-brand-600 font-semibold'
-                      : 'bg-paper-100 text-ink-600 border-ink-100',
+                      : 'bg-white/70 text-ink-600 border-ink-100',
                   )}
                 >
                   {g.short_name}
