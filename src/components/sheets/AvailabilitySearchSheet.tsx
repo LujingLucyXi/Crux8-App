@@ -8,11 +8,14 @@ import { searchClimbersByAvailability, type DirectoryProfile } from '@/lib/db';
 import {
   DAY_PARTS,
   DAYS_MON_FIRST,
+  USUAL_STYLES,
+  legacySlotKey,
   nextSlotDate,
   parseSlot,
   slotKey,
   summarizeUsualTimes,
   type DayPart,
+  type UsualStyle,
 } from '@/lib/availability';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +37,7 @@ export function AvailabilitySearchSheet({
   const setPreselect = useAppStore((s) => s.setNewSessionPreselect);
   const setNewSessionOpen = useAppStore((s) => s.setNewSessionOpen);
 
+  const [style, setStyle] = useState<UsualStyle | null>(null);
   const [days, setDays] = useState<number[]>([new Date().getDay()]);
   const [parts, setParts] = useState<DayPart[]>([]);
   const [gymId, setGymId] = useState('');
@@ -42,10 +46,22 @@ export function AvailabilitySearchSheet({
 
   const gymName = (id?: string | null) => gyms.find((g) => g.id === id)?.short_name;
 
+  // Keys for the current filters: style-prefixed keys for the chosen
+  // discipline (or all three), plus legacy no-style keys so climbers
+  // who set their times before styles existed still match.
+  const buildKeys = () => {
+    const partList = parts.length > 0 ? parts : DAY_PARTS.map((p) => p.key);
+    const styles = style ? [style] : USUAL_STYLES.map((x) => x.key);
+    const styled = days.flatMap((d) =>
+      partList.flatMap((p) => styles.map((st) => slotKey(st, d, p))),
+    );
+    const legacy = days.flatMap((d) => partList.map((p) => legacySlotKey(d, p)));
+    return [...styled, ...legacy];
+  };
+
   const runSearch = async () => {
     if (!me || days.length === 0) return;
-    const partList = parts.length > 0 ? parts : DAY_PARTS.map((p) => p.key);
-    const keys = days.flatMap((d) => partList.map((p) => slotKey(d, p)));
+    const keys = buildKeys();
     setLoading(true);
     const rows = await searchClimbersByAvailability(keys, me.id);
     setLoading(false);
@@ -63,8 +79,7 @@ export function AvailabilitySearchSheet({
   const invite = (person: DirectoryProfile) => {
     // Land the invite in the person's own matching slot — the first
     // of their usual slots the current search actually matched.
-    const partList = parts.length > 0 ? parts : DAY_PARTS.map((p) => p.key);
-    const wanted = new Set(days.flatMap((d) => partList.map((p) => slotKey(d, p))));
+    const wanted = new Set(buildKeys());
     const hit = (person.usual_times ?? []).find((k) => wanted.has(k));
     const parsed = hit ? parseSlot(hit) : null;
     const when = parsed ? nextSlotDate(parsed.dow, parsed.part) : null;
@@ -85,6 +100,35 @@ export function AvailabilitySearchSheet({
         <p className="text-xs text-ink-500 mt-0.5">
           Find climbers by the times they usually climb — then invite them right into their slot.
         </p>
+
+        <p className="mt-4 mb-1.5 text-xs font-semibold text-ink-500">Style</p>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setStyle(null)}
+            className={cn(
+              'rounded-full border px-3 py-1.5 text-xs font-medium',
+              style === null
+                ? 'bg-brand-600 text-[#161310] border-brand-600 font-semibold'
+                : 'bg-paper-100 text-ink-600 border-ink-100',
+            )}
+          >
+            Any style
+          </button>
+          {USUAL_STYLES.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setStyle(style === key ? null : key)}
+              className={cn(
+                'rounded-full border px-3 py-1.5 text-xs font-medium',
+                style === key
+                  ? 'bg-brand-600 text-[#161310] border-brand-600 font-semibold'
+                  : 'bg-paper-100 text-ink-600 border-ink-100',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         <p className="mt-4 mb-1.5 text-xs font-semibold text-ink-500">Day</p>
         <div className="flex flex-wrap gap-1.5">

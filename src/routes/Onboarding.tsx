@@ -420,12 +420,16 @@ export function Onboarding() {
                   climb is THE findability answer of this step — it gets
                   its own gold card instead of blending into the form. */}
               <section className="rounded-3xl border-2 border-brand-500/50 bg-gradient-to-b from-brand-100 to-paper-100 p-4 shadow-[0_10px_36px_rgba(201,162,75,0.18)]">
-                <h3 className="text-base font-bold text-ink-900">
+                <h3 className="flex items-center gap-2 text-base font-bold text-ink-900">
                   🧗 When do you climb — and where?
+                  <span className="rounded-full border border-ink-500/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-600">
+                    Optional
+                  </span>
                 </h3>
                 <p className="mt-1 text-xs leading-relaxed text-ink-600">
                   This is how partners find you: climbers searching these times can invite you
-                  right into your usual slots.
+                  right into your usual slots. Skip anything that doesn&apos;t fit — you can
+                  change it anytime in your profile.
                 </p>
                 <div className="mt-4">
                   <Label>Home gym</Label>
