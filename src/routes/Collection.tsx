@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { QUIZ_ARCHETYPES, QUIZ_HOUSES, getArchetype } from '@/lib/quizMeta';
 import { DnaCard } from '@/components/DnaCard';
+import { BoltBoard } from '@/components/BoltBoard';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { resolveUser } from '@/lib/resolveUser';
 import type { CollectedCard } from '@/seed/types';
@@ -14,7 +14,6 @@ import type { CollectedCard } from '@/seed/types';
  * house; collected cards open a detail sheet with every giver.
  */
 export function Collection() {
-  const nav = useNavigate();
   const me = useAppStore((s) => s.me);
   const users = useAppStore((s) => s.users);
   const directory = useAppStore((s) => s.directory);
@@ -40,13 +39,9 @@ export function Collection() {
 
   return (
     <div>
-      <button
-        onClick={() => nav('/profile')}
-        className="text-sm font-semibold text-ink-500 active:scale-[0.98] transition"
-      >
-        ← Profile
-      </button>
-      <h1 className="mt-2 text-2xl font-extrabold text-ink-900" style={{ fontFamily: 'Archivo, sans-serif' }}>
+      {/* The Vault is a top-level tab now (Lucy 2026-10-20) — no
+          "back to Profile" link; the collection left the profile. */}
+      <h1 className="text-2xl font-extrabold text-ink-900" style={{ fontFamily: 'Archivo, sans-serif' }}>
         The Vault 🃏
       </h1>
       <p className="mt-1 text-sm text-ink-500">
@@ -73,6 +68,8 @@ export function Collection() {
             : `${total - collectedCount} to go — become cruxmates or climb a session together to collect a card.`}
         </p>
       </div>
+
+      <BoltBoard />
 
       {/* My own card */}
       {me?.quiz_result_type && (

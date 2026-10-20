@@ -893,6 +893,23 @@ async function fetchProfileRowRetried(userId: string) {
  * table (RLS: the user can only update their own row). Fire-and-forget: the
  * local store is the source of truth for the UI; a failure only logs.
  */
+/**
+ * Bolt leaderboard sync (Lucy 2026-10-20): push my current charge
+ * up to my profile row so the daily board can rank it. Fire-and-
+ * forget — before the migration runs (or offline) the write just
+ * fails quietly and my board lags a day.
+ */
+async function syncBoltCharge(userId: string, charge: number, day: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ bolt_charge: charge, bolt_day: day })
+    .eq('id', userId);
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.warn('[crux8] bolt sync failed (migration pending?):', error.message);
+  }
+}
+
 async function persistProfilePatch(userId: string, patch: Partial<Profile>): Promise<void> {
   // Invite-code stability (2026-10-16): a code is first-writer-wins,
   // forever. Two devices generated different codes for one account
@@ -2406,6 +2423,8 @@ export const useAppStore = create<Store>()(
           ].slice(0, 30),
           chargeLastActiveDay: today,
         });
+        // Keep the leaderboard's copy of my bolt current.
+        void syncBoltCharge(me.id, get().charge, today);
       },
 
       // Daily routine (boot / sign-in): absence fades the meter,

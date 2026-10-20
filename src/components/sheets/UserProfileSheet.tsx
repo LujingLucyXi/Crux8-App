@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ShieldCheck } from 'iconoir-react';
 import { summarizeUsualTimes } from '@/lib/availability';
+import { DnaBanner } from '@/components/DnaBanner';
+import { DnaDetailSheet } from '@/components/sheets/DnaDetailSheet';
 import { Sheet, SheetContent } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
@@ -48,6 +50,7 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
   // Founding number (public view; null until the migration runs or
   // for accounts past the first 88). Fetched per person on open.
   const [foundingNo, setFoundingNo] = useState<number | null>(null);
+  const [dnaOpen, setDnaOpen] = useState(false);
   useEffect(() => {
     setFoundingNo(null);
     if (!open || !userId) return;
@@ -120,13 +123,6 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
               </span>
             </span>
           )}
-          {archetype && (
-            <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-gold-500">
-              <ArchetypeEmblem archetypeId={archetype.id} className="inline-block h-4 w-4" fallbackClassName="text-sm" />
-              {archetype.name_en}
-              {house ? <span className="font-medium text-ink-500">· {house.emoji} {house.name}</span> : null}
-            </p>
-          )}
 
           <div className="mt-3 flex flex-wrap gap-1.5 justify-center">
             <span className="rounded-full border border-teal-600 text-teal-600 text-[11px] font-medium px-2.5 py-0.5">
@@ -148,6 +144,25 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
               </span>
             )}
           </div>
+
+          {/* DNA identity banner (Lucy 2026-10-20): the archetype
+              as a golden identity strip — tap for the full card.
+              NPCs skip it (they're seed cast, not card holders). */}
+          {!npcUser && (
+            <div className="mt-4 text-left">
+              <DnaBanner
+                archetypeId={user.quiz_result_type}
+                onClick={() => setDnaOpen(true)}
+              />
+            </div>
+          )}
+          <DnaDetailSheet
+            archetypeId={user.quiz_result_type}
+            displayName={user.display_name}
+            isMe={me?.id === user.id}
+            open={dnaOpen}
+            onOpenChange={setDnaOpen}
+          />
 
           <div className="mt-3 flex flex-wrap gap-1 justify-center">
             {(['top_rope', 'lead', 'trad'] as const).map((cat) => {

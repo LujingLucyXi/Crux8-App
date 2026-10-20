@@ -21,8 +21,8 @@ import type { VerificationCategory } from '@/seed/types';
 import { cn } from '@/lib/utils';
 import { kgToLbs, lbsToKg, ftInToCm } from '@/lib/weight';
 import { levelFromXp } from '@/lib/rewards';
-import { getArchetype, getHouse, getHouseForArchetype } from '@/lib/quizMeta';
-import { CollectionBook } from '@/components/CollectionBook';
+import { DnaBanner } from '@/components/DnaBanner';
+import { DnaDetailSheet } from '@/components/sheets/DnaDetailSheet';
 
 const BADGE_META: Record<BadgeId, { label: string; emoji: string; grad: string }> = {
   first_session: { label: 'First Session', emoji: '🧗', grad: 'linear-gradient(135deg,#C9A24B,#E8C766)' },
@@ -72,6 +72,7 @@ export function Profile() {
   const [about, setAbout] = useState(me?.about ?? '');
   const [editingAbout, setEditingAbout] = useState(false);
   const [hwOpen, setHwOpen] = useState(false);
+  const [dnaOpen, setDnaOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [draftAvatar, setDraftAvatar] = useState(me?.avatar ?? DEFAULT_AVATAR);
@@ -327,81 +328,61 @@ export function Profile() {
         )}
       </section>
 
-      {/* ── Climber DNA (from the quiz) ── */}
-      {me.quiz_result_type && me.quiz_dna ? (
-        <section className="mt-6">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
-            Climber DNA 🧬
-          </h2>
-          <div className="rounded-2xl bg-paper-100 border border-ink-100 p-5">
-            {(() => {
-              const arch = getArchetype(me.quiz_result_type);
-              const house = getHouse(me.quiz_house_id) ?? (arch ? getHouseForArchetype(arch.id) : null);
-              return (
-                <>
-                  <div className="flex items-center gap-3">
-                    <ArchetypeEmblem
-                      archetypeId={me.quiz_result_type}
-                      className="h-14 w-14 shrink-0"
-                      fallbackClassName="text-4xl"
-                    />
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-ink-900">{arch?.name_en ?? 'Climber'}</h3>
-                      {arch?.tagline_en && (
-                        <p className="text-xs text-ink-500 italic">“{arch.tagline_en}”</p>
-                      )}
-                    </div>
-                  </div>
-                  {house && (
-                    <span
-                      className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-white"
-                      style={{ background: house.color }}
-                    >
-                      {house.emoji} {house.name}
-                    </span>
-                  )}
-                  <div className="mt-4 space-y-2.5">
-                    {me.quiz_dna.map((axis) => (
-                      <div key={axis.key}>
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="font-semibold text-ink-700">
-                            {axis.emoji} {axis.label}
-                          </span>
-                          <span className="text-ink-400 font-medium">{axis.value}%</span>
-                        </div>
-                        <div className="h-2 rounded-full bg-ink-100 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-brand-gradient"
-                            style={{ width: `${axis.value}%` }}
-                          />
-                        </div>
+      {/* ── Climber DNA (from the quiz) ──
+          Identity banner (Lucy 2026-10-20): the same golden strip
+          other climbers see on my profile sheet — tap opens the full
+          card. Without a result the face-down banner IS the nudge:
+          tapping goes straight to the test. DNA axes stay below as
+          the detail layer. */}
+      <section className="mt-6">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
+          Climber DNA 🧬
+        </h2>
+        {me.quiz_result_type ? (
+          <>
+            <DnaBanner archetypeId={me.quiz_result_type} onClick={() => setDnaOpen(true)} />
+            <DnaDetailSheet
+              archetypeId={me.quiz_result_type}
+              displayName={me.display_name}
+              isMe
+              open={dnaOpen}
+              onOpenChange={setDnaOpen}
+            />
+            {me.quiz_dna && (
+              <div className="mt-3 rounded-2xl bg-paper-100 border border-ink-100 p-5">
+                <div className="space-y-2.5">
+                  {me.quiz_dna.map((axis) => (
+                    <div key={axis.key}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="font-semibold text-ink-700">
+                          {axis.emoji} {axis.label}
+                        </span>
+                        <span className="text-ink-400 font-medium">{axis.value}%</span>
                       </div>
-                    ))}
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </section>
-      ) : (
-        <section className="mt-6">
-          <button
-            onClick={() => window.open(`https://play.crux8.app?name=${encodeURIComponent(me.display_name)}`, '_blank')}
-            className="w-full text-left rounded-2xl border border-dashed border-ink-200 p-5 hover:border-ink-400 transition-colors"
-          >
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-1">
-              Climber DNA 🧬
-            </h2>
-            <p className="text-sm text-ink-700 font-medium">Discover your climbing archetype</p>
-            <p className="text-xs text-ink-500 mt-1">
-              Take the 60-second quiz to reveal your Climber DNA on your profile.
-            </p>
-          </button>
-        </section>
-      )}
-
-      {/* ── Card collection ── */}
-      <CollectionBook />
+                      <div className="h-2 rounded-full bg-ink-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-brand-gradient"
+                          style={{ width: `${axis.value}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <DnaBanner
+            archetypeId={null}
+            onClick={() =>
+              window.open(
+                `https://play.crux8.app?name=${encodeURIComponent(me.display_name)}`,
+                '_blank',
+              )
+            }
+          />
+        )}
+      </section>
 
       {/* Badges — with the tier/XP progress folded in as one slim
           row (declutter 2026-10-16: the giant gradient Level slab is

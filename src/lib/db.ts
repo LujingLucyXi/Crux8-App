@@ -36,6 +36,9 @@ export interface DirectoryProfile {
    *  availability migration; absent/null before it runs. */
   usual_times?: string[] | null;
   usual_gym_ids?: string[] | null;
+  /** Bolt leaderboard (2026-10-20): synced charge + last active day. */
+  bolt_charge?: number | null;
+  bolt_day?: string | null;
   /** Rich fields — present only after the directory-rich migration
    *  (2026-10-16-directory-rich.sql); absent/null before it runs. */
   avatar?: import('@/lib/avatar').AvatarConfig | null;
@@ -704,6 +707,34 @@ export async function searchClimbersByAvailability(
   if (error) return [];
   return asRows<DirectoryProfile>(data);
 }
+
+export interface BoltBoardRow {
+  id: string;
+  display_name: string;
+  photo_url?: string | null;
+  avatar?: import('@/lib/avatar').AvatarConfig | null;
+  bolt_charge: number;
+  bolt_day?: string | null;
+}
+
+/**
+ * Bolt leaderboard source rows (Lucy 2026-10-20): raw synced charge
+ * from the directory; callers apply decay at read time (a stale
+ * score fades exactly like in its owner's app). Returns [] before
+ * the migration runs or on any error — the board then shows just
+ * your own bolt.
+ */
+export async function fetchBoltBoard(): Promise<BoltBoardRow[]> {
+  const { data, error } = await supabase
+    .from('directory_profiles')
+    .select('id,display_name,photo_url,avatar,bolt_charge,bolt_day')
+    .gt('bolt_charge', 0)
+    .order('bolt_charge', { ascending: false })
+    .limit(60);
+  if (error) return [];
+  return asRows<BoltBoardRow>(data);
+}
+
 
 /**
  * Resolve a personal invite code (e.g. CLIMB-8K42) to a public profile.
