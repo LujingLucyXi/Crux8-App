@@ -259,6 +259,62 @@ export function Profile() {
         );
       })()}
 
+      {/* ── Climber DNA (from the quiz) ──
+          Identity banner (Lucy 2026-10-20): the same golden strip
+          other climbers see on my profile sheet — tap opens the full
+          card. Without a result the face-down banner IS the nudge:
+          tapping goes straight to the test. DNA axes stay below as
+          the detail layer. */}
+      <section className="mt-6">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
+          Climber DNA 🧬
+        </h2>
+        {me.quiz_result_type ? (
+          <>
+            <DnaBanner archetypeId={me.quiz_result_type} onClick={() => setDnaOpen(true)} />
+            <DnaDetailSheet
+              archetypeId={me.quiz_result_type}
+              displayName={me.display_name}
+              isMe
+              open={dnaOpen}
+              onOpenChange={setDnaOpen}
+            />
+            {me.quiz_dna && (
+              <div className="mt-3 rounded-2xl bg-paper-100 border border-ink-100 p-5">
+                <div className="space-y-2.5">
+                  {me.quiz_dna.map((axis) => (
+                    <div key={axis.key}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="font-semibold text-ink-700">
+                          {axis.emoji} {axis.label}
+                        </span>
+                        <span className="text-ink-400 font-medium">{axis.value}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-ink-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-brand-gradient"
+                          style={{ width: `${axis.value}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <DnaBanner
+            archetypeId={null}
+            onClick={() =>
+              window.open(
+                `https://play.crux8.app?name=${encodeURIComponent(me.display_name)}`,
+                '_blank',
+              )
+            }
+          />
+        )}
+      </section>
+
       {/* ── Friends: my invite card + the finder, ONE block (merged
           2026-10-15 — the separate "My invite" and "Add friends" blocks
           repeated headers and the same invite CTA twice on one screen).
@@ -325,62 +381,6 @@ export function Profile() {
               </p>
             )}
           </button>
-        )}
-      </section>
-
-      {/* ── Climber DNA (from the quiz) ──
-          Identity banner (Lucy 2026-10-20): the same golden strip
-          other climbers see on my profile sheet — tap opens the full
-          card. Without a result the face-down banner IS the nudge:
-          tapping goes straight to the test. DNA axes stay below as
-          the detail layer. */}
-      <section className="mt-6">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-ink-500 mb-2">
-          Climber DNA 🧬
-        </h2>
-        {me.quiz_result_type ? (
-          <>
-            <DnaBanner archetypeId={me.quiz_result_type} onClick={() => setDnaOpen(true)} />
-            <DnaDetailSheet
-              archetypeId={me.quiz_result_type}
-              displayName={me.display_name}
-              isMe
-              open={dnaOpen}
-              onOpenChange={setDnaOpen}
-            />
-            {me.quiz_dna && (
-              <div className="mt-3 rounded-2xl bg-paper-100 border border-ink-100 p-5">
-                <div className="space-y-2.5">
-                  {me.quiz_dna.map((axis) => (
-                    <div key={axis.key}>
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-semibold text-ink-700">
-                          {axis.emoji} {axis.label}
-                        </span>
-                        <span className="text-ink-400 font-medium">{axis.value}%</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-ink-100 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-brand-gradient"
-                          style={{ width: `${axis.value}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <DnaBanner
-            archetypeId={null}
-            onClick={() =>
-              window.open(
-                `https://play.crux8.app?name=${encodeURIComponent(me.display_name)}`,
-                '_blank',
-              )
-            }
-          />
         )}
       </section>
 
