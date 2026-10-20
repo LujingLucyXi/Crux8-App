@@ -127,7 +127,7 @@ export const SEED_GYMS: Gym[] = [
   {
     id: 'gym_edgeworks_tacoma',
     name: 'Edgeworks Tacoma',
-    short_name: 'Edgeworks',
+    short_name: 'Edgeworks Tacoma',
     address: '6102 N 9th St',
     city: 'Tacoma, WA',
     neighborhood: 'Tacoma',
