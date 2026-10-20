@@ -101,7 +101,7 @@ export function Claim() {
     addCharge('quiz_claim');
     // First crew, zero effort: drop them into their house hangout.
     ensureHouseHangout(claim.houseId);
-    nav(me.onboarded === false ? '/onboarding' : '/home');
+    nav(me.onboarded === false ? '/onboarding?summary=1' : '/home');
   };
 
   return (

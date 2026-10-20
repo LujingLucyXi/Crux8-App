@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { EyeClosed } from 'iconoir-react';
 import { Button } from '@/components/ui/Button';
@@ -7,6 +7,8 @@ import { Input, Label, Textarea } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
 import { AvatarCustomizer } from '@/components/ui/AvatarCustomizer';
 import { UsualTimesEditor } from '@/components/profile/UsualTimesEditor';
+import { DnaBanner } from '@/components/DnaBanner';
+import { summarizeUsualTimes } from '@/lib/availability';
 import { avatarFromSeed, type AvatarConfig } from '@/lib/avatar';
 import { CertVerificationSheet } from '@/components/sheets/CertVerificationSheet';
 import { AuthSheet } from '@/components/AuthSheet';
@@ -45,7 +47,7 @@ const STEP_META = [
   { n: 4, label: 'Your DNA' },
 ] as const;
 const TOTAL = STEP_META.length;
-type StepN = 1 | 2 | 3 | 4;
+type StepN = 1 | 2 | 3 | 4 | 5;
 
 const STYLES: { value: Style; label: string }[] = [
   { value: 'top_rope', label: 'Top Rope' },
@@ -99,6 +101,7 @@ const HIKE_PACES = [
 
 export function Onboarding() {
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
   const me = useAppStore((s) => s.me);
   const gyms = useAppStore((s) => s.gyms);
   const completeOnboarding = useAppStore((s) => s.completeOnboarding);
@@ -207,6 +210,23 @@ export function Onboarding() {
   // degrades IN PLACE: a live session with a lagging profile just
   // waits; a dead session gets an inline sign-in panel, and signing
   // back in resumes the same step (the draft persists every step).
+  // Finish-line routing (Lucy 2026-10-20: "after the quiz, do not
+  // take back to this screen — just take to finish orientation
+  // summary"). The Claim page sends finished quizzers to
+  // /onboarding?summary=1; a claim that lands while this tab sits
+  // on step 4 advances on its own. Either way the pitch screen is
+  // never the return destination.
+  useEffect(() => {
+    if (searchParams.get('summary') === '1') setStep(5);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const prevQuizRef = useRef(me?.quiz_result_type);
+  useEffect(() => {
+    const cur = me?.quiz_result_type;
+    if (!prevQuizRef.current && cur && step === 4) setStep(5);
+    prevQuizRef.current = cur;
+  }, [me?.quiz_result_type, step]);
+
   const [authOpen, setAuthOpen] = useState(false);
   const [sessionGone, setSessionGone] = useState(false);
   useEffect(() => {
@@ -373,9 +393,11 @@ export function Onboarding() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-ink-500">
-              Step {step} of {TOTAL}
+              {step === 5 ? 'Done 🎉' : `Step ${step} of ${TOTAL}`}
             </span>
-            <span className="text-xs font-medium text-ink-700">{STEP_META[step - 1].label}</span>
+            <span className="text-xs font-medium text-ink-700">
+              {step === 5 ? 'Summary' : STEP_META[step - 1].label}
+            </span>
           </div>
           <div className="flex gap-1.5">
             {STEP_META.map(({ n }) => (
@@ -598,7 +620,7 @@ export function Onboarding() {
             </div>
 
             {me?.quiz_result_type ? (
-              <Button size="lg" className="mt-6 w-full" onClick={finish}>
+              <Button size="lg" className="mt-6 w-full" onClick={() => go(5)}>
                 Finish — welcome in 🎉
               </Button>
             ) : (
@@ -629,6 +651,77 @@ export function Onboarding() {
                 Skip — finish without it
               </button>
             </div>
+          </>
+        )}
+
+        {/* ── Step 5 · Finish summary (Lucy 2026-10-20) ──
+            The orientation wrap-up: what we set up, on one screen,
+            one button out. Reached from step 4's Finish, from the
+            Claim page after the quiz, or automatically when a claim
+            lands while sitting on step 4 — never back at the pitch. */}
+        {step === 5 && (
+          <>
+            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-teal-600">
+              You&apos;re all set 🎉
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold text-ink-900">
+              {(displayName.trim() || me?.display_name || 'Climber').split(' ')[0]}, here&apos;s your setup.
+            </h2>
+            <p className="mt-2 text-sm text-ink-500">
+              Everything below lives on your profile — change any of it anytime.
+            </p>
+
+            <div className="mt-6">
+              {me?.quiz_result_type ? (
+                <DnaBanner archetypeId={me.quiz_result_type} />
+              ) : (
+                <div className="rounded-[22px] border border-ink-100 bg-paper-100 px-4 py-3.5">
+                  <p className="text-sm font-semibold text-ink-900">🧬 Climber DNA — still face-down</p>
+                  <p className="mt-0.5 text-xs text-ink-500">
+                    Reveal it anytime from your profile — it&apos;s the card cruxmates collect from you.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex flex-col divide-y divide-ink-100 rounded-2xl border border-ink-100 bg-paper-100 px-4">
+              {(() => {
+                const gym = gyms.find((g) => g.id === (homeGymId || me?.home_gym_id));
+                const usual = summarizeUsualTimes(
+                  usualTimes.length ? usualTimes : (me?.usual_times ?? []),
+                );
+                const rows: { icon: string; label: string; value: string }[] = [];
+                if (gym) rows.push({ icon: '🏠', label: 'Home gym', value: gym.name });
+                if (usual) rows.push({ icon: '🕐', label: 'Usually climbs', value: usual });
+                if (location.trim() || me?.location)
+                  rows.push({ icon: '📍', label: 'Based in', value: location.trim() || me?.location || '' });
+                if (activities.length)
+                  rows.push({
+                    icon: '🧗',
+                    label: 'Into',
+                    value: activities.map((a) => (a === 'climb' ? 'Climbing' : 'Hiking')).join(' · '),
+                  });
+                return rows.map((r) => (
+                  <div key={r.label} className="flex items-baseline gap-3 py-3">
+                    <span className="text-base shrink-0">{r.icon}</span>
+                    <span className="w-28 shrink-0 text-xs font-semibold uppercase tracking-wide text-ink-500">
+                      {r.label}
+                    </span>
+                    <span className="min-w-0 flex-1 text-sm font-medium text-ink-900">{r.value}</span>
+                  </div>
+                ));
+              })()}
+            </div>
+
+            <Button variant="punch" size="lg" className="mt-6 w-full" onClick={finish}>
+              Start climbing →
+            </Button>
+            <button
+              className="mt-3 w-full text-center text-sm font-medium text-ink-500 underline underline-offset-2"
+              onClick={() => go(4)}
+            >
+              Keep editing
+            </button>
           </>
         )}
       </div>
