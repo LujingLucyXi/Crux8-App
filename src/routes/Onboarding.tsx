@@ -135,9 +135,12 @@ export function Onboarding() {
   const [tags, setTags] = useState<string[]>(draft?.tags ?? me?.tags ?? []);
   const [activities, setActivities] = useState<Activity[]>(draft?.activities ?? me?.activities ?? ['climb']);
   const [homeGymId, setHomeGymId] = useState<string>(draft?.homeGymId ?? me?.home_gym_id ?? gyms[0]?.id ?? '');
-  // Usual climb times + gyms (Lucy 2026-10-19): asked right here in
-  // the climb step so people can be FOUND by when they climb from
-  // day one — it powers people search and timed climb invites.
+  // Usual climb times + gyms (Lucy 2026-10-19): asked on STEP 1,
+  // right with the first home-gym pick, and AUTOSAVED the moment
+  // they're answered — most people never finish onboarding, and
+  // these two answers are what make a climber FINDABLE by when they
+  // climb (people search + timed climb invites). Waiting for the
+  // Finish button meant most profiles never got them.
   const [usualTimes, setUsualTimes] = useState<string[]>(draft?.usualTimes ?? me?.usual_times ?? []);
   const [usualGymIds, setUsualGymIds] = useState<string[]>(
     draft?.usualGymIds ?? me?.usual_gym_ids ?? (me?.home_gym_id ? [me.home_gym_id] : []),
@@ -175,10 +178,25 @@ export function Onboarding() {
   // yet — the field is optional at Finish).
   useEffect(() => {
     if (homeGymId && !cityGyms.some((g) => g.id === homeGymId)) {
-      setHomeGymId(cityGyms[0]?.id ?? '');
+      const next = cityGyms[0]?.id ?? '';
+      setHomeGymId(next);
+      if (next) updateProfile({ home_gym_id: next });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
+
+  // Step-1 availability answers autosave on every change (see the
+  // state note above): pick a gym or tap a time slot and it's on the
+  // profile immediately, finished onboarding or not.
+  const handleHomeGymChange = (id: string) => {
+    setHomeGymId(id);
+    updateProfile({ home_gym_id: id || undefined });
+  };
+  const handleUsualChange = (next: { times: string[]; gymIds: string[] }) => {
+    setUsualTimes(next.times);
+    setUsualGymIds(next.gymIds);
+    updateProfile({ usual_times: next.times, usual_gym_ids: next.gymIds });
+  };
 
 
   // The flow NEVER navigates away on its own (Lucy 2026-10-16,
@@ -272,7 +290,14 @@ export function Onboarding() {
   const skip = () => {
     // Keep any typed name, but do NOT mark onboarding complete — the
     // account stays in the "nudge me later" state (onboarded stays false).
+    // The step-1 availability answers ride along too (they autosaved
+    // already; this is belt-and-braces for same-tick skips).
     if (displayName.trim()) updateProfile({ display_name: displayName.trim() });
+    updateProfile({
+      ...(homeGymId ? { home_gym_id: homeGymId } : {}),
+      usual_times: usualTimes,
+      usual_gym_ids: usualGymIds,
+    });
     try {
       localStorage.setItem('crux8-onboarding-deferred', String(Date.now()));
       localStorage.removeItem('crux8-onboarding-draft');
@@ -297,7 +322,9 @@ export function Onboarding() {
       activities,
       ...(homeGymId ? { home_gym_id: homeGymId } : {}),
       ...(climbs ? { preferred_styles: preferredStyles } : {}),
-      ...(climbs ? { usual_times: usualTimes, usual_gym_ids: usualGymIds } : {}),
+      // Asked on step 1 regardless of activities — saved unconditionally.
+      usual_times: usualTimes,
+      usual_gym_ids: usualGymIds,
     });
     try { localStorage.removeItem('crux8-onboarding-draft'); } catch { /* ok */ }
     try { localStorage.removeItem('crux8-onboarding-deferred'); } catch { /* ok */ }
@@ -390,6 +417,33 @@ export function Onboarding() {
                 <p className="mt-1 text-[11px] text-ink-500">Helps match you with climbers and crags near you.</p>
               </div>
               <div>
+                <Label>Home gym</Label>
+                <select
+                  value={homeGymId}
+                  onChange={(e) => handleHomeGymChange(e.target.value)}
+                  className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
+                >
+                  {cityGyms.length === 0 && (
+                    <option value="">No gyms listed for this city yet</option>
+                  )}
+                  {cityGyms.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>When do you usually climb?</Label>
+                <p className="text-xs text-ink-500 mt-0.5 mb-2">
+                  Climbers find you by these times and send invites that land right in your usual slots.
+                </p>
+                <UsualTimesEditor
+                  times={usualTimes}
+                  gymIds={usualGymIds}
+                  gyms={cityGyms}
+                  onChange={handleUsualChange}
+                />
+              </div>
+              <div>
                 <Label>Date of birth (optional)</Label>
                 <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
                 <p className="mt-1 text-[11px] text-ink-500">Used for age-gated events (e.g. 18+ trips).</p>
@@ -422,7 +476,7 @@ export function Onboarding() {
           </>
         )}
 
-        {/* ── Step 3 · Activities + styles + home gym ── */}
+        {/* ── Step 3 · Activities + styles (gym + usual times live on step 1 now) ── */}
         {step === 3 && (
           <>
             <h2 className="text-2xl font-semibold text-ink-900">What are you into?</h2>
@@ -480,36 +534,9 @@ export function Onboarding() {
                     })}
                   </div>
                 </div>
-                <div className="mt-5">
-                  <Label>When do you usually climb?</Label>
-                  <p className="text-xs text-ink-500 mt-0.5 mb-2">
-                    Climbers find you by these times and send invites that land right in your usual slots.
-                  </p>
-                  <UsualTimesEditor
-                    times={usualTimes}
-                    gymIds={usualGymIds}
-                    gyms={cityGyms}
-                    onChange={(next) => {
-                      setUsualTimes(next.times);
-                      setUsualGymIds(next.gymIds);
-                    }}
-                  />
-                </div>
-                <div className="mt-5">
-                  <Label>Home gym</Label>
-                  <select
-                    value={homeGymId}
-                    onChange={(e) => setHomeGymId(e.target.value)}
-                    className="w-full rounded-xl border border-ink-100 bg-paper-100 px-3.5 py-2.5 text-sm text-ink-900"
-                  >
-                    {cityGyms.length === 0 && (
-                      <option value="">No gyms listed for this city yet</option>
-                    )}
-                    {cityGyms.map((g) => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Home gym + usual climb times moved to step 1
+                    (Lucy 2026-10-19): too many people never reach
+                    step 3, and those answers make them findable. */}
               </>
             )}
             <div className="mt-8 flex gap-2">
