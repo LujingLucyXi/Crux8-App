@@ -965,6 +965,50 @@ function mergeChatMessages(local: ChatMessage[], remote: ChatMessage[]): ChatMes
   return [...byId.values()].sort((a, b) => a.sent_at.localeCompare(b.sent_at));
 }
 
+/** Backfill pre-cloud DM history only when it is still on the device that
+ * owns the same signed-in account. Message ids make this safe to retry. */
+function backfillLocalDmHistory(myId: string, chats: Record<string, ChatMessage[]>): void {
+  const marker = `crux8-dm-history-backfill:${myId}`;
+  try {
+    if (localStorage.getItem(marker) === 'done') return;
+  } catch {
+    // Continue; idempotent server writes remain safe without local storage.
+  }
+  const writes: RemoteChatMessage[] = [];
+  for (const [peerId, messages] of Object.entries(chats)) {
+    if (!isUuid(peerId)) continue;
+    for (const message of messages) {
+      // RLS only permits a user to insert messages they authored. The
+      // other participant's historical messages can only be backfilled
+      // from their own device; never impersonate them here.
+      if (message.from !== 'me') continue;
+      writes.push({
+        id: message.id,
+        thread_kind: 'dm',
+        thread_id: dmThreadKey(myId, peerId),
+        sender_id: myId,
+        peer_id: peerId,
+        body: message.text,
+        reactions: message.reactions ?? [],
+        created_at: message.sent_at,
+      });
+    }
+  }
+  if (writes.length === 0) return;
+  void (async () => {
+    for (let i = 0; i < writes.length; i += 50) {
+      await Promise.all(writes.slice(i, i + 50).map((row) => insertChatMessageRemote(row)));
+    }
+    try {
+      localStorage.setItem(marker, 'done');
+    } catch {
+      // Retrying is safe because remote message ids are stable.
+    }
+  })().catch((error) => {
+    console.warn('[chat] legacy history backfill failed', error);
+  });
+}
+
 export const useAppStore = create<Store>()(
   persist(
     (set, get) => ({
@@ -1331,10 +1375,16 @@ export const useAppStore = create<Store>()(
           return { ok: false as const, error: otpErrorMessage(error, 'Could not verify the code — please try again.') };
         }
         const user = data.user;
+        const localOwnerId = get().me?.id;
         await ensureProfileRow(user.id, user.email);
         const row = await fetchMyProfile(user.id).catch(() => null);
         get().prepareForUser(user.id);
         set({ me: profileRowToProfile(user.id, user.email ?? normalizedEmail, row) });
+        get().startDmRealtime();
+        get().startSessionRealtime();
+        if (localOwnerId === user.id) backfillLocalDmHistory(user.id, get().chats);
+        void get().fetchMateRequests();
+        void get().fetchMyMessages();
         get().ensureCruxyThread();
         return { ok: true as const };
       },
@@ -1471,6 +1521,7 @@ export const useAppStore = create<Store>()(
           };
         }
         const user = data.user;
+        const localOwnerId = get().me?.id;
         await ensureProfileRow(user.id, user.email);
         const row = await fetchProfileRowRetried(user.id);
         get().prepareForUser(user.id);
@@ -1485,6 +1536,9 @@ export const useAppStore = create<Store>()(
         const profile = profileRowToProfile(user.id, user.email ?? '', effectiveRow);
         set({ me: profile });
         get().startSessionRealtime();
+        if (localOwnerId === user.id) backfillLocalDmHistory(user.id, get().chats);
+        void get().fetchMateRequests();
+        void get().fetchMyMessages();
         if (!row?.display_name && profile.display_name) {
           void persistProfilePatch(user.id, { display_name: profile.display_name });
         }
@@ -1507,6 +1561,7 @@ export const useAppStore = create<Store>()(
           emailConfirmedAt?: string | null,
           nameHint?: string,
         ) => {
+          const localOwnerId = get().me?.id;
           // Guest sessions are constructed by signInAsGuest with the chosen
           // name (written to the profile row fire-and-forget). Don't clobber
           // an in-memory guest profile with the email-fallback rebuild —
@@ -1519,6 +1574,9 @@ export const useAppStore = create<Store>()(
             }
             get().startDmRealtime();
             get().startSessionRealtime();
+            backfillLocalDmHistory(userId, get().chats);
+            void get().fetchMateRequests();
+            void get().fetchMyMessages();
             return;
           }
           get().prepareForUser(userId);
@@ -1557,6 +1615,8 @@ export const useAppStore = create<Store>()(
           set({ me: isGuest ? { ...profile, isGuest: true } : profile });
           get().startDmRealtime();
           get().startSessionRealtime();
+          if (localOwnerId === userId) backfillLocalDmHistory(userId, get().chats);
+          void get().fetchMateRequests();
           // Provider-confirmed emails are proof of inbox ownership by
           // construction — Google sign-in and email-code sign-in both
           // arrive with email_confirmed_at set. Mark them verified so

@@ -16,6 +16,7 @@ export function AppShell() {
   const fetchInvites = useAppStore((s) => s.fetchInvites);
   const fetchMyGroups = useAppStore((s) => s.fetchMyGroups);
   const fetchCheckin = useAppStore((s) => s.fetchCheckin);
+  const fetchMyMessages = useAppStore((s) => s.fetchMyMessages);
 
   // Invite-link auto-befriend, resumed whenever a signed-in identity
   // materializes: a Google sign-in returns to whatever route the
@@ -41,18 +42,20 @@ export function AppShell() {
       void fetchInvites();
       void fetchMyGroups();
       void fetchCheckin();
+      void fetchMyMessages();
       void resumePendingBefriend();
     };
     const onVisible = () => refresh();
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onVisible);
     const t = window.setInterval(refresh, 60_000);
+    refresh();
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onVisible);
       window.clearInterval(t);
     };
-  }, [meId, fetchMateRequests, fetchInvites, fetchMyGroups, fetchCheckin, resumePendingBefriend]);
+  }, [meId, fetchMateRequests, fetchInvites, fetchMyGroups, fetchCheckin, fetchMyMessages, resumePendingBefriend]);
 
   return (
     <div className="min-h-screen bg-paper-50">
