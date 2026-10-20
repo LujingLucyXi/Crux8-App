@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Compass, Calendar, User, Plus, Album } from 'iconoir-react';
+import { Home, Compass, Calendar, User, Plus } from 'iconoir-react';
 import { cn } from '@/lib/utils';
 import { tapTick } from '@/lib/native';
 
@@ -8,16 +8,14 @@ interface BottomNavProps {
 }
 
 /**
- * 6 slots: Home · Find · Cards · [+] · Climbs · Profile.
- * The card collection (the Vault) is its own tab now (Lucy
- * 2026-10-20: a unique section, separate from Profile). Chat lives
- * in the header with its unread badge. The FAB sits over slot 4, so
- * it centers at 3.5/6 of the bar rather than 50%.
+ * 5 slots: Home · Find · [+] · Climbs · Profile.
+ * Chat lives in the header (with an unread badge). The card
+ * collection lives in the header too, as the Cards button beside
+ * chat (Lucy 2026-10-20: top right, NOT a bottom tab).
  */
 const items = [
   { to: '/home', label: 'Home', Icon: Home },
   { to: '/find', label: 'Find', Icon: Compass },
-  { to: '/collection', label: 'Cards', Icon: Album },
   null, // FAB slot
   { to: '/sessions', label: 'Climbs', Icon: Calendar },
   { to: '/profile', label: 'Profile', Icon: User },
@@ -27,7 +25,7 @@ export function BottomNav({ onFabClick }: BottomNavProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-paper-100 border-t border-ink-100 pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto max-w-[560px] relative">
-        <div className="grid grid-cols-6 h-16">
+        <div className="grid grid-cols-5 h-16">
           {items.map((item, i) =>
             item ? (
               <NavLink
@@ -54,8 +52,7 @@ export function BottomNav({ onFabClick }: BottomNavProps) {
             onFabClick();
           }}
           aria-label="Post a session, call, or event"
-          className="absolute -translate-x-1/2 -top-6 w-14 h-14 rounded-full bg-brand-gradient text-white flex items-center justify-center border-4 border-white shadow-brand hover:brightness-105 active:scale-95 transition-all"
-          style={{ left: '58.333%' }}
+          className="absolute left-1/2 -translate-x-1/2 -top-6 w-14 h-14 rounded-full bg-brand-gradient text-white flex items-center justify-center border-4 border-white shadow-brand hover:brightness-105 active:scale-95 transition-all"
         >
           <Plus width={26} height={26} strokeWidth={2.5} />
         </button>

@@ -1,4 +1,4 @@
-import { Menu, ChatBubbleEmpty, Group, Bell, Plus } from 'iconoir-react';
+import { Menu, ChatBubbleEmpty, Group, Bell, Plus, Album } from 'iconoir-react';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore, countUnreadThreads, countActionableInvites, crewAddNotices, upcomingReminders } from '@/store/useAppStore';
@@ -122,6 +122,18 @@ export function Header() {
                   {notifCount > 9 ? '9+' : notifCount}
                 </span>
               )}
+            </button>
+            {/* Cards (the Vault) — top right beside chat (Lucy
+                2026-10-20: its own header tab, NOT a bottom tab). */}
+            <button
+              onClick={() => nav('/collection')}
+              aria-label="Card collection"
+              className={
+                'p-1.5 rounded-lg hover:bg-paper-50 ' +
+                (location.pathname === '/collection' ? 'text-brand-600' : 'text-ink-700')
+              }
+            >
+              <Album width={22} height={22} />
             </button>
             <button
               onClick={() => nav('/chat')}

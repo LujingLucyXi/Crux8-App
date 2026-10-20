@@ -14,6 +14,14 @@ alter table public.profiles
 alter table public.profiles
   add column if not exists usual_gym_ids text[] not null default '{}';
 
-create or replace view directory_profiles as
-select id, display_name, photo_url, top_grade, home_gym_id, invite_code, boulder_grade, usual_times, usual_gym_ids
-from public.profiles;
+-- View recipe MUST stay complete (the short version that shipped
+-- here on 2026-10-19 dropped quiz/avatar/about columns and broke
+-- DNA display until the 2026-10-20 bolt migration restored them).
+create or replace view public.directory_profiles
+with (security_invoker = false)
+as
+select id, display_name, photo_url, top_grade, boulder_grade,
+       home_gym_id, invite_code, usual_times, usual_gym_ids,
+       quiz_result_type, quiz_house_id, avatar, about, signature,
+       preferred_styles, location, verifications
+  from public.profiles;
