@@ -17,7 +17,9 @@ alter table public.profiles
 -- View recipe MUST stay complete (the short version that shipped
 -- here on 2026-10-19 dropped quiz/avatar/about columns and broke
 -- DNA display until the 2026-10-20 bolt migration restored them).
-create or replace view public.directory_profiles
+drop view if exists public.directory_profiles;
+
+create view public.directory_profiles
 with (security_invoker = false)
 as
 select id, display_name, photo_url, top_grade, boulder_grade,

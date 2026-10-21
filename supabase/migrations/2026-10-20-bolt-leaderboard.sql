@@ -19,7 +19,13 @@
 alter table public.profiles add column if not exists bolt_charge int not null default 0;
 alter table public.profiles add column if not exists bolt_day text;
 
-create or replace view public.directory_profiles
+-- DROP first, then create: CREATE OR REPLACE VIEW refuses when the
+-- column ORDER differs from the existing view (error 42P16, hit live
+-- 2026-10-20 — the short view's order is …, home_gym_id, invite_code,
+-- boulder_grade, …). Dropping is safe: nothing depends on the view.
+drop view if exists public.directory_profiles;
+
+create view public.directory_profiles
 with (security_invoker = false)
 as
 select id, display_name, photo_url, top_grade, boulder_grade,
