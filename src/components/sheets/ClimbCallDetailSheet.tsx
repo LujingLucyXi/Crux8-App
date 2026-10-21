@@ -115,7 +115,7 @@ export function ClimbCallDetailSheet({ call: callProp, open, onOpenChange }: Pro
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent title=" ">
         <div className="flex flex-col items-center -mt-4 mb-5">
-          <Avatar photoUrl={caller.photo_url ?? undefined} config={caller.avatar} alt={caller.display_name} size={96} fallback={caller.display_name} />
+          <Avatar photoUrl={caller.photo_url ?? undefined} config={caller.avatar} alt={caller.display_name} size={96} fallback={caller.display_name} ring={!!caller.quiz_result_type} />
           <h2 className="mt-3 text-xl font-semibold text-ink-900">{caller.display_name}</h2>
           {callerNpc?.pronouns && <p className="text-sm text-ink-500">{callerNpc.pronouns}</p>}
 

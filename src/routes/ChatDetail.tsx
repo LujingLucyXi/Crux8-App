@@ -124,7 +124,7 @@ export function ChatDetail() {
           onClick={() => setProfileOpen(true)}
           className="flex items-center gap-3 flex-1 min-w-0 text-left"
         >
-          <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={36} fallback={user.display_name} />
+          <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={36} fallback={user.display_name} ring={!!user.quiz_result_type} />
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-ink-900 truncate">{user.display_name}</p>
           <div className="flex gap-1 mt-0.5">

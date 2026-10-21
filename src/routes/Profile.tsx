@@ -106,7 +106,7 @@ export function Profile() {
             className="relative shrink-0 group"
             aria-label="Edit avatar"
           >
-            <Avatar photoUrl={me.photo_url} config={me.avatar} alt={me.display_name} size={80} fallback={me.display_name} />
+            <Avatar photoUrl={me.photo_url} config={me.avatar} alt={me.display_name} size={80} fallback={me.display_name} ring={!!me.quiz_result_type} />
             <span className="absolute -bottom-1 -right-1 rounded-full bg-brand-600 text-[#161310] text-[9px] font-semibold px-2 py-0.5 border-2 border-white">
               Edit
             </span>

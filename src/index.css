@@ -87,6 +87,22 @@
 .og-shine-bar {
   animation: og-shine-sweep 3.8s ease-in-out infinite;
 }
+
+/* DNA ring (Lucy 2026-10-21, 2 AM idea): a shiny gold ring around the
+   avatar of anyone who has unlocked their Climber DNA (finished the
+   quiz). It exists to be noticed — people see the ring on someone
+   else's profile and get curious about how to earn one. The glow
+   breathes so it reads as polished metal, not a static border. */
+@keyframes dna-ring-shine {
+  0%, 100% { box-shadow: 0 0 0 2px #f6e3b4, 0 0 0 4px #c9a24b, 0 0 8px 1px rgba(201, 162, 75, 0.35); }
+  50% { box-shadow: 0 0 0 2px #fbeecb, 0 0 0 4px #d9b45f, 0 0 16px 5px rgba(201, 162, 75, 0.65); }
+}
+.avatar-dna-ring {
+  animation: dna-ring-shine 2.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .avatar-dna-ring { animation: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .crux-sign-spin, .og-shine-bar { animation: none; }
 }

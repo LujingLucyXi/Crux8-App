@@ -155,7 +155,7 @@ export function Header() {
               <Group width={22} height={22} />
             </button>
             <button onClick={() => nav('/profile')} aria-label="Profile">
-              <Avatar photoUrl={me?.photo_url} config={me?.avatar} alt={me?.display_name} size={30} fallback={me?.display_name} />
+              <Avatar photoUrl={me?.photo_url} config={me?.avatar} alt={me?.display_name} size={30} fallback={me?.display_name} ring={!!me?.quiz_result_type} />
             </button>
           </div>
         </div>

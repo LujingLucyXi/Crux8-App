@@ -102,7 +102,7 @@ export function UserProfileSheet({ userId, open, onOpenChange }: Props) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent title=" ">
         <div className="flex flex-col items-center -mt-4 mb-5">
-          <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={96} fallback={user.display_name} />
+          <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={96} fallback={user.display_name} ring={!!user.quiz_result_type} />
           <h2 className="mt-3 text-xl font-semibold text-ink-900">{user.display_name}</h2>
           {npcUser?.pronouns && <p className="text-sm text-ink-500">{npcUser.pronouns}</p>}
           {user.signature && (

@@ -14,30 +14,44 @@ interface AvatarProps {
   size?: number;
   fallback?: string;
   className?: string;
+  /** Shiny gold ring — this climber has unlocked their DNA (finished
+   *  the quiz). A deliberate curiosity hook (Lucy 2026-10-21): people
+   *  see the ring on someone else and want to know how to get one. */
+  ring?: boolean;
 }
 
 /**
  * Resolution order: uploaded photo → explicit config → deterministic
  * config derived from a seed string. No external avatar services.
  */
-export function Avatar({ photoUrl, config, seed, alt, size = 32, fallback, className }: AvatarProps) {
+export function Avatar({ photoUrl, config, seed, alt, size = 32, fallback, className, ring }: AvatarProps) {
   const resolved = React.useMemo(
     () => config ?? avatarFromSeed(seed ?? fallback ?? alt ?? 'anon'),
     [config, seed, fallback, alt],
   );
-  if (photoUrl) {
-    return (
-      <img
-        src={photoUrl}
-        alt={alt ?? 'avatar'}
-        width={size}
-        height={size}
-        style={{ width: size, height: size }}
-        className={cn('rounded-full object-cover shrink-0 bg-ink-100', className)}
-      />
-    );
-  }
-  return <CartoonAvatar config={resolved} size={size} className={className} />;
+  const inner = photoUrl ? (
+    <img
+      src={photoUrl}
+      alt={alt ?? 'avatar'}
+      width={size}
+      height={size}
+      style={{ width: size, height: size }}
+      className={cn('rounded-full object-cover shrink-0 bg-ink-100', !ring && className)}
+    />
+  ) : (
+    <CartoonAvatar config={resolved} size={size} className={ring ? undefined : className} />
+  );
+  if (!ring) return inner;
+  // Box-shadow ring: zero layout cost, so tight rows keep their sizing.
+  return (
+    <span
+      title="Climber DNA unlocked"
+      className={cn('avatar-dna-ring relative inline-flex shrink-0 rounded-full', className)}
+      style={{ width: size, height: size }}
+    >
+      {inner}
+    </span>
+  );
 }
 
 interface AvatarStackProps {

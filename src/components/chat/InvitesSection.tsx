@@ -178,6 +178,7 @@ export function InvitesSection({
             alt={sender?.display_name ?? ''}
             size={36}
             fallback={sender?.display_name}
+            ring={!!sender?.quiz_result_type}
           />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-ink-900 truncate">
@@ -249,6 +250,7 @@ export function InvitesSection({
             alt={sender.display_name}
             size={40}
             fallback={sender.display_name}
+            ring={!!sender.quiz_result_type}
           />
         </button>
         <div className="min-w-0 flex-1">

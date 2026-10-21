@@ -240,7 +240,7 @@ export function Chat() {
                         setProfileUserId(r.from_id);
                       }}
                     >
-                      <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} />
+                      <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} ring={!!user.quiz_result_type} />
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline justify-between gap-2">
@@ -312,7 +312,7 @@ export function Chat() {
                         setProfileUserId(id);
                       }}
                     >
-                      <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} />
+                      <Avatar photoUrl={user.photo_url ?? undefined} config={user.avatar} alt={user.display_name} size={44} fallback={user.display_name} ring={!!user.quiz_result_type} />
                       {unread && (
                         <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-coral-500 ring-2 ring-paper-50" />
                       )}
