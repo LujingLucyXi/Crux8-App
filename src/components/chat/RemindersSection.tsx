@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Bell, Xmark } from 'iconoir-react';
 import { format } from 'date-fns';
 import { useAppStore, upcomingReminders } from '@/store/useAppStore';
@@ -17,26 +17,37 @@ import { cn } from '@/lib/utils';
  */
 export function RemindersSection() {
   const me = useAppStore((s) => s.me);
-  const reminders = useAppStore((s) =>
-    upcomingReminders({
-      me: s.me,
-      sessions: s.sessions,
-      climbCalls: s.climbCalls,
-      sessionLifecycle: s.sessionLifecycle,
-      dismissedReminders: s.dismissedReminders,
-      gyms: s.gyms,
-    }),
-  );
   const dismissReminder = useAppStore((s) => s.dismissReminder);
   const sessions = useAppStore((s) => s.sessions);
   const climbCalls = useAppStore((s) => s.climbCalls);
+  const sessionLifecycle = useAppStore((s) => s.sessionLifecycle);
+  const dismissedReminders = useAppStore((s) => s.dismissedReminders);
+  const gyms = useAppStore((s) => s.gyms);
 
   const [pushState, setPushState] = useState<PushState | null>(null);
   const [busy, setBusy] = useState(false);
   const [setupPending, setSetupPending] = useState(false);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
   const [detailCallId, setDetailCallId] = useState<string | null>(null);
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
+  // Derived list — computed in useMemo, NOT in the zustand selector: a
+  // selector-built array is a new reference on every call, which makes
+  // React's snapshot check loop forever (React error #185 — the crash
+  // Lucy hit opening Notifications, 2026-10-21). `tick` is a dep so the
+  // "starts in …" tiers still refresh while the page sits open.
+  const reminders = useMemo(
+    () =>
+      upcomingReminders({
+        me,
+        sessions,
+        climbCalls,
+        sessionLifecycle,
+        dismissedReminders,
+        gyms,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [me, sessions, climbCalls, sessionLifecycle, dismissedReminders, gyms, tick],
+  );
 
   useEffect(() => {
     let alive = true;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useAppStore, isInviteActionable, crewAddNotices } from '@/store/useAppStore';
 import { useNavigate } from 'react-router-dom';
@@ -30,13 +30,7 @@ export function InvitesSection({
 } = {}) {
   const navigate = useNavigate();
   const me = useAppStore((s) => s.me);
-  const notices = useAppStore((s) =>
-    crewAddNotices({
-      invites: s.invites,
-      dismissedNotices: s.dismissedNotices,
-      myGroupMemberships: s.myGroupMemberships,
-    }),
-  );
+  const dismissedNotices = useAppStore((s) => s.dismissedNotices);
   const dismissNotice = useAppStore((s) => s.dismissNotice);
   const openGroupChat = useAppStore((s) => s.openGroupChat);
   const invites = useAppStore((s) => s.invites);
@@ -57,6 +51,14 @@ export function InvitesSection({
   const acceptMateRequest = useAppStore((s) => s.acceptMateRequest);
   const dismissFollower = useAppStore((s) => s.dismissFollower);
   const dismissedFollowers = useAppStore((s) => s.dismissedFollowers);
+  // Derived list — computed in useMemo, NOT in the zustand selector: a
+  // selector-built array is a new reference on every call, which makes
+  // React's snapshot check loop forever (React error #185 — the crash
+  // Lucy hit opening Notifications, 2026-10-21).
+  const notices = useMemo(
+    () => crewAddNotices({ invites, dismissedNotices, myGroupMemberships }),
+    [invites, dismissedNotices, myGroupMemberships],
+  );
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [detailSession, setDetailSession] = useState<Session | null>(null);
 
