@@ -3,6 +3,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { fetchBoltBoard, type BoltBoardRow } from '@/lib/db';
 import { CHARGE_FULL, decayLoss, localDay } from '@/lib/charge';
 import { Avatar } from '@/components/ui/Avatar';
+import { UserProfileSheet } from '@/components/sheets/UserProfileSheet';
 import { cn } from '@/lib/utils';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -18,6 +19,8 @@ const MEDALS = ['🥇', '🥈', '🥉'];
  */
 export function BoltBoard() {
   const me = useAppStore((s) => s.me);
+  const ensureDirectoryProfiles = useAppStore((s) => s.ensureDirectoryProfiles);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const myCharge = useAppStore((s) => s.charge);
   const myDay = useAppStore((s) => s.chargeLastActiveDay);
   const [rows, setRows] = useState<BoltBoardRow[] | null>(null);
@@ -58,6 +61,13 @@ export function BoltBoard() {
   const myRank = me ? sorted.findIndex((x) => x.row.id === me.id) : -1;
   const showMyRow = me && myRank >= 3;
 
+  // Board rows open the climber's profile (Lucy 2026-10-24: the board
+  // was the ONLY place a brand-new climber surfaced — tapping it now
+  // reaches their sheet, where Follow lives).
+  const openProfile = (id: string) => {
+    void ensureDirectoryProfiles([id]).then(() => setProfileUserId(id));
+  };
+
   const Row = ({
     entry,
     rank,
@@ -67,9 +77,11 @@ export function BoltBoard() {
     rank: number;
     highlight?: boolean;
   }) => (
-    <div
+    <button
+      type="button"
+      onClick={() => openProfile(entry.row.id)}
       className={cn(
-        'flex items-center gap-3 rounded-2xl px-3 py-2.5',
+        'w-full text-left flex items-center gap-3 rounded-2xl px-3 py-2.5 active:scale-[0.99] transition',
         highlight ? 'bg-brand-100 border border-brand-600/50' : '',
       )}
     >
@@ -98,7 +110,7 @@ export function BoltBoard() {
         </span>
         <span className="text-sm font-extrabold text-ink-900">⚡{entry.value}</span>
       </span>
-    </div>
+    </button>
   );
 
   return (
@@ -130,6 +142,13 @@ export function BoltBoard() {
           </div>
         )}
       </div>
+      <UserProfileSheet
+        userId={profileUserId}
+        open={profileUserId !== null}
+        onOpenChange={(open) => {
+          if (!open) setProfileUserId(null);
+        }}
+      />
     </section>
   );
 }

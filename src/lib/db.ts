@@ -708,6 +708,43 @@ export async function searchClimbersByAvailability(
   return asRows<DirectoryProfile>(data);
 }
 
+/**
+ * Full people directory (Lucy 2026-10-24: "I see a new user pop on
+ * my app but I could not find or add this person"). The directory
+ * used to fill only from people you'd already met in a session or
+ * chat — a brand-new climber like T Wei (bolt 5, signed up today)
+ * surfaced on the leaderboard (a direct view query) but never
+ * entered the store, so Find/PeopleFinder couldn't show or add
+ * them. This loads everyone, newest activity first; callers merge
+ * it into the store directory. Same graceful fallbacks as the
+ * ids-based fetch so a pending migration never breaks discovery.
+ */
+export async function fetchAllDirectoryProfiles(
+  excludeId?: string,
+): Promise<DirectoryProfile[]> {
+  const richSelect =
+    'id,display_name,photo_url,top_grade,boulder_grade,home_gym_id,usual_times,usual_gym_ids,avatar,about,signature,preferred_styles,quiz_result_type,quiz_house_id,location';
+  const build = (select: string, recentFirst: boolean) => {
+    let q = supabase.from('directory_profiles').select(select).limit(200);
+    if (recentFirst) q = q.order('bolt_day', { ascending: false, nullsFirst: false });
+    q = q.order('display_name', { ascending: true });
+    if (excludeId) q = q.neq('id', excludeId);
+    return q;
+  };
+  // bolt_day ordering is a bonus (recently active first) — it must
+  // not break the chain when the bolt columns haven't landed yet, so
+  // every rung below retries without it.
+  const richRecent = await build(richSelect, true);
+  if (!richRecent.error) return asRows<DirectoryProfile>(richRecent.data);
+  const rich = await build(richSelect, false);
+  if (!rich.error) return asRows<DirectoryProfile>(rich.data);
+  const extended = await build('id,display_name,photo_url,top_grade,boulder_grade,home_gym_id', false);
+  if (!extended.error) return asRows<DirectoryProfile>(extended.data);
+  const minimal = await build('id,display_name,photo_url,top_grade,home_gym_id', false);
+  if (minimal.error) return [];
+  return asRows<DirectoryProfile>(minimal.data);
+}
+
 export interface BoltBoardRow {
   id: string;
   display_name: string;

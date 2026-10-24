@@ -102,6 +102,7 @@ import {
   type ClimbCallPatch,
   setCallPairing,
   fetchDirectoryProfiles,
+  fetchAllDirectoryProfiles,
   type DirectoryProfile,
   upsertGroupRemote,
   fetchMyGroupsRemote,
@@ -340,6 +341,10 @@ interface Store {
   fetchClimbCalls: () => Promise<void>;
   /** Fetch unknown user ids into `directory` for display resolution. */
   ensureDirectoryProfiles: (ids: string[]) => Promise<void>;
+  /** Load EVERY real profile into `directory` (Lucy 2026-10-24: new
+   *  climbers must be findable/addable, not just session contacts). */
+  loadAllDirectory: () => Promise<void>;
+  directoryLoadedAll: boolean;
   // Real auth (Supabase email OTP). Replaces the old mock `signUp`.
   sendOtp: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   verifyOtp: (email: string, code: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -1038,6 +1043,7 @@ export const useAppStore = create<Store>()(
       users: [],
       climbCalls: [],
       directory: {},
+    directoryLoadedAll: false,
       directoryVerifications: {},
       myConfirmCounts: {},
       myGroupMemberships: [],
@@ -1263,6 +1269,21 @@ export const useAppStore = create<Store>()(
         }
       },
 
+      loadAllDirectory: async () => {
+        if (get().directoryLoadedAll) return;
+        const me = get().me;
+        try {
+          const profiles = await fetchAllDirectoryProfiles(me?.id);
+          const directory = { ...get().directory };
+          for (const p of profiles) {
+            if (!directory[p.id]) directory[p.id] = p;
+          }
+          set({ directory, directoryLoadedAll: true });
+        } catch (e) {
+          console.error('[directory] load-all failed', e);
+        }
+      },
+
       ensureDirectoryProfiles: async (ids) => {
         const me = get().me;
         const known = new Set([
@@ -1324,6 +1345,7 @@ export const useAppStore = create<Store>()(
           groups: [],
           users: [],
           directory: {},
+    directoryLoadedAll: false,
           directoryVerifications: {},
           myConfirmCounts: {},
           myGroupMemberships: [],
@@ -1882,6 +1904,7 @@ export const useAppStore = create<Store>()(
           groups: [],
           users: [],
           directory: {},
+    directoryLoadedAll: false,
           directoryVerifications: {},
           myConfirmCounts: {},
           myGroupMemberships: [],

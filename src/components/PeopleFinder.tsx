@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'iconoir-react';
 import { toast } from 'sonner';
@@ -40,6 +40,14 @@ export function PeopleFinder({
   const cancelMateRequest = useAppStore((s) => s.cancelMateRequest);
   const mateRequestFor = useAppStore((s) => s.mateRequestFor);
   const ensureInviteCode = useAppStore((s) => s.ensureInviteCode);
+  const loadAllDirectory = useAppStore((s) => s.loadAllDirectory);
+
+  // Full directory on mount (Lucy 2026-10-24): new climbers must be
+  // searchable/addable here, not only people met in a session.
+  useEffect(() => {
+    void loadAllDirectory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [q, setQ] = useState('');
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [codeInput, setCodeInput] = useState('');
@@ -222,8 +230,8 @@ export function PeopleFinder({
       {addable.length === 0 ? (
         <p className="mt-3 text-sm text-ink-500">
           {term
-            ? 'No matches yet — they show up here once you have shared a session.'
-            : 'Your directory fills up as you meet climbers in sessions. Or scan a session QR at the gym — everyone who joins lands on the session roster.'}
+            ? 'No matches yet — try another name, or share a session with them first.'
+            : 'Everyone on Crux8 shows up here — newest faces first. Or scan a session QR at the gym.'}
         </p>
       ) : (
         <div className="mt-3 space-y-2">
